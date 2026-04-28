@@ -1,0 +1,50 @@
+  <script>
+    (function(){
+      function getTheme(){
+        return document.documentElement.getAttribute('data-theme') || 'dark';
+      }
+
+      function setTheme(next){
+        document.documentElement.setAttribute('data-theme', next);
+        try {
+          localStorage.setItem('theme', next);
+        } catch (e) {}
+      }
+
+      function setIcon(button, theme){
+        if (!button) return;
+        var icon = button.querySelector('[data-theme-icon]');
+        var label = button.querySelector('[data-theme-label]');
+        var nextThemeLabel = theme === 'light' ? 'Тёмная тема' : 'Светлая тема';
+        if (icon) icon.textContent = theme === 'light' ? '◑' : '◐';
+        if (label) label.textContent = nextThemeLabel;
+        button.title = nextThemeLabel;
+        button.setAttribute('aria-label', nextThemeLabel);
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        document.querySelectorAll('[data-theme-toggle]').forEach(function(button){
+          setIcon(button, getTheme());
+          button.addEventListener('click', function(){
+            var current = getTheme();
+            var next = current === 'light' ? 'dark' : 'light';
+            setTheme(next);
+            document.querySelectorAll('[data-theme-toggle]').forEach(function(btn){
+              setIcon(btn, next);
+            });
+          });
+        });
+      });
+    })();
+  </script>
+  <% if (user) { %>
+          </div>
+        </main>
+      </div>
+    </div>
+  <% } else { %>
+      </main>
+    </div>
+  <% } %>
+</body>
+</html>

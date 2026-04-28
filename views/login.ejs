@@ -1,0 +1,32 @@
+<%- include('partials/header', { title: 'Вход', bodyClass: 'page-login', user: null, path: '/login' }) %>
+
+<div class="card" style="max-width:520px; margin: 12px auto 0;">
+  <h1 style="margin:0 0 4px;">Вход</h1>
+  <div class="muted" style="margin-bottom:12px;">Введите номер телефона и PIN.</div>
+
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert err"><%= error %></div>
+  <% } %>
+
+  <form method="post" action="/login">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="row">
+      <div class="field">
+        <label>Телефон</label>
+        <input name="phone" placeholder="79000000000" autocomplete="tel" required />
+        <div class="hint">Только цифры, без + и пробелов.</div>
+      </div>
+      <div class="field">
+        <label>PIN</label>
+        <input name="pin" type="password" autocapitalize="none" spellcheck="false" placeholder="Пароль" autocomplete="current-password" autocapitalize="none" spellcheck="false" required />
+        <div class="hint">Если PIN не знаете — попросите администратора.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <button class="btn btn-primary" style="width:100%;">Войти</button>
+    </div>
+  </form>
+</div>
+
+<%- include('partials/footer') %>

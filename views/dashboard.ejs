@@ -1,0 +1,2940 @@
+<%- include('partials/header', { title, bodyClass, user, path: '/' }) %>
+
+<%
+  // DASHBOARD_DEVICE_NATURAL_SORT_START
+  const __dashboardTrailingNum = (d) => {
+    const label = String((d && (d.name || d.id)) || '').trim();
+    const m = label.match(/(\d+)(?!.*\d)/);
+    return m ? Number(m[1]) : Number.POSITIVE_INFINITY;
+  };
+
+  const __sortDashboardDevices = (arr) => {
+    const list = Array.isArray(arr) ? [...arr] : [];
+    list.sort((a, b) => {
+      const an = __dashboardTrailingNum(a);
+      const bn = __dashboardTrailingNum(b);
+
+      if (an !== bn) return an - bn;
+
+      const aName = String((a && (a.name || a.id)) || '').trim();
+      const bName = String((b && (b.name || b.id)) || '').trim();
+
+      const byName = aName.localeCompare(bName, 'ru', {
+        numeric: true,
+        sensitivity: 'base'
+      });
+      if (byName !== 0) return byName;
+
+      return String((a && a.id) || '').localeCompare(String((b && b.id) || ''), 'ru', {
+        numeric: true,
+        sensitivity: 'base'
+      });
+    });
+    return list;
+  };
+
+  const __dashText = (value) => String(value || '').trim();
+  const __profileArray = (value) => (
+    Array.isArray(value)
+      ? value.map((item) => __dashText(item)).filter(Boolean)
+      : []
+  );
+  const __pluralRu = (n, one, few, many) => {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+    return many;
+  };
+
+  const __dashboardFloor = (device) => {
+    const match = __dashText(device && device.name).match(/(\d+)\s*(?:эт|этаж)/iu);
+    return match ? Number(match[1]) : null;
+  };
+
+  const __routeMetaForDevice = (device, zoneName) => {
+    const name = __dashText(device && device.name).toLowerCase();
+    const floor = __dashboardFloor(device);
+    if (Number.isFinite(floor)) {
+      return {
+        key: `floor:${floor}`,
+        title: `${floor} этаж`,
+        subtitle: 'Прямой проезд на нужный этаж',
+        rank: 10 + floor,
+        floor,
+      };
+    }
+    if (name.includes('лифт')) {
+      return { key: 'lift', title: 'Лифты', subtitle: 'Подъём на нужный этаж', rank: 200, floor: null };
+    }
+    if (/двер|вход/iu.test(name)) {
+      return { key: 'door', title: 'Входы', subtitle: 'Пеший вход с 1 этажа', rank: 210, floor: null };
+    }
+    if (/въезд|заезд/iu.test(name)) {
+      return { key: 'entry', title: 'Въезды', subtitle: 'Заезд к своим местам', rank: 220, floor: null };
+    }
+    if (name.includes('выезд')) {
+      return { key: 'exit', title: 'Выезды', subtitle: 'Выезд с парковки', rank: 230, floor: null };
+    }
+    if (/шлаг|проезд|рамп/iu.test(name) || /северный въезд|эстакад/iu.test(__dashText(zoneName).toLowerCase())) {
+      return { key: 'gate', title: 'Шлагбаумы', subtitle: 'Проезд по маршруту', rank: 240, floor: null };
+    }
+    return { key: 'other', title: 'Что открыть', subtitle: 'Доступно в этом разделе', rank: 250, floor: null };
+  };
+
+  const __routeSectionId = (zoneId, key) => (
+    `route-${String(zoneId || '').replace(/[^\w-]/g, '-')}-${String(key || '').replace(/[^\w-]/g, '-')}`
+  );
+
+  const __routeSearchText = (parts) => (
+    parts
+      .filter(Boolean)
+      .map((part) => __dashText(part).toLowerCase())
+      .join(' ')
+  );
+
+  const __buildZoneRoutes = (group) => {
+    const zoneId = group && group.zoneId ? group.zoneId : '';
+    const zoneName = group && group.zoneName ? group.zoneName : '';
+    const devices = __sortDashboardDevices(Array.isArray(group && group.devices) ? group.devices : []);
+    const buckets = new Map();
+
+    devices.forEach((device) => {
+      const meta = __routeMetaForDevice(device, zoneName);
+      const bucket = buckets.get(meta.key) || { ...meta, devices: [] };
+      bucket.devices.push(device);
+      buckets.set(meta.key, bucket);
+    });
+
+    const sections = Array.from(buckets.values())
+      .map((section) => {
+        const deviceNames = section.devices.map((device) => device && device.name).filter(Boolean);
+        const searchText = __routeSearchText([zoneName, section.title, section.subtitle].concat(deviceNames));
+        const localSearchText = __routeSearchText([section.title, section.subtitle].concat(deviceNames));
+        return {
+          ...section,
+          id: __routeSectionId(zoneId, section.key),
+          devices: __sortDashboardDevices(section.devices),
+          count: section.devices.length,
+          searchText,
+          localSearchText,
+          isProfileMatch: __profileMatchesSection({ ...section, searchText }, zoneName),
+        };
+      })
+      .sort((a, b) => {
+        const byProfile = Number(b.isProfileMatch) - Number(a.isProfileMatch);
+        if (byProfile) return byProfile;
+        const af = Number.isFinite(a.floor) ? a.floor : Number.POSITIVE_INFINITY;
+        const bf = Number.isFinite(b.floor) ? b.floor : Number.POSITIVE_INFINITY;
+        if (af !== bf) return af - bf;
+        if (a.rank !== b.rank) return a.rank - b.rank;
+        return String(a.title || '').localeCompare(String(b.title || ''), 'ru', {
+          numeric: true,
+          sensitivity: 'base',
+        });
+      });
+
+    return { zoneId, zoneName, sections };
+  };
+
+  const __safeJson = (value) => JSON.stringify(value || []).replace(/[<>&\u2028\u2029]/g, function (c) {
+    return { '<': '\\u003C', '>': '\\u003E', '&': '\\u0026', '\u2028': '\\u2028', '\u2029': '\\u2029' }[c];
+  });
+
+  const __stats = (typeof dashboardStats !== 'undefined' && dashboardStats) ? dashboardStats : {};
+  const __devicesForJson = Array.isArray(typeof dashboardDevices !== 'undefined' ? dashboardDevices : [])
+    ? dashboardDevices
+    : [];
+  const __recentEvents = Array.isArray(typeof recentEvents !== 'undefined' ? recentEvents : [])
+    ? recentEvents
+    : [];
+  const __zoneSummary = Array.isArray(typeof zoneSummary !== 'undefined' ? zoneSummary : [])
+    ? zoneSummary
+    : [];
+  const __timeline = Array.isArray(typeof dashboardTimeline !== 'undefined' ? dashboardTimeline : [])
+    ? dashboardTimeline
+    : [];
+  const __attentionEvents = Array.isArray(typeof dashboardAttention !== 'undefined' ? dashboardAttention : [])
+    ? dashboardAttention
+    : [];
+  const __supportContact = (typeof supportContact !== 'undefined' && supportContact) ? supportContact : null;
+  const __isTenant = !!(user && user.role === 'user');
+  const __showOperatorPanels = !!(user && (user.role === 'admin' || user.role === 'dispatcher'));
+  const __tenantProfile = {
+    parking_floors: __profileArray(user && user.parking_floors),
+    parking_groups: __profileArray(user && user.parking_groups),
+    parking_spots: __profileArray(user && user.parking_spots),
+    preferred_routes: __profileArray(user && user.preferred_routes),
+  };
+  __tenantProfile.hasProfile = !!(
+    __tenantProfile.parking_floors.length ||
+    __tenantProfile.parking_groups.length ||
+    __tenantProfile.parking_spots.length ||
+    __tenantProfile.preferred_routes.length
+  );
+  const __tenantPrimaryFloor = String(__tenantProfile.parking_floors[0] || '').replace(/[^\d]/g, '');
+  const __lastEvent = __stats.lastEvent || __recentEvents[0] || null;
+  const __zoneSummaryById = Object.fromEntries(__zoneSummary.map((zone) => [zone.id, zone]));
+  const __profileMatchesSection = (section, zoneName) => {
+    if (!__isTenant || !__tenantProfile.hasProfile || !section) return false;
+    const routeHaystack = __routeSearchText([
+      zoneName,
+      section.title,
+      section.subtitle,
+    ]);
+    const deviceHaystack = __routeSearchText((Array.isArray(section.devices) ? section.devices.map((device) => device && device.name) : []));
+    const haystack = `${routeHaystack} ${deviceHaystack}`.trim();
+    const floorMatch = __tenantProfile.parking_floors.some((floor) => {
+      const digits = String(floor || '').replace(/[^\d]/g, '');
+      return !!digits && (String(section.floor || '') === digits || haystack.includes(digits));
+    });
+    const routeMatch = __tenantProfile.preferred_routes.some((route) => routeHaystack.includes(String(route || '').toLowerCase()));
+    const groupMatch = __tenantProfile.parking_groups.some((group) => haystack.includes(String(group || '').toLowerCase()));
+    const spotMatch = __tenantProfile.parking_spots.some((spot) => haystack.includes(String(spot || '').toLowerCase()));
+    return floorMatch || routeMatch || groupMatch || spotMatch;
+  };
+  const __zoneRouteGroups = (Array.isArray(byZone) ? byZone : []).map(__buildZoneRoutes);
+  const __zoneRoutesById = Object.fromEntries(__zoneRouteGroups.map((zone) => [zone.zoneId, zone]));
+  const __allTenantQuickRoutes = __zoneRouteGroups.flatMap((zone) => (
+    zone.sections.map((section) => ({
+      ...section,
+      zoneId: zone.zoneId,
+      zoneName: zone.zoneName,
+    }))
+  ));
+  const __preferredTenantQuickRoutes = __allTenantQuickRoutes.filter((route) => route.isProfileMatch);
+  const __tenantQuickRoutes = (__isTenant && __tenantProfile.hasProfile && __preferredTenantQuickRoutes.length)
+    ? __preferredTenantQuickRoutes
+    : __allTenantQuickRoutes;
+  const __tenantQuickRouteMode = (__isTenant && __tenantProfile.hasProfile && __preferredTenantQuickRoutes.length) ? 'profile' : 'fallback';
+  const __introTitle = __isTenant ? 'Открыть проезд или вход' : 'Открыть и проверить';
+  const __introLead = __isTenant
+    ? (__tenantProfile.hasProfile
+      ? 'Сначала показано то, что относится к вашему этажу и обычному маршруту.'
+      : 'Сначала выберите этаж, вход или нужный проезд. Остальное мы убрали, чтобы не мешало.')
+    : 'Найдите нужный въезд, дверь или шлагбаум. Ниже сразу видно, сработала команда или нет.';
+  const __recentDeviceActions = __recentEvents
+    .map((e) => ({
+      id: e.device_id || (e.details && e.details.deviceId) || '',
+      name: e.point || '',
+      zoneName: e.zone_id || (e.details && e.details.zoneId) || '',
+      requestId: e.request_id || '',
+      ts: e.datetime_msk || e.datetime || '',
+    }))
+    .filter((e) => e.id);
+  const __clientRecentEvents = __recentEvents.map((e) => ({
+    datetime: e.datetime || null,
+    datetime_msk: e.datetime_msk || null,
+    point: e.point || null,
+    event: e.event || null,
+    result: e.result || null,
+    request_id: e.request_id || null,
+    actor_fio: e.actor_fio || null,
+    actor_phone: e.actor_phone || null,
+    device_id: e.device_id || (e.details && e.details.deviceId) || null,
+    zone_id: e.zone_id || (e.details && e.details.zoneId) || null,
+    gateway: (e.details && e.details.gateway) || null,
+    result_label: e.result_label || null,
+  }));
+%>
+
+
+<style>
+.dashboard-page{
+  width:100%;
+  max-width:100%;
+}
+
+.ops-panel{
+  display:grid;
+  gap:14px;
+  margin-bottom:14px;
+}
+
+.ops-head{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+}
+
+.ops-title{
+  padding:18px 20px;
+  border-radius:12px;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 72%, var(--card)), var(--card));
+  border:1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  box-shadow:var(--shadow-card);
+}
+
+.ops-kicker{
+  display:block;
+  margin-bottom:10px;
+  font-size:11px;
+  line-height:1.1;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+
+.ops-title h1{
+  margin:0;
+  font-size:28px;
+  line-height:1.15;
+}
+
+.ops-lead{
+  margin:10px 0 0;
+  max-width:56ch;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.5;
+}
+
+.ops-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+
+.ops-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:14px;
+}
+
+.ops-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:40px;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--accent) 20%, var(--field-border));
+  background:rgba(255,255,255,.34);
+  color:var(--text);
+  font-size:13px;
+  font-weight:600;
+  white-space:nowrap;
+  touch-action:manipulation;
+  cursor:pointer;
+}
+
+.ops-action:hover{
+  border-color:var(--ring);
+  background:rgba(255,255,255,.46);
+}
+
+.ops-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:32px;
+  padding:7px 10px;
+  border-radius:999px;
+  background:rgba(0,0,0,.10);
+  border:1px solid color-mix(in srgb, var(--accent) 18%, var(--field-border));
+  color:var(--text);
+  font-size:12px;
+  white-space:nowrap;
+}
+
+.ops-dot{
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background:#94a3b8;
+  box-shadow:0 0 0 4px rgba(148,163,184,.12);
+}
+
+.ops-pill.is-online .ops-dot{
+  background:#35b874;
+  box-shadow:0 0 0 4px rgba(53,184,116,.14);
+}
+
+.ops-pill.is-offline .ops-dot{
+  background:#ff6b6b;
+  box-shadow:0 0 0 4px rgba(255,107,107,.14);
+}
+
+.ops-stats{
+  display:none;
+}
+
+.ops-stat{
+  min-width:0;
+  padding:14px;
+  border-radius:12px;
+  background:var(--card2);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow-card);
+}
+
+.ops-stat-value{
+  font-size:26px;
+  line-height:1;
+  font-weight:800;
+}
+
+.ops-stat-label{
+  margin-top:6px;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.ops-workbar{
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) minmax(280px,.9fr);
+  gap:12px;
+  align-items:start;
+}
+
+.ops-search,
+.ops-recent{
+  padding:16px;
+  border-radius:12px;
+  background:var(--card2);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow-card);
+}
+
+.dashboard-page.is-searching .ops-recent,
+.dashboard-page.is-searching .tenant-action-strip,
+.dashboard-page.is-searching .command-center,
+.dashboard-page.is-searching .signal-grid{
+  display:none;
+}
+
+.ops-search input{
+  min-height:44px;
+  font-size:15px;
+}
+
+.ops-search-row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.ops-search-count{
+  min-width:78px;
+  text-align:right;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.recent-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.recent-title strong{
+  font-size:14px;
+}
+
+.recent-list,
+.recent-quick-list{
+  display:grid;
+  gap:8px;
+}
+
+.recent-row,
+.recent-quick-btn{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-width:0;
+  min-height:52px;
+  padding:9px 10px;
+  border-radius:10px;
+  border:1px solid var(--field-border);
+  background:var(--field-bg);
+  color:var(--text);
+}
+
+.recent-quick-btn{
+  cursor:pointer;
+  text-align:left;
+}
+
+.recent-quick-btn:hover{
+  border-color:var(--ring);
+}
+
+.recent-main{
+  min-width:0;
+  overflow:hidden;
+}
+
+.recent-name{
+  display:block;
+  font-size:13px;
+  font-weight:800;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.recent-sub{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:11px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.recent-code{
+  color:var(--muted);
+  font-size:11px;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.dashboard-empty-search{
+  display:none;
+  padding:12px 14px;
+  border-radius:14px;
+  background:var(--field-bg);
+  border:1px dashed var(--field-border);
+  color:var(--muted);
+  font-size:13px;
+}
+
+.dashboard-search-help{
+  display:none;
+  margin-top:12px;
+  padding:14px 16px;
+  border-radius:14px;
+  border:1px solid var(--field-border);
+  background:var(--card2);
+  box-shadow:var(--shadow-card);
+}
+
+.dashboard-search-help.show{
+  display:grid;
+  gap:10px;
+}
+
+.dashboard-search-help-title{
+  font-size:13px;
+  line-height:1.45;
+  color:var(--text);
+}
+
+.dashboard-search-help-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.search-help-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--accent) 24%, var(--field-border));
+  background:rgba(255,255,255,.42);
+  color:var(--text);
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.command-center{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(300px,.9fr);
+  gap:14px;
+  margin-bottom:14px;
+}
+
+.command-center.is-tenant{
+  grid-template-columns:1fr;
+}
+
+.signal-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);
+  gap:14px;
+  margin-bottom:14px;
+}
+
+.center-panel{
+  min-width:0;
+  padding:16px;
+  border-radius:12px;
+  background:var(--card);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow-card);
+}
+
+.center-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.center-head strong{
+  font-size:14px;
+}
+
+.center-sub{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.zone-pulse-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+  gap:10px;
+}
+
+.route-strip{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.tenant-action-strip{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:10px;
+  margin-top:10px;
+}
+
+.tenant-context-strip{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:12px;
+}
+
+.tenant-context-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:40px;
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid var(--field-border);
+  background:var(--surface-2);
+  color:var(--text);
+  font-size:13px;
+  line-height:1.25;
+  text-align:left;
+}
+
+.tenant-context-label{
+  color:var(--muted);
+}
+
+button.tenant-context-chip{
+  cursor:pointer;
+}
+
+button.tenant-context-chip:hover{
+  border-color:var(--ring);
+}
+
+.tenant-action-card{
+  width:100%;
+  min-width:0;
+  min-height:72px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:12px 14px;
+  border-radius:12px;
+  border:1px solid var(--field-border);
+  background:var(--field-bg);
+  color:var(--text);
+  text-align:left;
+  touch-action:manipulation;
+}
+
+button.tenant-action-card{
+  cursor:pointer;
+}
+
+.tenant-action-card:hover{
+  border-color:var(--ring);
+}
+
+.tenant-action-card.is-call{
+  background:linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 78%, var(--field-bg)), color-mix(in srgb, var(--field-bg) 96%, transparent));
+  border-color:color-mix(in srgb, var(--accent) 28%, var(--field-border));
+}
+
+.tenant-action-copy{
+  min-width:0;
+  display:grid;
+  gap:4px;
+}
+
+.tenant-action-title{
+  font-size:14px;
+  font-weight:800;
+  line-height:1.2;
+}
+
+.tenant-action-sub{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.35;
+}
+
+.tenant-action-icon{
+  flex:0 0 auto;
+  width:34px;
+  height:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  background:var(--surface-2);
+  font-size:16px;
+  font-weight:700;
+}
+
+.route-chip{
+  min-width:0;
+  min-height:96px;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid var(--field-border);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 88%, transparent), color-mix(in srgb, var(--surface) 98%, transparent));
+  color:var(--text);
+  text-align:left;
+  cursor:pointer;
+}
+
+.route-chip:hover{
+  border-color:var(--ring);
+}
+
+.route-chip.is-profile{
+  border-color:color-mix(in srgb, var(--accent) 30%, var(--field-border));
+  background:linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 74%, var(--surface-2)), color-mix(in srgb, var(--surface) 98%, transparent));
+}
+
+.route-chip-zone{
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.3;
+}
+
+.route-chip-flag{
+  display:inline-flex;
+  align-items:center;
+  margin-top:8px;
+  min-height:22px;
+  padding:3px 8px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--accent) 24%, var(--field-border));
+  background:rgba(255,255,255,.45);
+  font-size:11px;
+  color:var(--text);
+}
+
+.route-chip-title{
+  display:block;
+  margin-top:4px;
+  font-size:14px;
+  font-weight:800;
+  line-height:1.2;
+}
+
+.route-chip-sub{
+  display:block;
+  margin-top:5px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.35;
+}
+
+.zone-pulse{
+  min-width:0;
+  min-height:98px;
+  padding:13px 12px;
+  border-radius:10px;
+  background:var(--field-bg);
+  border:1px solid var(--field-border);
+  cursor:pointer;
+  text-align:left;
+  color:var(--text);
+}
+
+.zone-pulse:hover{
+  border-color:var(--ring);
+}
+
+.zone-pulse-name{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  font-size:13px;
+  font-weight:800;
+}
+
+.zone-pulse-count{
+  flex:0 0 auto;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+}
+
+.zone-pulse-sub{
+  display:block;
+  margin-top:6px;
+  color:var(--text);
+  font-size:12px;
+  line-height:1.35;
+}
+
+.zone-pulse-last{
+  display:block;
+  margin-top:7px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.35;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.feed-list{
+  display:grid;
+  gap:8px;
+}
+
+.feed-item{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  padding:10px;
+  border-radius:10px;
+  background:var(--field-bg);
+  border:1px solid var(--field-border);
+}
+
+.section-head{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:10px;
+  margin:14px 0 10px;
+}
+
+.section-head-title{
+  font-size:18px;
+  font-weight:700;
+  line-height:1.2;
+}
+
+.section-head-sub{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.4;
+}
+
+.feed-point{
+  font-size:13px;
+  font-weight:800;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.feed-meta{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:11px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.feed-result{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:28px;
+  padding:5px 8px;
+  border-radius:999px;
+  border:1px solid var(--field-border);
+  background:var(--surface-2);
+  color:var(--text);
+  font-size:11px;
+  white-space:nowrap;
+}
+
+.feed-result.is-ok{
+  border-color:rgba(53,184,116,.36);
+  background:rgba(53,184,116,.12);
+}
+
+.feed-result.is-error{
+  border-color:rgba(255,107,107,.42);
+  background:rgba(255,107,107,.12);
+}
+
+.signal-strip{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.signal-chip{
+  min-width:0;
+  padding:12px 12px 10px;
+  border-radius:10px;
+  border:1px solid var(--field-border);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 88%, transparent), color-mix(in srgb, var(--surface) 96%, transparent));
+}
+
+.signal-chip-label{
+  display:block;
+  font-size:11px;
+  color:var(--muted);
+}
+
+.signal-chip-value{
+  display:block;
+  margin-top:6px;
+  font-size:22px;
+  font-weight:800;
+  line-height:1;
+}
+
+.signal-chip-sub{
+  display:block;
+  margin-top:5px;
+  font-size:11px;
+  color:var(--muted);
+}
+
+.rhythm-chart{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(42px, 1fr));
+  align-items:end;
+  gap:10px;
+  min-height:146px;
+}
+
+.rhythm-col{
+  min-width:0;
+  display:grid;
+  gap:8px;
+  justify-items:center;
+}
+
+.rhythm-bar{
+  position:relative;
+  width:100%;
+  height:120px;
+  padding:6px;
+  border-radius:10px;
+  border:1px solid var(--field-border);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 88%, transparent), color-mix(in srgb, var(--surface) 96%, transparent));
+  display:flex;
+  align-items:flex-end;
+}
+
+.rhythm-bar-fill{
+  width:100%;
+  border-radius:10px;
+  background:linear-gradient(180deg, rgba(88, 191, 255, .88), rgba(42, 138, 255, .52));
+  min-height:14px;
+}
+
+.rhythm-bar-fill.is-alert{
+  background:linear-gradient(180deg, rgba(255, 171, 72, .9), rgba(255, 107, 107, .55));
+}
+
+.rhythm-total{
+  position:absolute;
+  top:8px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:11px;
+  color:var(--muted);
+}
+
+.rhythm-label{
+  font-size:11px;
+  color:var(--muted);
+}
+
+.attention-list{
+  display:grid;
+  gap:8px;
+}
+
+.attention-item{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  padding:11px 12px;
+  border-radius:10px;
+  border:1px solid rgba(255,171,72,.22);
+  background:linear-gradient(180deg, rgba(255,171,72,.12), rgba(255,107,107,.08));
+  color:var(--text);
+  text-decoration:none;
+}
+
+.attention-item:hover{
+  border-color:rgba(255,171,72,.42);
+}
+
+.attention-point{
+  font-size:13px;
+  font-weight:800;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.attention-meta{
+  margin-top:4px;
+  font-size:11px;
+  color:var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.attention-result{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:5px 9px;
+  border-radius:999px;
+  border:1px solid rgba(255,171,72,.3);
+  background:rgba(255,255,255,.08);
+  font-size:11px;
+  white-space:nowrap;
+}
+
+.attention-empty{
+  padding:18px 12px;
+  border-radius:10px;
+  border:1px dashed var(--field-border);
+  background:var(--field-bg);
+  color:var(--muted);
+  font-size:13px;
+  text-align:center;
+}
+
+.command-toast{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:4000;
+  display:none;
+  width:min(380px, calc(100vw - 32px));
+  padding:14px 16px;
+  border-radius:12px;
+  background:color-mix(in srgb, var(--surface) 94%, transparent);
+  border:1px solid var(--border);
+  box-shadow:0 24px 80px rgba(0,0,0,.38);
+  color:var(--text);
+}
+
+.command-toast.show{
+  display:block;
+}
+
+.command-toast[data-tone="pending"]{
+  border-color:rgba(88, 191, 255, .34);
+}
+
+.command-toast[data-tone="success"]{
+  border-color:rgba(53,184,116,.36);
+}
+
+.command-toast[data-tone="warning"]{
+  border-color:rgba(245,187,72,.38);
+}
+
+.command-toast[data-tone="error"]{
+  border-color:rgba(255,107,107,.38);
+}
+
+.command-toast-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.command-toast-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:var(--surface-2);
+  border:1px solid var(--field-border);
+  font-size:11px;
+  font-weight:700;
+}
+
+.command-toast-title{
+  font-size:14px;
+  font-weight:800;
+}
+
+.command-toast-body{
+  margin-top:2px;
+  color:var(--text);
+  font-size:12px;
+  line-height:1.45;
+}
+
+.command-toast-hint{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.45;
+}
+
+.zone-card.is-hidden,
+.device-btn.is-hidden{
+  display:none !important;
+}
+
+.zone-list{
+  display:grid;
+  gap:14px;
+}
+
+.zone-card{
+  border-radius:12px;
+  background:var(--card);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow-card);
+  overflow:hidden;
+}
+
+.zone-toggle{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:68px;
+  padding:16px 18px;
+  background:transparent;
+  border:none;
+  color:var(--text);
+  cursor:pointer;
+  text-align:left;
+}
+
+.zone-toggle:hover{
+  background:var(--accent-ghost);
+}
+
+.zone-title-wrap{
+  min-width:0;
+}
+
+.zone-title{
+  font-size:18px;
+  font-weight:700;
+  line-height:1.2;
+}
+
+.zone-sub{
+  margin-top:4px;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.zone-arrow{
+  flex:0 0 auto;
+  font-size:18px;
+  transition:transform .18s ease;
+  color:var(--muted);
+}
+
+.zone-card.open .zone-arrow{
+  transform:rotate(180deg);
+}
+
+.zone-body{
+  display:none;
+  padding:0 18px 18px 18px;
+  border-top:1px solid var(--border);
+}
+
+.zone-card.open .zone-body{
+  display:block;
+}
+
+.route-sections{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+  gap:12px;
+  margin-top:14px;
+}
+
+.route-section{
+  min-width:0;
+  padding:14px;
+  border-radius:12px;
+  border:1px solid var(--field-border);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 92%, transparent), color-mix(in srgb, var(--surface) 98%, transparent));
+}
+
+.route-section.is-hidden{
+  display:none !important;
+}
+
+.route-section.is-profile{
+  border-color:color-mix(in srgb, var(--accent) 32%, var(--field-border));
+  background:linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 78%, var(--surface-2)), color-mix(in srgb, var(--surface) 98%, transparent));
+}
+
+.route-section.is-focus{
+  border-color:var(--ring);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.route-section-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.route-section-title{
+  font-size:15px;
+  font-weight:800;
+  line-height:1.2;
+}
+
+.route-section-sub{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.35;
+}
+
+.route-section-count{
+  flex:0 0 auto;
+  min-width:30px;
+  text-align:center;
+  padding:5px 8px;
+  border-radius:999px;
+  border:1px solid var(--field-border);
+  background:var(--field-bg);
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+}
+
+.route-section-tag{
+  display:inline-flex;
+  align-items:center;
+  margin-top:8px;
+  min-height:22px;
+  padding:3px 8px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--accent) 24%, var(--field-border));
+  background:rgba(255,255,255,.45);
+  font-size:11px;
+  color:var(--text);
+}
+
+.route-section .device-grid{
+  grid-template-columns:1fr;
+  margin-top:0;
+}
+
+.device-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:12px;
+  margin-top:14px;
+}
+
+.device-btn{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-height:56px;
+  padding:14px 14px;
+  border-radius:10px;
+  border:1px solid var(--field-border);
+  background:var(--field-bg);
+  color:var(--text);
+  cursor:pointer;
+  text-align:left;
+  transition:transform .08s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+}
+
+.device-btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 10px 24px rgba(0,0,0,.14);
+  border-color:var(--ring);
+}
+
+.device-btn:disabled{
+  opacity:.65;
+  cursor:default;
+  transform:none;
+  box-shadow:none;
+}
+
+.device-btn.is-success{
+  border-color:#35b874 !important;
+  background:rgba(31,143,87,.18) !important;
+}
+
+.device-btn.is-pending{
+  border-color:rgba(88, 191, 255, .4) !important;
+  background:rgba(88, 191, 255, .12) !important;
+}
+
+.device-btn.is-armed{
+  border-color:#f5bb48 !important;
+  background:rgba(245,187,72,.14) !important;
+}
+
+.device-btn.is-error{
+  border-color:rgba(255,107,107,.4) !important;
+  background:rgba(255,107,107,.12) !important;
+}
+
+.device-name{
+  font-weight:600;
+  line-height:1.25;
+  min-width:0;
+}
+
+.device-icon{
+  flex:0 0 auto;
+  width:32px;
+  height:32px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  background:var(--surface-2);
+  opacity:1;
+}
+
+.empty-zone{
+  margin-top:14px;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.result-note{
+  margin-top:14px;
+  display:grid;
+  gap:8px;
+  padding:14px 16px;
+  border-radius:12px;
+  border:1px solid var(--field-border);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 92%, transparent), color-mix(in srgb, var(--surface) 96%, transparent));
+  box-shadow:var(--shadow-card);
+}
+
+.result-note[data-tone="idle"]{
+  border-color:var(--field-border);
+}
+
+.result-note[data-tone="pending"]{
+  border-color:rgba(88, 191, 255, .34);
+  background:linear-gradient(180deg, rgba(88, 191, 255, .14), color-mix(in srgb, var(--surface) 96%, transparent));
+}
+
+.result-note[data-tone="success"]{
+  border-color:rgba(53,184,116,.34);
+  background:linear-gradient(180deg, rgba(53,184,116,.14), color-mix(in srgb, var(--surface) 96%, transparent));
+}
+
+.result-note[data-tone="warning"]{
+  border-color:rgba(245,187,72,.34);
+  background:linear-gradient(180deg, rgba(245,187,72,.15), color-mix(in srgb, var(--surface) 96%, transparent));
+}
+
+.result-note[data-tone="error"]{
+  border-color:rgba(255,107,107,.34);
+  background:linear-gradient(180deg, rgba(255,107,107,.14), color-mix(in srgb, var(--surface) 96%, transparent));
+}
+
+.result-note-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.result-note-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid var(--field-border);
+  background:var(--field-bg);
+  font-size:11px;
+  font-weight:700;
+}
+
+.result-note-code{
+  color:var(--muted);
+  font-size:11px;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.result-note-title{
+  font-size:15px;
+  font-weight:800;
+  line-height:1.3;
+}
+
+.result-note-body{
+  font-size:13px;
+  line-height:1.45;
+}
+
+.result-note-hint{
+  font-size:12px;
+  line-height:1.45;
+  color:var(--muted);
+}
+
+.euro-layout{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-top:14px;
+  align-items:start;
+}
+
+.euro-col-title{
+  font-size:12px;
+  color:var(--muted);
+  margin:0 0 8px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
+.euro-layout .device-grid{
+  grid-template-columns:1fr;
+  margin-top:0;
+}
+
+@media (max-width: 768px){
+  .ops-head,
+  .ops-workbar,
+  .command-center,
+  .signal-grid{
+    grid-template-columns:1fr;
+  }
+
+  .ops-stats{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .ops-title h1{
+    font-size:22px;
+  }
+
+  .ops-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .ops-search-row{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+
+  .ops-search-count{
+    min-width:0;
+    text-align:left;
+  }
+
+  .zone-toggle{
+    padding:14px 14px;
+  }
+
+  .zone-title{
+    font-size:17px;
+  }
+
+  .zone-body{
+    padding:0 14px 14px 14px;
+  }
+
+  .device-grid{
+    grid-template-columns:1fr;
+  }
+
+  .route-strip,
+  .zone-pulse-grid{
+    grid-template-columns:1fr;
+  }
+
+  .ops-action{
+    width:100%;
+    min-width:0;
+    white-space:normal;
+    text-align:center;
+  }
+
+  .euro-layout{
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+
+  .euro-layout .device-grid{
+    grid-template-columns:1fr;
+  }
+
+  .signal-strip{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
+<div class="dashboard-page">
+  <div class="ops-panel">
+    <div class="ops-head">
+      <div class="ops-title">
+        <span class="ops-kicker"><%= __isTenant ? 'Ваш маршрут' : 'Удаленное управление' %></span>
+        <h1><%= __introTitle %></h1>
+        <p class="ops-lead"><%= __introLead %></p>
+        <% if (!__isTenant) { %>
+        <div class="ops-meta">
+            <span class="ops-pill" id="gatewayStatus">
+              <span class="ops-dot"></span>
+              <span id="gatewayStatusText"><%= __stats.gatewayConfigured ? 'Шлюз проверяется' : 'Шлюз не настроен' %></span>
+            </span>
+            <% if (__lastEvent) { %>
+              <span class="ops-pill">
+                <span class="ops-dot"></span>
+                <span>Последняя команда: <%= (__lastEvent.datetime_msk || '').toString().split(' ').slice(1).join(' ') || '—' %></span>
+              </span>
+            <% } %>
+        </div>
+        <% } %>
+        <% if (!__isTenant) { %>
+          <div class="ops-actions">
+            <button type="button" class="ops-action" data-jump-target="dashboardSearch">Найти</button>
+            <button type="button" class="ops-action" data-jump-target="zonePulseGrid">Открыть</button>
+            <button type="button" class="ops-action" data-jump-target="liveFeedList">Недавние</button>
+            <% if (__showOperatorPanels) { %>
+              <button type="button" class="ops-action" data-jump-target="attentionList">Проблемы</button>
+            <% } %>
+            <a class="ops-action" href="/logs">Журнал</a>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="ops-workbar">
+      <div class="ops-search">
+        <div class="ops-search-row">
+          <input id="dashboardSearch" type="search" placeholder="<%= __isTenant ? 'Например: 7 этаж, вход, Ш1' : 'Например: Ш1, дверь 1, 7 этаж' %>" autocomplete="off" autocapitalize="none">
+          <div class="ops-search-count" id="dashboardSearchCount" <%= __isTenant ? 'hidden' : '' %>><%= __isTenant ? '' : ('Устройств: ' + (__stats.devices || 0)) %></div>
+        </div>
+      </div>
+
+      <div class="ops-recent">
+        <div class="recent-title">
+          <strong><%= __isTenant ? 'Недавно открывали' : 'Недавние команды' %></strong>
+          <span class="recent-code" id="recentUpdated"><%= __isTenant ? '' : (__lastEvent && __lastEvent.request_id ? String(__lastEvent.request_id).slice(0, 8) : '') %></span>
+        </div>
+        <div class="recent-quick-list" id="recentQuickList"></div>
+        <% if (__recentEvents.length) { %>
+          <div class="recent-list" id="serverRecentList">
+            <% __recentEvents.slice(0, 3).forEach(function(e){ 
+              const _rid = e.request_id ? String(e.request_id).slice(0, 8) : '';
+            %>
+              <div class="recent-row">
+                <div class="recent-main">
+                  <div class="recent-name"><%= e.point || '—' %></div>
+                  <div class="recent-sub"><%= e.actor_fio || e.source || '—' %> • <%= e.result_label || e.result || '—' %></div>
+                </div>
+                <div class="recent-code"><%= _rid %></div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <% if (__isTenant && (__tenantPrimaryFloor || __supportContact)) { %>
+      <div class="tenant-action-strip">
+        <% if (__tenantPrimaryFloor) { %>
+          <button type="button" class="tenant-action-card" data-apply-query="<%= __tenantPrimaryFloor %> этаж">
+            <span class="tenant-action-copy">
+              <span class="tenant-action-title">Показать <%= __tenantPrimaryFloor %> этаж</span>
+              <span class="tenant-action-sub">Оставить на экране только подходящие въезды, выезды и проходы.</span>
+            </span>
+            <span class="tenant-action-icon">→</span>
+          </button>
+        <% } %>
+        <% if (__supportContact && __supportContact.tel_href) { %>
+          <a class="tenant-action-card is-call" href="<%= __supportContact.tel_href %>">
+            <span class="tenant-action-copy">
+              <span class="tenant-action-title">Позвонить диспетчеру</span>
+              <span class="tenant-action-sub"><%= __supportContact.phone_display || __supportContact.phone %></span>
+            </span>
+            <span class="tenant-action-icon">Тел</span>
+          </a>
+        <% } %>
+      </div>
+    <% } %>
+    <% if (__isTenant && __tenantProfile.hasProfile) { %>
+      <div class="tenant-context-strip">
+        <% if (__tenantProfile.parking_floors.length) { %>
+          <button type="button" class="tenant-context-chip" data-apply-query="<%= __tenantProfile.parking_floors[0] %> этаж"><span class="tenant-context-label">Этаж</span><strong><%= __tenantProfile.parking_floors.join(', ') %></strong></button>
+        <% } %>
+        <% if (__tenantProfile.parking_groups.length) { %>
+          <button type="button" class="tenant-context-chip" data-apply-query="<%= __tenantProfile.parking_groups[0] %>"><span class="tenant-context-label">Группа мест</span><strong><%= __tenantProfile.parking_groups.join(', ') %></strong></button>
+        <% } %>
+        <% if (__tenantProfile.parking_spots.length) { %>
+          <button type="button" class="tenant-context-chip" data-apply-query="<%= __tenantProfile.parking_spots[0] %>"><span class="tenant-context-label">Места</span><strong><%= __tenantProfile.parking_spots.join(', ') %></strong></button>
+        <% } %>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="command-center <%= __isTenant ? 'is-tenant' : '' %>">
+    <div class="center-panel">
+      <div class="center-head">
+        <strong><%= __isTenant ? 'Быстро открыть' : 'Где открыть' %></strong>
+        <% if (!__isTenant) { %>
+          <span class="center-sub" id="liveGeneratedAt">обновляется</span>
+        <% } %>
+      </div>
+      <% if (__isTenant && __tenantQuickRoutes.length) { %>
+        <div class="route-strip" id="tenantQuickRoutes">
+          <% __tenantQuickRoutes.forEach(function(route){ %>
+            <button
+              type="button"
+              class="route-chip <%= route.isProfileMatch ? 'is-profile' : '' %>"
+              data-jump-section="<%= route.id %>"
+              data-route-search="<%= route.searchText %>">
+              <span class="route-chip-zone"><%= route.zoneName %></span>
+              <span class="route-chip-title"><%= route.title %></span>
+              <span class="route-chip-sub"><%= route.subtitle %> • <%= route.count %> <%= __pluralRu(route.count, 'вариант', 'варианта', 'вариантов') %></span>
+              <% if (route.isProfileMatch) { %><span class="route-chip-flag">Мой маршрут</span><% } %>
+            </button>
+          <% }) %>
+        </div>
+      <% } %>
+      <% if (!__isTenant) { %>
+        <div class="zone-pulse-grid" id="zonePulseGrid">
+          <% __zoneSummary.forEach(function(z){ %>
+            <button type="button" class="zone-pulse" data-jump-zone="<%= z.id %>">
+              <span class="zone-pulse-name">
+                <span><%= z.name %></span>
+                <span class="zone-pulse-count"><%= z.devices %></span>
+              </span>
+              <span class="zone-pulse-sub"><%= z.descriptor || (z.devices + ' вариантов') %></span>
+              <% if (z.lastPoint) { %>
+                <span class="zone-pulse-last"><%= z.lastPoint %> • <%= z.lastResult || '—' %></span>
+              <% } %>
+            </button>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+
+    <% if (__showOperatorPanels) { %>
+    <div class="center-panel">
+      <div class="center-head">
+        <strong>Лента команд</strong>
+        <span class="center-sub" id="liveFeedState"><%= __clientRecentEvents.length ? 'последние события' : 'ожидает события' %></span>
+      </div>
+      <div class="feed-list" id="liveFeedList">
+        <% __clientRecentEvents.slice(0, 5).forEach(function(e){ 
+          const _ok = String(e.result || '').toLowerCase() === 'ok';
+          const _rid = e.request_id ? String(e.request_id).slice(0, 8) : '';
+        %>
+          <div class="feed-item">
+            <div>
+              <div class="feed-point"><%= e.point || '—' %></div>
+              <div class="feed-meta"><%= e.datetime_msk || '—' %> • <%= e.actor_fio || e.actor_phone || '—' %></div>
+            </div>
+            <div class="feed-result <%= _ok ? 'is-ok' : 'is-error' %>"><%= e.result_label || e.result || '—' %><% if (_rid) { %> #<%= _rid %><% } %></div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+    <% } %>
+  </div>
+
+  <div class="dashboard-empty-search" id="dashboardNoMatches">Ничего не найдено. Попробуйте этаж, вход, шлагбаум или код вроде Ш1.</div>
+  <div class="dashboard-search-help" id="dashboardSearchHelp">
+    <div class="dashboard-search-help-title" id="dashboardSearchHelpTitle"></div>
+    <div class="dashboard-search-help-chips" id="dashboardSearchHelpChips"></div>
+  </div>
+
+  <div class="section-head">
+    <div>
+      <div class="section-head-title"><%= __isTenant ? 'Что можно открыть' : 'Все точки открытия' %></div>
+      <div class="section-head-sub"><%= __isTenant ? (__tenantProfile.hasProfile ? 'Сначала ваши варианты. Ниже — остальные входы, въезды и шлагбаумы.' : 'Ниже собраны все варианты: въезды, двери, лифты и шлагбаумы.') : 'Все команды сгруппированы по разделам, чтобы быстрее находить нужное действие.' %></div>
+    </div>
+  </div>
+  <div class="zone-list">
+    <% if (byZone && byZone.length) { %>
+      <% byZone.forEach(function(group, idx){ 
+           const devices = __sortDashboardDevices(Array.isArray(group.devices) ? group.devices : []);
+           const zoneMeta = __zoneSummaryById[group.zoneId] || null;
+           const zoneRoutes = __zoneRoutesById[group.zoneId] || { sections: [] };
+           const shouldOpenZone = __isTenant || idx === 0;
+      %>
+        <div class="zone-card <%= shouldOpenZone ? 'open' : '' %>" data-zone-card data-zone-id="<%= group.zoneId %>" data-zone-name="<%= group.zoneName %>">
+          <button type="button" class="zone-toggle" data-zone-toggle>
+            <div class="zone-title-wrap">
+              <div class="zone-title"><%= group.zoneName %></div>
+              <div class="zone-sub"><%= zoneMeta && zoneMeta.descriptor ? zoneMeta.descriptor : (devices.length + ' вариантов') %></div>
+            </div>
+            <div class="zone-arrow">⌄</div>
+          </button>
+
+          <div class="zone-body">
+            <% if (devices.length) { %>
+              <div class="route-sections">
+                <% zoneRoutes.sections.forEach(function(section){ %>
+                  <div
+                    class="route-section <%= section.isProfileMatch ? 'is-profile' : '' %>"
+                    data-route-section
+                    data-route-section-id="<%= section.id %>"
+                    data-route-search="<%= section.searchText %>"
+                    data-route-local-search="<%= section.localSearchText %>">
+                    <div class="route-section-head">
+                      <div>
+                        <div class="route-section-title"><%= section.title %></div>
+                        <div class="route-section-sub"><%= section.subtitle %></div>
+                        <% if (section.isProfileMatch) { %><div class="route-section-tag">Мой маршрут</div><% } %>
+                      </div>
+                      <div class="route-section-count"><%= section.count %></div>
+                    </div>
+                    <div class="device-grid">
+                      <% section.devices.forEach(function(device){ %>
+                        <button
+                          type="button"
+                          class="device-btn"
+                          data-open-device
+                          data-device-id="<%= device.id %>"
+                          data-device-name="<%= device.name %>"
+                          data-device-zone="<%= group.zoneName %>"
+                          data-device-search="<%= [device.name, (__isTenant ? '' : device.id), group.zoneName, section.title, section.subtitle].filter(Boolean).join(' ').toLowerCase() %>">
+                          <span class="device-name"><%= device.name %></span>
+                          <span class="device-icon">→</span>
+                        </button>
+                      <% }) %>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+
+            <% } else { %>
+              <div class="empty-zone">В этом разделе пока ничего не подключено.</div>
+            <% } %>
+          </div>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <div class="card">
+        <div class="text-muted">Для вас пока ничего не настроено.</div>
+      </div>
+    <% } %>
+  </div>
+
+  <% if (__showOperatorPanels) { %>
+  <div class="signal-grid">
+    <div class="center-panel">
+      <div class="center-head">
+        <strong>Ритм объекта</strong>
+        <span class="center-sub">по последним командам</span>
+      </div>
+      <div class="signal-strip">
+        <div class="signal-chip">
+          <span class="signal-chip-label">Успешно</span>
+          <span class="signal-chip-value" id="signalOkCount"><%= __stats.okCount || 0 %></span>
+          <span class="signal-chip-sub">стабильные срабатывания</span>
+        </div>
+        <div class="signal-chip">
+          <span class="signal-chip-label">Внимание</span>
+          <span class="signal-chip-value" id="signalAttentionCount"><%= __stats.attentionCount || 0 %></span>
+          <span class="signal-chip-sub">отказы и ошибки шлюза</span>
+        </div>
+        <div class="signal-chip">
+          <span class="signal-chip-label">Последняя активность</span>
+          <span class="signal-chip-value" id="signalLastTime"><%= (__lastEvent && ((__lastEvent.datetime_msk || '').toString().split(' ').slice(1).join(' '))) || '—' %></span>
+          <span class="signal-chip-sub">обновляется вместе с live</span>
+        </div>
+      </div>
+      <div class="rhythm-chart" id="rhythmChart">
+        <% __timeline.forEach(function(item){ %>
+          <div class="rhythm-col">
+            <div class="rhythm-bar">
+              <span class="rhythm-total"><%= item.total %></span>
+              <div class="rhythm-bar-fill <%= item.attention ? 'is-alert' : '' %>" style="height:<%= item.height %>%"></div>
+            </div>
+            <div class="rhythm-label"><%= item.label %></div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <div class="center-panel">
+      <div class="center-head">
+        <strong>Требуют внимания</strong>
+        <a class="center-sub" href="/logs?status=attention">в журнал</a>
+      </div>
+      <div class="attention-list" id="attentionList">
+        <% if (__attentionEvents.length) { %>
+          <% __attentionEvents.forEach(function(item){ %>
+            <a class="attention-item" href="<%= item.logs_href || '/logs?status=attention' %>">
+              <div>
+                <div class="attention-point"><%= item.point || '—' %></div>
+                <div class="attention-meta"><%= item.datetime_msk || '—' %> • <%= item.actor_fio || item.actor_phone || '—' %></div>
+              </div>
+              <div class="attention-result"><%= item.result_label || item.result || '—' %></div>
+            </a>
+          <% }) %>
+        <% } else { %>
+          <div class="attention-empty">Проблемных событий в live-окне нет</div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+  <div class="result-note" id="dashboardResult" role="status" aria-live="polite" data-tone="idle">
+    <div class="result-note-head">
+      <span class="result-note-badge" id="dashboardResultBadge">Готово к команде</span>
+      <span class="result-note-code" id="dashboardResultCode"></span>
+    </div>
+    <div class="result-note-title" id="dashboardResultTitle"><%= __isTenant ? 'Выберите нужную дверь, шлагбаум или въезд.' : 'Выберите устройство и отправьте команду.' %></div>
+    <div class="result-note-body" id="dashboardResultBody"><%= __isTenant ? 'Сначала приложение попросит подтвердить действие, чтобы не было случайного открытия.' : 'Перед выполнением команда попросит подтверждение, а затем покажет результат без технического шума.' %></div>
+    <div class="result-note-hint" id="dashboardResultHint">После каждого действия здесь будет ясно, что произошло и что делать дальше.</div>
+  </div>
+</div>
+
+<div class="command-toast" id="commandToast" role="status" aria-live="polite" data-tone="idle">
+  <div class="command-toast-head">
+    <span class="command-toast-badge" id="commandToastBadge">Статус</span>
+    <span class="recent-code" id="commandToastCode"></span>
+  </div>
+  <div class="command-toast-title" id="commandToastTitle">Команда выполнена</div>
+  <div class="command-toast-body" id="commandToastBody"></div>
+  <div class="command-toast-hint" id="commandToastHint"></div>
+</div>
+
+<script>
+(function(){
+  const KNOWN_DEVICES = <%- __safeJson(__devicesForJson) %>;
+  const SERVER_RECENT = <%- __safeJson(__recentDeviceActions) %>;
+  const INITIAL_EVENTS = <%- __safeJson(__clientRecentEvents) %>;
+  const INITIAL_ZONES = <%- __safeJson(__zoneSummary) %>;
+  const INITIAL_TIMELINE = <%- __safeJson(__timeline) %>;
+  const INITIAL_ATTENTION = <%- __safeJson(__attentionEvents) %>;
+  const dashboardPage = document.querySelector('.dashboard-page');
+  const resultBox = document.getElementById('dashboardResult');
+  const resultBadge = document.getElementById('dashboardResultBadge');
+  const resultCode = document.getElementById('dashboardResultCode');
+  const resultTitle = document.getElementById('dashboardResultTitle');
+  const resultBody = document.getElementById('dashboardResultBody');
+  const resultHint = document.getElementById('dashboardResultHint');
+  const searchInput = document.getElementById('dashboardSearch');
+  const searchCount = document.getElementById('dashboardSearchCount');
+  const noMatches = document.getElementById('dashboardNoMatches');
+  const searchHelp = document.getElementById('dashboardSearchHelp');
+  const searchHelpTitle = document.getElementById('dashboardSearchHelpTitle');
+  const searchHelpChips = document.getElementById('dashboardSearchHelpChips');
+  const recentQuickList = document.getElementById('recentQuickList');
+  const serverRecentList = document.getElementById('serverRecentList');
+  const recentUpdated = document.getElementById('recentUpdated');
+  const tenantQuickRoutes = document.getElementById('tenantQuickRoutes');
+  const gatewayStatus = document.getElementById('gatewayStatus');
+  const gatewayStatusText = document.getElementById('gatewayStatusText');
+  const zonePulseGrid = document.getElementById('zonePulseGrid');
+  const liveFeedList = document.getElementById('liveFeedList');
+  const liveFeedState = document.getElementById('liveFeedState');
+  const liveGeneratedAt = document.getElementById('liveGeneratedAt');
+  const rhythmChart = document.getElementById('rhythmChart');
+  const attentionList = document.getElementById('attentionList');
+  const signalOkCount = document.getElementById('signalOkCount');
+  const signalAttentionCount = document.getElementById('signalAttentionCount');
+  const signalLastTime = document.getElementById('signalLastTime');
+  const commandToast = document.getElementById('commandToast');
+  const commandToastBadge = document.getElementById('commandToastBadge');
+  const commandToastTitle = document.getElementById('commandToastTitle');
+  const commandToastCode = document.getElementById('commandToastCode');
+  const commandToastBody = document.getElementById('commandToastBody');
+  const commandToastHint = document.getElementById('commandToastHint');
+  const armedTimers = new WeakMap();
+  const armedHtml = new WeakMap();
+  const RECENT_KEY = 'parking.dashboard.recent.v1';
+  const searchCountPrefix = <%- JSON.stringify(__isTenant ? '' : 'Устройств: ') %>;
+  const SUPPORT_CONTACT = <%- JSON.stringify(__supportContact || null) %>;
+  let toastTimer = null;
+  const DEFAULT_RESULT_STATE = {
+    tone: 'idle',
+    badge: 'Готово к команде',
+    title: <%- JSON.stringify(__isTenant ? 'Выберите нужную дверь, шлагбаум или въезд.' : 'Выберите устройство и отправьте команду.') %>,
+    body: <%- JSON.stringify(__isTenant ? 'Сначала приложение попросит подтвердить действие, чтобы не было случайного открытия.' : 'Перед выполнением команда попросит подтверждение, а затем покажет результат без технического шума.') %>,
+    hint: 'После каждого действия здесь будет ясно, что произошло и что делать дальше.',
+    requestId: '',
+    marker: 'idle'
+  };
+
+  function restoreArmed(btn) {
+    const timer = armedTimers.get(btn);
+    if (timer) clearTimeout(timer);
+    armedTimers.delete(btn);
+    btn.classList.remove('is-armed');
+    btn.dataset.armed = '0';
+    const html = armedHtml.get(btn);
+    if (html) btn.innerHTML = html;
+  }
+
+  function readRecent() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeRecent(items) {
+    try {
+      localStorage.setItem(RECENT_KEY, JSON.stringify(items.slice(0, 6)));
+    } catch {}
+  }
+
+  function deviceById(id) {
+    const needle = String(id || '');
+    return KNOWN_DEVICES.find((device) => String(device.id) === needle) || null;
+  }
+
+  function upsertRecent(item) {
+    const clean = {
+      id: String(item.id || ''),
+      name: String(item.name || ''),
+      zoneName: String(item.zoneName || ''),
+      requestId: String(item.requestId || ''),
+      ts: item.ts || new Date().toISOString(),
+    };
+    if (!clean.id) return;
+
+    const next = [clean].concat(readRecent().filter((x) => String(x.id) !== clean.id));
+    writeRecent(next);
+    renderRecent();
+  }
+
+  function seedServerRecent() {
+    if (!SERVER_RECENT.length || readRecent().length) return;
+    const seed = SERVER_RECENT.map((item) => {
+      const device = deviceById(item.id);
+      return {
+        id: item.id,
+        name: device?.name || item.name,
+        zoneName: device?.zoneName || item.zoneName,
+        requestId: item.requestId || '',
+        ts: item.ts || '',
+      };
+    });
+    writeRecent(seed);
+  }
+
+  function renderRecent() {
+    if (!recentQuickList) return;
+    const items = readRecent()
+      .map((item) => ({ ...item, device: deviceById(item.id) }))
+      .filter((item) => item.device);
+
+    recentQuickList.innerHTML = '';
+    if (!items.length) {
+      if (serverRecentList) serverRecentList.style.display = '';
+      return;
+    }
+
+    if (serverRecentList) serverRecentList.style.display = 'none';
+    items.slice(0, 4).forEach((item) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'recent-quick-btn';
+      button.setAttribute('data-open-device', '');
+      button.setAttribute('data-device-id', item.device.id);
+      button.setAttribute('data-device-name', item.device.name || item.name);
+      button.setAttribute('data-device-zone', item.device.zoneName || item.zoneName || '');
+      button.setAttribute('data-device-search', [item.device.name, (<%- JSON.stringify(__isTenant) %> ? '' : item.device.id), item.device.zoneName].filter(Boolean).join(' ').toLowerCase());
+      button.innerHTML =
+        '<span class="recent-main">' +
+          '<span class="recent-name">' + escapeHtml(item.device.name || item.name || item.id) + '</span>' +
+          '<span class="recent-sub">' + escapeHtml(item.device.zoneName || item.zoneName || '') + '</span>' +
+        '</span>' +
+        '<span class="device-icon">→</span>';
+      recentQuickList.appendChild(button);
+    });
+    bindOpenButtons(recentQuickList);
+  }
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, function (ch) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+    });
+  }
+
+  function shortRequestId(value) {
+    return value ? String(value).slice(0, 8) : '';
+  }
+
+  function setResultState(state) {
+    if (!resultBox) return;
+    const next = Object.assign({}, DEFAULT_RESULT_STATE, state || {});
+    resultBox.dataset.tone = next.tone || 'idle';
+    resultBox.dataset.marker = next.marker || '';
+    if (resultBadge) resultBadge.textContent = next.badge || DEFAULT_RESULT_STATE.badge;
+    if (resultCode) resultCode.textContent = next.requestId ? '#' + shortRequestId(next.requestId) : '';
+    if (resultTitle) resultTitle.textContent = next.title || DEFAULT_RESULT_STATE.title;
+    if (resultBody) resultBody.textContent = next.body || '';
+    if (resultHint) resultHint.textContent = next.hint || '';
+  }
+
+  function supportHint(base) {
+    const text = String(base || '').trim();
+    if (!SUPPORT_CONTACT || !SUPPORT_CONTACT.phone_display) return text;
+    return text
+      ? (text + ' Диспетчер: ' + SUPPORT_CONTACT.phone_display + '.')
+      : ('Диспетчер: ' + SUPPORT_CONTACT.phone_display + '.');
+  }
+
+  function guidanceForResponse(options) {
+    const tone = options?.tone || 'idle';
+    const deviceName = options?.deviceName || 'Устройство';
+    const zoneName = options?.zoneName || '';
+    const requestId = options?.requestId || '';
+    const elapsedMs = Number.isFinite(Number(options?.elapsedMs)) ? Number(options.elapsedMs) : null;
+    const detailBits = [zoneName];
+    if (elapsedMs !== null) detailBits.push('Ответ за ' + elapsedMs + ' мс');
+
+    if (tone === 'pending') {
+      return {
+        tone,
+        badge: 'Отправляем команду',
+        title: 'Открываем: ' + deviceName,
+        body: detailBits.filter(Boolean).join(' • ') || 'Ждем ответ от объекта.',
+        hint: 'Не закрывайте экран, пока не придет ответ.',
+        requestId,
+        marker: 'pending:' + deviceName
+      };
+    }
+
+    if (tone === 'confirm') {
+      return {
+        tone: 'warning',
+        badge: 'Нужно подтвердить',
+        title: 'Нажмите еще раз, чтобы открыть: ' + deviceName,
+        body: zoneName || 'Это защита от случайного нажатия.',
+        hint: 'Если передумали, просто подождите пару секунд.',
+        requestId,
+        marker: 'confirm:' + deviceName
+      };
+    }
+
+    if (options?.reason === 'denied') {
+      return {
+        tone: 'error',
+        badge: 'Нет доступа',
+        title: deviceName + ' не открылся',
+        body: 'У вас нет прав на этот проход или проезд.',
+        hint: supportHint('Выберите свой маршрут или обратитесь к администратору парковки.'),
+        requestId,
+        marker: 'result:' + requestId
+      };
+    }
+
+    if (options?.reason === 'disabled') {
+      return {
+        tone: 'warning',
+        badge: 'Временно отключено',
+        title: deviceName + ' сейчас недоступен',
+        body: zoneName || 'Этот вход или проезд временно отключен.',
+        hint: supportHint('Попробуйте соседний маршрут или свяжитесь с диспетчером.'),
+        requestId,
+        marker: 'result:' + requestId
+      };
+    }
+
+    if (options?.reason === 'missing') {
+      return {
+        tone: 'error',
+        badge: 'Уже недоступно',
+        title: deviceName + ' больше не найден',
+        body: 'Экран устарел или этот элемент уже убрали из системы.',
+        hint: 'Обновите страницу и выберите другой вариант.',
+        requestId,
+        marker: 'result:' + requestId
+      };
+    }
+
+    if (options?.reason === 'gateway') {
+      return {
+        tone: 'error',
+        badge: 'Нет связи с объектом',
+        title: deviceName + ' не ответил',
+        body: detailBits.filter(Boolean).join(' • ') || 'Сейчас нет ответа от шлюза объекта.',
+        hint: supportHint('Ничего не открылось. Подождите несколько секунд и попробуйте снова.'),
+        requestId,
+        marker: 'result:' + requestId
+      };
+    }
+
+    if (options?.reason === 'network') {
+      return {
+        tone: 'error',
+        badge: 'Ошибка сети',
+        title: 'Команда не дошла до сервера',
+        body: options?.error || 'Связь с приложением прервалась.',
+        hint: supportHint('Проверьте интернет и повторите команду еще раз.'),
+        requestId,
+        marker: 'result:' + requestId
+      };
+    }
+
+    if (options?.ok) {
+      return {
+        tone: 'success',
+        badge: 'Открыто',
+        title: deviceName + ' открыт',
+        body: detailBits.filter(Boolean).join(' • ') || 'Команда принята объектом.',
+        hint: supportHint('Если проход не сработал, повторите команду или свяжитесь с диспетчером.'),
+        requestId,
+        marker: 'result:' + requestId
+      };
+    }
+
+    return {
+      tone: 'error',
+      badge: 'Не получилось',
+      title: deviceName + ' не открылся',
+      body: options?.error || 'Система не смогла выполнить команду.',
+      hint: 'Повторите попытку чуть позже.',
+      requestId,
+      marker: 'result:' + requestId
+    };
+  }
+
+  function renderGatewayStatus(data) {
+    if (!gatewayStatus || !gatewayStatusText) return;
+    const ok = !!data?.ok;
+    gatewayStatus.classList.toggle('is-online', ok);
+    gatewayStatus.classList.toggle('is-offline', !ok);
+    const ms = Number.isFinite(Number(data?.elapsed_ms)) ? ' • ' + Number(data.elapsed_ms) + ' мс' : '';
+    gatewayStatusText.textContent = (data?.label || (ok ? 'Шлюз онлайн' : 'Шлюз недоступен')) + ms;
+  }
+
+  function renderZonePulse(zones) {
+    if (!zonePulseGrid) return;
+    const list = Array.isArray(zones) ? zones : [];
+    zonePulseGrid.innerHTML = '';
+
+    list.forEach((zone) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'zone-pulse';
+      button.setAttribute('data-jump-zone', zone.id || '');
+      button.innerHTML =
+        '<span class="zone-pulse-name">' +
+          '<span>' + escapeHtml(zone.name || zone.id || '—') + '</span>' +
+          '<span class="zone-pulse-count">' + escapeHtml(zone.devices || 0) + '</span>' +
+        '</span>' +
+        '<span class="zone-pulse-sub">' + escapeHtml(zone.descriptor || ((zone.devices || 0) + ' вариантов')) + '</span>' +
+        (zone.lastPoint
+          ? '<span class="zone-pulse-last">' + escapeHtml(zone.lastPoint + ' • ' + (zone.lastResult || '—')) + '</span>'
+          : '');
+      zonePulseGrid.appendChild(button);
+    });
+    bindZonePulse(zonePulseGrid);
+  }
+
+  function renderLiveFeed(events) {
+    if (!liveFeedList) return;
+    const list = Array.isArray(events) ? events : [];
+    liveFeedList.innerHTML = '';
+    if (liveFeedState) liveFeedState.textContent = list.length ? 'последние события' : 'ожидает события';
+
+    if (!list.length) {
+      liveFeedList.innerHTML = '<div class="recent-row"><div class="recent-main"><div class="recent-name">Событий пока нет</div></div></div>';
+      return;
+    }
+
+    list.slice(0, 5).forEach((event) => {
+      const ok = String(event.result || '').toLowerCase() === 'ok';
+      const item = document.createElement('div');
+      item.className = 'feed-item';
+      item.innerHTML =
+        '<div>' +
+          '<div class="feed-point">' + escapeHtml(event.point || '—') + '</div>' +
+          '<div class="feed-meta">' + escapeHtml(event.datetime_msk || event.datetime || '—') + ' • ' + escapeHtml(event.actor_fio || event.actor_phone || '—') + '</div>' +
+        '</div>' +
+        '<div class="feed-result ' + (ok ? 'is-ok' : 'is-error') + '">' + escapeHtml(event.result_label || event.result || '—') + (event.request_id ? ' #' + escapeHtml(shortRequestId(event.request_id)) : '') + '</div>';
+      liveFeedList.appendChild(item);
+    });
+  }
+
+  function renderTimeline(items) {
+    if (!rhythmChart) return;
+    const list = Array.isArray(items) ? items : [];
+    rhythmChart.innerHTML = '';
+    if (!list.length) {
+      rhythmChart.innerHTML = '<div class="attention-empty">Команды появятся здесь сразу после первых действий</div>';
+      return;
+    }
+
+    list.forEach((item) => {
+      const col = document.createElement('div');
+      col.className = 'rhythm-col';
+      col.innerHTML =
+        '<div class="rhythm-bar">' +
+          '<span class="rhythm-total">' + escapeHtml(item.total || 0) + '</span>' +
+          '<div class="rhythm-bar-fill ' + (item.attention ? 'is-alert' : '') + '" style="height:' + escapeHtml(item.height || 16) + '%"></div>' +
+        '</div>' +
+        '<div class="rhythm-label">' + escapeHtml(item.label || '—') + '</div>';
+      rhythmChart.appendChild(col);
+    });
+  }
+
+  function renderAttention(items) {
+    if (!attentionList) return;
+    const list = Array.isArray(items) ? items : [];
+    attentionList.innerHTML = '';
+    if (!list.length) {
+      attentionList.innerHTML = '<div class="attention-empty">Проблемных событий в live-окне нет</div>';
+      return;
+    }
+
+    list.forEach((item) => {
+      const link = document.createElement('a');
+      link.className = 'attention-item';
+      link.href = item.logs_href || '/logs?status=attention';
+      link.innerHTML =
+        '<div>' +
+          '<div class="attention-point">' + escapeHtml(item.point || '—') + '</div>' +
+          '<div class="attention-meta">' + escapeHtml(item.datetime_msk || item.datetime || '—') + ' • ' + escapeHtml(item.actor_fio || item.actor_phone || '—') + '</div>' +
+        '</div>' +
+        '<div class="attention-result">' + escapeHtml(item.result_label || item.result || '—') + '</div>';
+      attentionList.appendChild(link);
+    });
+  }
+
+  function renderSignalSummary(stats, events) {
+    const data = stats || {};
+    const list = Array.isArray(events) ? events : [];
+    if (signalOkCount) signalOkCount.textContent = Number(data.okCount || 0);
+    if (signalAttentionCount) signalAttentionCount.textContent = Number(data.attentionCount || 0);
+    if (signalLastTime) {
+      const last = list[0];
+      signalLastTime.textContent = last && (last.datetime_msk || last.datetime)
+        ? String(last.datetime_msk || last.datetime).split(' ').slice(1).join(' ') || '—'
+        : '—';
+    }
+  }
+
+  function showCommandToast(state) {
+    if (!commandToast) return;
+    if (toastTimer) clearTimeout(toastTimer);
+    const next = state && state.title && state.badge ? state : guidanceForResponse(state);
+    commandToast.classList.add('show');
+    commandToast.dataset.tone = next.tone || 'idle';
+    if (commandToastBadge) commandToastBadge.textContent = next.badge || 'Статус';
+    if (commandToastTitle) commandToastTitle.textContent = next.title || '';
+    if (commandToastCode) commandToastCode.textContent = next.requestId ? '#' + shortRequestId(next.requestId) : '';
+    if (commandToastBody) commandToastBody.textContent = next.body || '';
+    if (commandToastHint) commandToastHint.textContent = next.hint || '';
+
+    toastTimer = setTimeout(() => {
+      commandToast.classList.remove('show');
+    }, 5000);
+  }
+
+  function bindZonePulse(root) {
+    (root || document).querySelectorAll('[data-jump-zone]').forEach((btn) => {
+      if (btn.dataset.jumpBound === '1') return;
+      btn.dataset.jumpBound = '1';
+      btn.addEventListener('click', function () {
+        const zoneId = btn.getAttribute('data-jump-zone');
+        const card = document.querySelector('[data-zone-card][data-zone-id="' + CSS.escape(zoneId || '') + '"]');
+        if (!card) return;
+        card.classList.add('open');
+        card.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      });
+    });
+  }
+
+  function bindSectionJump(root) {
+    (root || document).querySelectorAll('[data-jump-section]').forEach((btn) => {
+      if (btn.dataset.sectionBound === '1') return;
+      btn.dataset.sectionBound = '1';
+      btn.addEventListener('click', function () {
+        const sectionId = btn.getAttribute('data-jump-section');
+        const section = document.querySelector('[data-route-section-id="' + CSS.escape(sectionId || '') + '"]');
+        if (!section) return;
+        const card = section.closest('[data-zone-card]');
+        if (card) card.classList.add('open');
+        section.classList.add('is-focus');
+        section.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        setTimeout(function () {
+          section.classList.remove('is-focus');
+        }, 1800);
+      });
+    });
+  }
+
+  function bindJumpTargets(root) {
+    (root || document).querySelectorAll('[data-jump-target]').forEach((btn) => {
+      if (btn.dataset.jumpTargetBound === '1') return;
+      btn.dataset.jumpTargetBound = '1';
+      btn.addEventListener('click', function () {
+        const targetId = btn.getAttribute('data-jump-target');
+        const target = targetId ? document.getElementById(targetId) : null;
+        if (!target) return;
+        target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        if (typeof target.focus === 'function' && (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'A')) {
+          setTimeout(function () {
+            target.focus({ preventScroll: true });
+          }, 120);
+        }
+      });
+    });
+  }
+
+  function bindQueryButtons(root) {
+    (root || document).querySelectorAll('[data-apply-query]').forEach((btn) => {
+      if (btn.dataset.queryBound === '1') return;
+      btn.dataset.queryBound = '1';
+      btn.addEventListener('click', function () {
+        const query = String(btn.getAttribute('data-apply-query') || '').trim();
+        if (!searchInput) return;
+        searchInput.value = query;
+        applySearch();
+        searchInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        setTimeout(function () {
+          searchInput.focus({ preventScroll: true });
+        }, 120);
+      });
+    });
+  }
+
+  function normalizeSearch(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/ё/g, 'е')
+      .replace(/[\u2013\u2014]/g, '-')
+      .replace(/[^a-zа-я0-9/#+\-.\s]/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function isLikelyFloor(value) {
+    const num = Number(value);
+    return Number.isInteger(num) && num >= 1 && num <= 11;
+  }
+
+  const SEARCH_ALIAS_GROUPS = [
+    {
+      label: '-1 этаж',
+      terms: ['-1', 'минус 1', 'минус первый', 'п1', 'подземный 1', 'подземный -1'],
+      matchRelated: ['-1 этаж', 'Въезд П1'],
+      related: ['-1 этаж', 'Подземный уровень', 'Въезд П1']
+    },
+    {
+      label: '-2 этаж',
+      terms: ['-2', 'минус 2', 'минус второй', 'п2', 'п2/3', 'подземный 2', 'подземный -2'],
+      matchRelated: ['-2 этаж', 'Въезд П2/3'],
+      related: ['-2 этаж', 'Подземный уровень', 'Въезд П2/3']
+    },
+    {
+      label: 'Подземный уровень',
+      terms: ['подземный', 'подземный уровень', 'подземка', 'под землей', 'подземный въезд', 'подземная часть'],
+      matchRelated: ['Подземный уровень', 'Въезд П1', 'Въезд П2/3'],
+      related: ['Подземный уровень', 'Въезд П1', 'Въезд П2/3']
+    }
+  ];
+
+  function compactSearch(value) {
+    return normalizeSearch(value).replace(/\s+/g, '');
+  }
+
+  function levenshteinDistance(a, b, maxDistance) {
+    const left = String(a || '');
+    const right = String(b || '');
+    const limit = Number.isFinite(maxDistance) ? maxDistance : Math.max(left.length, right.length);
+    if (Math.abs(left.length - right.length) > limit) return limit + 1;
+    const prev = Array.from({ length: right.length + 1 }, (_, idx) => idx);
+
+    for (let i = 1; i <= left.length; i += 1) {
+      let current = [i];
+      let rowMin = current[0];
+      for (let j = 1; j <= right.length; j += 1) {
+        const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+        const next = Math.min(
+          prev[j] + 1,
+          current[j - 1] + 1,
+          prev[j - 1] + cost
+        );
+        current[j] = next;
+        if (next < rowMin) rowMin = next;
+      }
+      if (rowMin > limit) return limit + 1;
+      for (let j = 0; j < current.length; j += 1) prev[j] = current[j];
+    }
+
+    return prev[right.length];
+  }
+
+  function looksClose(query, term) {
+    const q = normalizeSearch(query);
+    const t = normalizeSearch(term);
+    if (!q || !t) return false;
+    if (q === t) return true;
+
+    const qCompact = compactSearch(q);
+    const tCompact = compactSearch(t);
+
+    if (q.length >= 3 && (t.includes(q) || q.includes(t))) return true;
+    if (qCompact && tCompact && qCompact === tCompact) return true;
+    if (q.length >= 4 && (tCompact.includes(qCompact) || qCompact.includes(tCompact))) return true;
+
+    const limit = q.length >= 8 ? 2 : 1;
+    return levenshteinDistance(qCompact, tCompact, limit) <= limit;
+  }
+
+  function aliasIntentScore(query, group) {
+    const q = normalizeSearch(query);
+    const qCompact = compactSearch(q);
+    if (!q || !group) return Number.POSITIVE_INFINITY;
+
+    let best = Number.POSITIVE_INFINITY;
+    [group.label].concat(group.terms || [], group.related || []).forEach((term) => {
+      const normalized = normalizeSearch(term);
+      const normalizedCompact = compactSearch(normalized);
+      if (!normalized || !normalizedCompact) return;
+
+      if (normalized === q || normalizedCompact === qCompact) {
+        best = Math.min(best, 0);
+        return;
+      }
+      if (normalized.startsWith(q) || normalizedCompact.startsWith(qCompact)) {
+        best = Math.min(best, 1);
+        return;
+      }
+      if (q.length >= 3 && (normalized.includes(q) || normalizedCompact.includes(qCompact))) {
+        best = Math.min(best, 2);
+        return;
+      }
+
+      const limit = q.length >= 8 ? 2 : 1;
+      const distance = levenshteinDistance(qCompact, normalizedCompact, limit);
+      if (distance <= limit) {
+        best = Math.min(best, 3 + distance);
+      }
+    });
+
+    return best;
+  }
+
+  function floorIntent(value) {
+    const normalized = normalizeSearch(value);
+    const positive = normalized.match(/^(\d{1,2})(?:\s*(?:эт|этаж|этажа))?$/);
+    if (positive && isLikelyFloor(positive[1])) {
+      const floor = positive[1];
+      return {
+        label: floor + ' этаж',
+        related: [floor + ' этаж', 'Въезд ' + floor + 'эт', 'Выезд ' + floor + 'эт']
+      };
+    }
+    return null;
+  }
+
+  function findAliasIntent(value) {
+    const normalized = normalizeSearch(value);
+    if (!normalized) return null;
+    let winner = null;
+    let bestScore = Number.POSITIVE_INFINITY;
+    SEARCH_ALIAS_GROUPS.forEach((group) => {
+      const score = aliasIntentScore(normalized, group);
+      if (score < bestScore) {
+        bestScore = score;
+        winner = group;
+      }
+    });
+    if (!winner || !Number.isFinite(bestScore)) return null;
+    return {
+      label: winner.label,
+      matchRelated: Array.isArray(winner.matchRelated) ? winner.matchRelated.slice() : winner.related.slice(),
+      related: winner.related.slice()
+    };
+  }
+
+  function interpretSearchIntent(value) {
+    return floorIntent(value) || findAliasIntent(value);
+  }
+
+  function isExactLocationIntent(value) {
+    const normalized = normalizeSearch(value);
+    if (!normalized) return false;
+    if (floorIntent(normalized)) return true;
+    const alias = findAliasIntent(normalized);
+    return !!(alias && /^-\d+\s*этаж$/u.test(String(alias.label || '')));
+  }
+
+  function buildSearchVariants(value) {
+    const normalized = normalizeSearch(value);
+    if (!normalized) return [];
+
+    const variants = new Set();
+    const floorOnly = normalized.match(/^(\d{1,2})(?:\s*(?:эт|этаж|этажа))?$/);
+
+    function addVariant(next) {
+      const clean = normalizeSearch(next);
+      if (!clean) return;
+      variants.add(clean);
+      if (clean.includes(' ')) variants.add(clean.replace(/\s+/g, ''));
+    }
+
+    if (!floorOnly) {
+      addVariant(normalized);
+      addVariant(normalized.replace(/\s+/g, ''));
+    }
+
+    if (floorOnly && isLikelyFloor(floorOnly[1])) {
+      const floor = floorOnly[1];
+      addVariant(floor + ' этаж');
+      addVariant('этаж ' + floor);
+      addVariant(floor + ' эт');
+      addVariant(floor + 'эт');
+    }
+
+    Array.from(normalized.matchAll(/\b(\d{1,2})\s*(эт|этаж|этажа)\b/g)).forEach((match) => {
+      if (!isLikelyFloor(match[1])) return;
+      addVariant(match[1]);
+      addVariant(match[1] + ' этаж');
+      addVariant('этаж ' + match[1]);
+      addVariant(match[1] + ' эт');
+      addVariant(match[1] + 'эт');
+    });
+
+    Array.from(normalized.matchAll(/\b([a-zа-я]+)\s*(\d[\d/-]*)\b/gi)).forEach((match) => {
+      addVariant(match[1] + match[2]);
+      addVariant(match[1] + ' ' + match[2]);
+    });
+
+    const intent = interpretSearchIntent(normalized);
+    if (intent && Array.isArray(intent.matchRelated || intent.related)) {
+      (intent.matchRelated || intent.related).forEach(addVariant);
+    }
+
+    return Array.from(variants);
+  }
+
+  function buildSearchIndex(value) {
+    return buildSearchVariants(value).join(' ');
+  }
+
+  function matchesSearch(query, haystack) {
+    const variants = buildSearchVariants(query);
+    if (!variants.length) return true;
+    const index = buildSearchIndex(haystack);
+    return variants.some((variant) => index.includes(variant));
+  }
+
+  function collectSearchCandidates() {
+    const map = new Map();
+
+    function pushCandidate(label, search, extraTerms) {
+      const nextLabel = String(label || '').trim();
+      const nextSearch = String(search || nextLabel).trim();
+      if (!nextLabel || !nextSearch) return;
+      const key = normalizeSearch(nextSearch);
+      if (!key) return;
+      if (!map.has(key)) {
+        map.set(key, {
+          label: nextLabel,
+          search: nextSearch,
+          terms: []
+        });
+      }
+      const item = map.get(key);
+      [nextLabel, nextSearch].concat(extraTerms || []).forEach((term) => {
+        const normalized = normalizeSearch(term);
+        if (!normalized) return;
+        if (!item.terms.includes(normalized)) item.terms.push(normalized);
+      });
+    }
+
+    SEARCH_ALIAS_GROUPS.forEach((group) => {
+      pushCandidate(group.label, group.label, group.terms.concat(group.related || []));
+    });
+
+    document.querySelectorAll('[data-open-device]').forEach((btn) => {
+      pushCandidate(btn.getAttribute('data-device-name') || btn.textContent || '', btn.getAttribute('data-device-name') || btn.textContent || '');
+    });
+
+    document.querySelectorAll('[data-route-section]').forEach((section) => {
+      const title = section.querySelector('.route-section-title')?.textContent || '';
+      const subtitle = section.querySelector('.route-section-sub')?.textContent || '';
+      pushCandidate(title, title, [subtitle]);
+    });
+
+    document.querySelectorAll('[data-zone-card]').forEach((card) => {
+      const name = card.getAttribute('data-zone-name') || '';
+      const sub = card.querySelector('.zone-sub')?.textContent || '';
+      pushCandidate(name, name, [sub]);
+    });
+
+    return Array.from(map.values());
+  }
+
+  const SEARCH_CANDIDATES = collectSearchCandidates();
+
+  function findSearchSuggestions(query, limit) {
+    const q = normalizeSearch(query);
+    const qCompact = compactSearch(q);
+    if (!q) return [];
+
+    const scored = SEARCH_CANDIDATES.map((candidate) => {
+      let best = Number.POSITIVE_INFINITY;
+      candidate.terms.forEach((term) => {
+        const termCompact = compactSearch(term);
+        if (term === q || termCompact === qCompact) {
+          best = Math.min(best, 0);
+          return;
+        }
+        if (q.length >= 3 && (term.startsWith(q) || term.includes(q) || termCompact.includes(qCompact))) {
+          best = Math.min(best, 1);
+          return;
+        }
+        const distance = levenshteinDistance(qCompact, termCompact, 2);
+        if (distance <= 2) {
+          best = Math.min(best, 2 + distance);
+        }
+      });
+      return { candidate, score: best };
+    })
+      .filter((item) => Number.isFinite(item.score))
+      .sort((a, b) => a.score - b.score || a.candidate.label.localeCompare(b.candidate.label, 'ru', { sensitivity: 'base' }));
+
+    return scored.slice(0, limit || 4).map((item) => item.candidate);
+  }
+
+  function renderSearchHelp(query, visibleDevices) {
+    if (!searchHelp || !searchHelpTitle || !searchHelpChips) return;
+    const normalized = normalizeSearch(query);
+    if (!normalized) {
+      searchHelp.classList.remove('show');
+      searchHelpTitle.textContent = '';
+      searchHelpChips.innerHTML = '';
+      return;
+    }
+
+    const intent = interpretSearchIntent(normalized);
+    const suggestions = findSearchSuggestions(normalized, 4);
+    const chips = [];
+    let title = '';
+
+    if (visibleDevices === 0 && intent) {
+      title = 'Похоже, вы ищете: ' + intent.label + '. Для текущего доступа подходящих вариантов не найдено.';
+      intent.related.forEach((label) => chips.push({ label, query: label }));
+    } else if (visibleDevices === 0 && suggestions.length) {
+      title = 'Не нашли точное совпадение. Попробуйте один из вариантов ниже.';
+      suggestions.forEach((item) => chips.push({ label: item.label, query: item.search }));
+    } else if (intent && !floorIntent(normalized)) {
+      title = 'Ищем как: ' + intent.label + '.';
+      intent.related.forEach((label) => chips.push({ label, query: label }));
+    }
+
+    const unique = [];
+    const seen = new Set();
+    chips.forEach((item) => {
+      const key = normalizeSearch(item.query || item.label);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      unique.push(item);
+    });
+
+    if (!title || !unique.length) {
+      searchHelp.classList.remove('show');
+      searchHelpTitle.textContent = '';
+      searchHelpChips.innerHTML = '';
+      return;
+    }
+
+    searchHelpTitle.textContent = title;
+    searchHelpChips.innerHTML = unique.slice(0, 4).map((item) => {
+      return '<button type="button" class="search-help-chip" data-apply-query="' + escapeHtml(item.query) + '">' + escapeHtml(item.label) + '</button>';
+    }).join('');
+    searchHelp.classList.add('show');
+    bindQueryButtons(searchHelp);
+  }
+
+  function applySearch() {
+    const query = normalizeSearch(searchInput?.value || '');
+    const searching = !!query;
+    const exactLocationIntent = isExactLocationIntent(query);
+    const cards = Array.from(document.querySelectorAll('[data-zone-card]'));
+    const quickRoutes = Array.from(document.querySelectorAll('[data-jump-section]'));
+    let visibleDevices = 0;
+
+    if (dashboardPage) dashboardPage.classList.toggle('is-searching', searching);
+
+    cards.forEach((card) => {
+      const zoneName = card.dataset.zoneSearchIndex || buildSearchIndex(card.getAttribute('data-zone-name') || '');
+      card.dataset.zoneSearchIndex = zoneName;
+      const buttons = Array.from(card.querySelectorAll('[data-open-device]'));
+      const sections = Array.from(card.querySelectorAll('[data-route-section]'));
+      let visibleInZone = 0;
+
+      buttons.forEach((btn) => {
+        const text = btn.dataset.searchIndex || buildSearchIndex(btn.getAttribute('data-device-search') || btn.textContent || '');
+        btn.dataset.searchIndex = text;
+        const visible = !query || matchesSearch(query, text) || (!exactLocationIntent && matchesSearch(query, zoneName));
+        btn.classList.toggle('is-hidden', !visible);
+        if (visible) {
+          visibleInZone += 1;
+          visibleDevices += 1;
+        }
+      });
+
+      sections.forEach((section) => {
+        const sectionButtons = Array.from(section.querySelectorAll('[data-open-device]'));
+        const sectionText = section.dataset.searchIndex || buildSearchIndex(section.getAttribute('data-route-local-search') || section.getAttribute('data-route-search') || '');
+        section.dataset.searchIndex = sectionText;
+        const visible = sectionButtons.some((btn) => !btn.classList.contains('is-hidden'))
+          || (!!query && matchesSearch(query, sectionText))
+          || (!!query && !exactLocationIntent && matchesSearch(query, zoneName));
+        section.classList.toggle('is-hidden', query && !visible);
+      });
+
+      card.classList.toggle('is-hidden', searching && visibleInZone === 0);
+      if (searching && visibleInZone > 0) card.classList.add('open');
+    });
+
+    quickRoutes.forEach((btn) => {
+      const text = btn.dataset.searchIndex || buildSearchIndex(btn.getAttribute('data-route-search') || btn.textContent || '');
+      btn.dataset.searchIndex = text;
+      const visible = !searching || matchesSearch(query, text);
+      btn.classList.toggle('is-hidden', !visible);
+    });
+    if (tenantQuickRoutes) tenantQuickRoutes.style.display = quickRoutes.some((btn) => !btn.classList.contains('is-hidden')) ? '' : 'none';
+
+    if (searchCount) {
+      const text = searching ? ('Найдено: ' + visibleDevices) : (searchCountPrefix ? (searchCountPrefix + visibleDevices) : '');
+      searchCount.textContent = text;
+      searchCount.hidden = !text;
+    }
+    if (noMatches) noMatches.style.display = searching && visibleDevices === 0 ? 'block' : 'none';
+    renderSearchHelp(query, visibleDevices);
+  }
+
+  function pluralRu(n, one, few, many) {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+    return many;
+  }
+
+  async function refreshDashboardLive() {
+    try {
+      const res = await fetch('/api/dashboard/live', {
+        headers: { 'Accept': 'application/json' },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) return;
+
+      renderGatewayStatus(data.gateway || {});
+      renderZonePulse(data.zones || []);
+      renderLiveFeed(data.recentEvents || []);
+      renderTimeline(data.timeline || []);
+      renderAttention(data.attentionEvents || []);
+      renderSignalSummary(data.stats || {}, data.recentEvents || []);
+      if (liveGeneratedAt) {
+        const dt = data.generatedAt ? new Date(data.generatedAt) : null;
+        liveGeneratedAt.textContent = dt && !Number.isNaN(dt.getTime())
+          ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          : 'обновлено';
+      }
+    } catch {
+      renderGatewayStatus({ ok: false, label: 'Шлюз недоступен' });
+    }
+  }
+
+  document.querySelectorAll('[data-zone-toggle]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const card = btn.closest('[data-zone-card]');
+      if (!card) return;
+      card.classList.toggle('open');
+    });
+  });
+
+  function bindOpenButtons(root) {
+    (root || document).querySelectorAll('[data-open-device]').forEach(function(btn){
+    if (btn.dataset.openBound === '1') return;
+    btn.dataset.openBound = '1';
+    btn.addEventListener('click', async function(){
+      const deviceId = btn.getAttribute('data-device-id');
+      const deviceName = btn.getAttribute('data-device-name') || 'Устройство';
+      const zoneName = btn.getAttribute('data-device-zone') || '';
+      if (!deviceId) return;
+
+      if (btn.dataset.armed !== '1') {
+        armedHtml.set(btn, btn.innerHTML);
+        btn.dataset.armed = '1';
+        btn.classList.add('is-armed');
+        btn.innerHTML = '<span class="device-name">Подтвердить</span><span class="device-icon">!</span>';
+        setResultState(guidanceForResponse({ tone: 'confirm', deviceName, zoneName }));
+        const timer = setTimeout(function(){
+          restoreArmed(btn);
+          if (resultBox && resultBox.dataset.marker === 'confirm:' + deviceName) {
+            setResultState(DEFAULT_RESULT_STATE);
+          }
+        }, 3200);
+        armedTimers.set(btn, timer);
+        return;
+      }
+
+      const oldHtml = armedHtml.get(btn) || btn.innerHTML;
+      restoreArmed(btn);
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      btn.classList.remove('is-error', 'is-success');
+      btn.classList.add('is-pending');
+      btn.innerHTML = '<span class="device-name">Отправляем...</span><span class="device-icon">…</span>';
+      const icon = btn.querySelector('.device-icon');
+      if (icon) icon.textContent = '…';
+
+      try {
+        setResultState(guidanceForResponse({ tone: 'pending', deviceName, zoneName }));
+
+        const res = await fetch('/api/open/' + encodeURIComponent(deviceId), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-Token': '<%= csrfToken %>'
+          },
+          body: '{}'
+        });
+
+        const data = await res.json().catch(() => ({}));
+        const reason = data.reason || (res.status === 403 ? 'denied' : res.status === 404 ? 'missing' : res.status === 409 ? 'disabled' : res.status === 502 ? 'gateway' : '');
+        const responseState = guidanceForResponse({
+          ok: !!(res.ok && data.ok),
+          reason,
+          deviceName: data.deviceName || deviceName,
+          zoneName: data.zoneName || zoneName,
+          requestId: data.requestId,
+          elapsedMs: data.elapsed_ms,
+          error: data.error || ('HTTP ' + res.status)
+        });
+
+        if (res.ok && data.ok) {
+          setResultState(responseState);
+          upsertRecent({ id: deviceId, name: deviceName, zoneName, requestId: data.requestId || '' });
+          if (recentUpdated && data.requestId) recentUpdated.textContent = String(data.requestId).slice(0, 8);
+          showCommandToast(responseState);
+          refreshDashboardLive();
+          btn.classList.remove('is-pending');
+          btn.classList.add('is-success');
+          btn.innerHTML = '<span class="device-name">Открыто</span><span class="device-icon">✓</span>';
+
+          setTimeout(() => {
+            btn.classList.remove('is-success');
+            btn.innerHTML = oldHtml;
+          }, 1800);
+        } else {
+          setResultState(responseState);
+          showCommandToast(responseState);
+          refreshDashboardLive();
+          btn.classList.remove('is-pending');
+          btn.classList.add('is-error');
+          btn.innerHTML = oldHtml;
+          setTimeout(() => {
+            btn.classList.remove('is-error');
+          }, 2400);
+        }
+      } catch (e) {
+        const responseState = guidanceForResponse({
+          reason: 'network',
+          deviceName,
+          zoneName,
+          error: e && e.message ? e.message : String(e)
+        });
+        setResultState(responseState);
+        showCommandToast(responseState);
+        btn.classList.remove('is-pending');
+        btn.classList.add('is-error');
+        btn.innerHTML = oldHtml;
+        setTimeout(() => {
+          btn.classList.remove('is-error');
+        }, 2400);
+      } finally {
+        btn.classList.remove('is-pending');
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+      }
+    });
+  });
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', applySearch);
+  }
+
+  seedServerRecent();
+  renderRecent();
+  renderZonePulse(INITIAL_ZONES);
+  renderLiveFeed(INITIAL_EVENTS);
+  renderTimeline(INITIAL_TIMELINE);
+  renderAttention(INITIAL_ATTENTION);
+  renderSignalSummary(<%- __safeJson(__stats) %>, INITIAL_EVENTS);
+  setResultState(DEFAULT_RESULT_STATE);
+  bindZonePulse(document);
+  bindSectionJump(document);
+  bindJumpTargets(document);
+  bindQueryButtons(document);
+  bindOpenButtons(document);
+  applySearch();
+  refreshDashboardLive();
+  setInterval(refreshDashboardLive, 15000);
+})();
+</script>
+
+<%- include('partials/footer') %>

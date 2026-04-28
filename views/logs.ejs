@@ -1,0 +1,1269 @@
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<% const pageTitle = (typeof title !== "undefined" && title) ? title : "Журнал проходов и проездов"; %>
+<%- include('partials/header', { title: pageTitle, bodyClass, user, path: '/logs' }) %>
+
+<%
+  const __summary = (typeof logSummary !== 'undefined' && logSummary) ? logSummary : {};
+  const __quickLinks = (typeof quickLinks !== 'undefined' && quickLinks) ? quickLinks : {};
+  const __todayMsk = (() => {
+    try {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Moscow',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(new Date());
+      const get = (type) => parts.find((item) => item.type === type)?.value || '';
+      return `${get('year')}-${get('month')}-${get('day')}`;
+    } catch (e) {
+      return '';
+    }
+  })();
+
+  // Локальные подписи для журнала
+  const EVENT_LABELS = {
+    open: 'Открытие',
+    close: 'Закрытие',
+    unlock: 'Открытие',
+    lock: 'Закрытие',
+    error: 'Ошибка',
+  };
+  const eventLabel = (ev) => {
+    const k = String(ev || '').trim();
+    return EVENT_LABELS[k] || k;
+  };
+
+  const RESULT_LABELS = {
+    ok: 'Успешно',
+    denied: 'Нет доступа',
+    disabled: 'Отключено',
+  };
+  const resultLabel = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '—';
+    if (raw.startsWith('gw_error:')) return 'Ошибка шлюза';
+    return RESULT_LABELS[raw] || raw;
+  };
+  const resultTone = (value) => {
+    const raw = String(value || '').trim().toLowerCase();
+    if (!raw) return 'is-neutral';
+    return raw === 'ok' ? 'is-ok' : 'is-attention';
+  };
+
+  const quickActive = {
+    all: !(filters && (filters.status || filters.result || filters.date_from || filters.date_to || filters.request_id || filters.point || filters.event || filters.fio || filters.organization || filters.position)),
+    ok: filters && filters.status === 'ok' && !filters.result,
+    attention: filters && filters.status === 'attention' && !filters.result,
+    today: filters && filters.date_from === __todayMsk && filters.date_to === __todayMsk,
+  };
+  const __activeFilterCount = [
+    'date_from',
+    'date_to',
+    'time_from',
+    'time_to',
+    'status',
+    'point',
+    'event',
+    'result',
+    'request_id',
+    'fio',
+    'organization',
+    'position'
+  ].filter((key) => filters && filters[key]).length;
+
+  // Фолбэк: форматируем время в МСК (если сервер не прислал готовую строку)
+  const formatTs = (v) => {
+    if (!v) return '';
+    const d = (v instanceof Date) ? v : new Date(v);
+    if (Number.isNaN(d.getTime())) return String(v);
+    try {
+      return new Intl.DateTimeFormat('ru-RU', {
+        timeZone: 'Europe/Moscow',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      }).format(d).replace(',', '');
+    } catch (e) {
+      return String(v);
+    }
+  };
+%>
+<style>
+.logs-head{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:14px;
+}
+
+.logs-head-copy{
+  min-width:260px;
+  flex:1 1 320px;
+}
+
+.logs-kicker{
+  display:block;
+  margin-bottom:8px;
+  font-size:11px;
+  line-height:1.1;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+
+.logs-head-copy .text-muted{
+  max-width:58ch;
+}
+
+.logs-head-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+
+.logs-filter-badge.is-active{
+  background:var(--accent-soft);
+  border-color:var(--accent);
+  color:var(--text);
+}
+
+.logs-summary{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.logs-summary-card{
+  padding:14px 16px;
+  border-radius:12px;
+  background:var(--card2);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow-card);
+}
+
+.logs-summary-label{
+  display:block;
+  font-size:12px;
+  line-height:1.2;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+
+.logs-summary-value{
+  display:block;
+  font-size:30px;
+  line-height:1;
+  font-weight:800;
+}
+
+.logs-summary-sub{
+  display:block;
+  margin-top:6px;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.logs-quick-filters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:12px;
+}
+
+.logs-quick-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:36px;
+  padding:8px 14px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--surface-2);
+  color:var(--text);
+  text-decoration:none;
+  font-size:13px;
+  font-weight:700;
+}
+
+.logs-quick-link.is-active{
+  background:var(--accent-soft);
+  border-color:var(--accent);
+}
+
+.logs-filter-card{
+  border-radius:12px;
+}
+
+.logs-filter-head{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.logs-filter-title{
+  font-size:16px;
+  font-weight:700;
+  line-height:1.2;
+}
+
+.logs-filter-sub{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.logs-filter-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.log-result-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  line-height:1.2;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+}
+
+.log-result-badge.is-ok{
+  color:#baf7d5;
+  border-color:rgba(61, 201, 126, .35);
+  background:rgba(61, 201, 126, .12);
+}
+
+.log-result-badge.is-attention{
+  color:#ffd8a8;
+  border-color:rgba(255, 163, 26, .35);
+  background:rgba(255, 163, 26, .12);
+}
+
+.log-result-badge.is-neutral{
+  color:var(--muted);
+}
+
+.logs-table-wrap .table thead th{
+  position:sticky;
+  top:0;
+  z-index:1;
+}
+
+.logs-table-wrap .table tbody tr td{
+  background:transparent;
+}
+
+@media (max-width: 900px){
+  .logs-summary{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+@media (max-width: 640px){
+  .logs-summary{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+<div class="logs-head mb-3">
+  <div class="logs-head-copy">
+    <h1 class="h4 mb-0">Журнал проходов и проездов</h1>
+    <div class="text-muted small">Кто и что открывал: двери, шлагбаумы, ворота, лифты и въезды.</div>
+  </div>
+  <div class="logs-head-actions logs-top-actions">
+    <span class="badge-soft logs-filter-badge <%= __activeFilterCount ? 'is-active' : '' %>"><%= __activeFilterCount %> фильтров</span>
+    <a class="btn btn-soft" href="<%= exportUrlBase || '/logs.csv' %>">CSV</a>
+    <a class="btn btn-soft" href="<%= (__quickLinks && __quickLinks.reset) ? __quickLinks.reset : '/logs' %>">Сбросить</a>
+  </div>
+</div>
+
+<div class="logs-summary">
+  <div class="logs-summary-card">
+    <span class="logs-summary-label">Событий в выборке</span>
+    <span class="logs-summary-value"><%= __summary.total || 0 %></span>
+    <span class="logs-summary-sub">до 500 последних строк</span>
+  </div>
+  <div class="logs-summary-card">
+    <span class="logs-summary-label">Успешно</span>
+    <span class="logs-summary-value"><%= __summary.ok || 0 %></span>
+    <span class="logs-summary-sub">команды со статусом `ok`</span>
+  </div>
+  <div class="logs-summary-card">
+    <span class="logs-summary-label">Требуют внимания</span>
+    <span class="logs-summary-value"><%= __summary.attention || 0 %></span>
+    <span class="logs-summary-sub">отказы, отключения, ошибки шлюза</span>
+  </div>
+  <div class="logs-summary-card">
+    <span class="logs-summary-label">Устройств / людей</span>
+    <span class="logs-summary-value"><%= (__summary.uniquePoints || 0) %> / <%= (__summary.uniqueActors || 0) %></span>
+    <span class="logs-summary-sub"><%= __summary.latestAt ? ('последнее событие ' + __summary.latestAt) : 'в текущей выборке' %></span>
+  </div>
+</div>
+
+<div class="logs-quick-filters">
+  <a class="logs-quick-link <%= quickActive.all ? 'is-active' : '' %>" href="<%= __quickLinks.all || '/logs' %>">Все</a>
+  <a class="logs-quick-link <%= quickActive.ok ? 'is-active' : '' %>" href="<%= __quickLinks.ok || '/logs?status=ok' %>">Только успешные</a>
+  <a class="logs-quick-link <%= quickActive.attention ? 'is-active' : '' %>" href="<%= __quickLinks.attention || '/logs?status=attention' %>">Требуют внимания</a>
+  <a class="logs-quick-link <%= quickActive.today ? 'is-active' : '' %>" href="<%= __quickLinks.today || '/logs' %>">Сегодня</a>
+</div>
+
+<div class="card card-glass p-3 mb-3 logs-filter-card" style="max-width:100%;overflow:hidden;">
+  <div class="logs-filter-head">
+    <div>
+      <div class="logs-filter-title">Выборка и фильтры</div>
+      <div class="logs-filter-sub">Параметры применяются и к таблице, и к экспорту CSV.</div>
+    </div>
+    <div class="logs-filter-meta">
+      <span class="badge-soft"><%= __activeFilterCount %> фильтров</span>
+      <span class="badge-soft"><%= __summary.total || 0 %> строк</span>
+    </div>
+  </div>
+  <form class="logs-filter" method="get" action="/logs" style="width:100%;max-width:100%;width:100%;max-width:100%;display:flex;flex-direction:column;gap:12px;">
+    <div class="logs-filter-grid" style="width:100%;max-width:100%;">
+      <div class="lf-field lf-date">
+        <label class="form-label">Дата с</label>
+        <input class="form-control" type="date" name="date_from" data-filter="date_from" value="<%= (filters && filters.date_from) ? filters.date_from : '' %>">
+      </div>
+
+      <div class="lf-field lf-date">
+        <label class="form-label">Дата по</label>
+        <input class="form-control" type="date" name="date_to" data-filter="date_to" value="<%= (filters && filters.date_to) ? filters.date_to : '' %>">
+      </div>
+
+      <div class="lf-field lf-time">
+        <label class="form-label">Время с</label>
+        <input class="form-control" type="time" name="time_from" data-filter="time_from" value="<%= (filters && filters.time_from) ? filters.time_from : '' %>">
+      </div>
+
+      <div class="lf-field lf-time">
+        <label class="form-label">Время по</label>
+        <input class="form-control" type="time" name="time_to" data-filter="time_to" value="<%= (filters && filters.time_to) ? filters.time_to : '' %>">
+      </div>
+
+      <div class="lf-field">
+        <label class="form-label">Режим</label>
+        <select class="form-select" name="status" data-filter="status">
+          <option value="">Все события</option>
+          <option value="ok" <%= (filters && filters.status === 'ok') ? 'selected' : '' %>>Только успешные</option>
+          <option value="attention" <%= (filters && filters.status === 'attention') ? 'selected' : '' %>>Требуют внимания</option>
+        </select>
+      </div>
+
+      <div class="lf-field">
+        <label class="form-label">Что открывали</label>
+        <select class="form-select" name="point" data-filter="point">
+          <option value="">Все двери, лифты и проезды</option>
+          <% ((options && options.points) ? options.points : []).forEach(function(point){ %>
+            <option value="<%= point %>" <%= (filters && filters.point === point) ? 'selected' : '' %>><%= point %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="lf-field">
+        <label class="form-label">Событие</label>
+        <select class="form-select" name="event" data-filter="event">
+          <option value="">Все действия</option>
+          <% ((options && options.events) ? options.events : []).forEach(function(ev){ %>
+            <option value="<%= ev %>" <%= (filters && filters.event === ev) ? 'selected' : '' %>><%= eventLabel(ev) %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="lf-field">
+        <label class="form-label">Результат</label>
+        <select class="form-select" name="result" data-filter="result">
+          <option value="">Любой результат</option>
+          <% ((options && options.results) ? options.results : []).forEach(function(result){ %>
+            <option value="<%= result %>" <%= (filters && filters.result === result) ? 'selected' : '' %>><%= resultLabel(result) %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="lf-field">
+        <label class="form-label">Команда</label>
+        <input class="form-control" type="text" name="request_id" data-filter="request_id" placeholder="Например 2ce52abe"
+               value="<%= (filters && filters.request_id) ? filters.request_id : '' %>">
+      </div>
+
+      <div class="lf-field lf-org">
+        <label class="form-label">ФИО</label>
+        <input class="form-control" type="text" name="fio" data-filter="fio" placeholder="Поиск по сотруднику"
+               value="<%= (filters && filters.fio) ? filters.fio : '' %>">
+      </div>
+
+      <div class="lf-field lf-org">
+        <label class="form-label">Организация</label>
+        <input class="form-control" type="text" name="organization" data-filter="organization" placeholder="Поиск по организации"
+               value="<%= (filters && filters.organization) ? filters.organization : '' %>">
+      </div>
+
+      <div class="lf-field lf-pos">
+        <label class="form-label">Должность</label>
+        <input class="form-control" type="text" name="position" data-filter="position" placeholder="Поиск по должности"
+               value="<%= (filters && filters.position) ? filters.position : '' %>">
+      </div>
+    </div>
+
+    <div class="lf-actions lf-submit">
+      <button class="btn btn-primary w-100" type="submit">Показать</button>
+    </div>
+  </form>
+
+<!-- LOGS_FORCE_MOBILE_START -->
+<style>
+/* MOBILE default */
+body.page-logs form.logs-filter{ width:100% !important; max-width:100% !important; }
+body.page-logs form.logs-filter .logs-filter-grid{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:12px !important;
+  width:100% !important;
+  max-width:100% !important;
+}
+body.page-logs form.logs-filter .lf-field{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+body.page-logs form.logs-filter .form-label{
+  display:block !important;
+  margin:0 0 6px !important;
+  white-space:normal !important;
+  line-height:1.2 !important;
+}
+body.page-logs form.logs-filter input,
+body.page-logs form.logs-filter select,
+body.page-logs form.logs-filter textarea{
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+}
+body.page-logs form.logs-filter .lf-actions{ margin-top:12px !important; }
+body.page-logs form.logs-filter .lf-actions .btn{ width:100% !important; }
+
+@supports (-webkit-touch-callout: none){
+  body.page-logs form.logs-filter input,
+  body.page-logs form.logs-filter select,
+  body.page-logs form.logs-filter textarea{
+    font-size:16px !important;
+  }
+}
+
+/* DESKTOP compact layout */
+@media (hover:hover) and (pointer:fine) and (min-width: 1100px){
+  .logs-filter-card{
+    width:100% !important;
+    max-width:1200px !important;
+    margin:0 auto 12px !important;
+    padding:12px 14px !important;
+  }
+
+  body.page-logs form.logs-filter{
+    gap:10px !important;
+  }
+
+  body.page-logs form.logs-filter .logs-filter-grid{
+    display:grid !important;
+    grid-template-columns: repeat(4, minmax(0,1fr)) !important;
+    gap:8px 10px !important;
+    align-items:end !important;
+  }
+
+  body.page-logs form.logs-filter .lf-date,
+  body.page-logs form.logs-filter .lf-time,
+  body.page-logs form.logs-filter .lf-org,
+  body.page-logs form.logs-filter .lf-pos{
+    grid-column:auto !important;
+  }
+
+  body.page-logs form.logs-filter .lf-org{
+    grid-column: 1 / span 2 !important;
+  }
+  body.page-logs form.logs-filter .lf-pos{
+    grid-column: 3 / span 1 !important;
+  }
+  body.page-logs form.logs-filter .lf-submit{
+    grid-column: 4 / span 1 !important;
+    margin-top:0 !important;
+    align-self:end !important;
+  }
+
+  body.page-logs form.logs-filter .form-label{
+    font-size:11px !important;
+    line-height:1.1 !important;
+    margin:0 0 4px !important;
+    opacity:.8 !important;
+  }
+
+  body.page-logs form.logs-filter .form-control,
+  body.page-logs form.logs-filter .form-select{
+    height:34px !important;
+    min-height:34px !important;
+    padding:6px 10px !important;
+    font-size:12px !important;
+    border-radius:10px !important;
+  }
+
+  body.page-logs form.logs-filter .lf-actions .btn{
+    width:100% !important;
+    height:34px !important;
+    min-height:34px !important;
+    padding:6px 10px !important;
+    font-size:13px !important;
+    border-radius:10px !important;
+  }
+}
+
+
+
+</style>
+<!-- LOGS_FORCE_MOBILE_END -->
+
+
+</div>
+
+<div class="card card-glass p-0 overflow-hidden">
+  <div class="table-responsive logs-table-wrap">
+    <table class="table table-dark table-hover align-middle m-0">
+      <thead>
+        <tr>
+          <th class="text-mono">Дата</th>
+          <th class="text-mono">Время</th>
+          <th>Что открывали</th>
+          <th>Действие</th>
+          <th>Кто</th>
+          <th class="d-none d-xl-table-cell">Телефон</th>
+          <th class="d-none d-xl-table-cell">Источник</th>
+          <th class="d-none d-md-table-cell">Результат</th>
+          <th class="d-none d-lg-table-cell">Команда</th>
+          <th class="d-none d-md-table-cell">Сессия</th>
+        </tr>
+      </thead>
+      <tbody>
+<% if (logs && logs.length) { %>
+  <% logs.forEach(function(e){ 
+      const _dt = (e.datetime_msk || formatTs(e.datetime || e.ts || e.time) || '').toString();
+      const _dtParts = _dt.split(' ');
+      const _d = _dtParts[0] || '';
+      const _t = _dtParts.slice(1).join(' ') || '';
+      const _fio = ((e.actor_fio || e.fio || '').trim());
+      const _org = (e.actor_organization || e.organization || '');
+      const _pos = (e.actor_position || e.position || '');
+      const _orgPos = [_org, _pos].filter(Boolean).join(' / ');
+      const _phone = (e.actor_phone || e.phone || '').toString();
+      const _who = _fio || (e.source || '');
+      const _event = eventLabel(e.event || e.direction || e.action || '');
+      const _point = e.point || e.device_name || e.device || '—';
+      const _result = e.result || '';
+      const _session = e.session || '';
+      const _requestId = e.request_id || e.requestId || '';
+      const _requestShort = _requestId ? String(_requestId).slice(0, 8) : '';
+  %>
+    <tr>
+      <td class="text-nowrap text-mono"><%= _d %></td>
+      <td class="text-nowrap text-mono"><%= _t %></td>
+      <td><span class="badge badge-soft"><%= _point %></span></td>
+      <td><%= _event %></td>
+      <td>
+        <div style="font-weight:800;"><%= _who || '—' %></div>
+        <% if (_orgPos) { %><div class="text-muted small"><%= _orgPos %></div><% } %>
+        <% if (_phone) { %><div class="text-muted small text-mono"><%= _phone %></div><% } %>
+      </td>
+      <td class="d-none d-xl-table-cell"><%= _phone %></td>
+      <td class="d-none d-xl-table-cell"><%= e.source || '' %></td>
+      <td class="d-none d-md-table-cell"><span class="log-result-badge <%= resultTone(_result) %>"><%= resultLabel(_result) %></span></td>
+      <td class="d-none d-lg-table-cell text-mono"><%= _requestShort %></td>
+      <td class="d-none d-md-table-cell"><%= _session %></td>
+    </tr>
+  <% }) %>
+<% } else { %>
+  <tr><td colspan="12" class="text-muted p-4">Пока пусто</td></tr>
+<% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- LOGS_MOBILE_CARDS_FIXED_START -->
+<style>
+body.page-logs .logs-mobile-wrap{ display:none !important; }
+
+@media (max-width: 768px){
+  body.page-logs .logs-table-wrap,
+  body.page-logs .table-responsive.logs-table-wrap{
+    display:none !important;
+  }
+
+  body.page-logs .logs-mobile-wrap{
+    display:block !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    margin:12px 0 0 0 !important;
+    padding:0 !important;
+  }
+
+  body.page-logs .logs-mobile-card{
+    display:block !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    margin:0 0 12px 0 !important;
+    padding:14px 16px !important;
+    border-radius:20px !important;
+    background:var(--card) !important;
+    border:1px solid var(--border) !important;
+    box-shadow:var(--shadow-card) !important;
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+  }
+
+  body.page-logs .logs-mobile-head{
+    display:flex !important;
+    align-items:flex-start !important;
+    justify-content:space-between !important;
+    gap:10px !important;
+    margin-bottom:10px !important;
+  }
+
+  body.page-logs .logs-mobile-dt{
+    font-size:12px !important;
+    line-height:1.35 !important;
+    color:var(--text) !important;
+    opacity:.95 !important;
+  }
+
+  body.page-logs .logs-mobile-badge .badge{
+    white-space:nowrap !important;
+    border-radius:999px !important;
+  }
+
+  body.page-logs .logs-mobile-row{
+    display:block !important;
+    width:100% !important;
+    padding:8px 0 !important;
+    border-bottom:1px solid rgba(255,255,255,.06) !important;
+  }
+
+  body.page-logs .logs-mobile-row:last-child{
+    border-bottom:none !important;
+  }
+
+  body.page-logs .logs-mobile-label{
+    display:block !important;
+    font-size:11px !important;
+    line-height:1.2 !important;
+    color:var(--muted) !important;
+    margin:0 0 4px 0 !important;
+  }
+
+  body.page-logs .logs-mobile-value{
+    display:block !important;
+    font-size:13px !important;
+    line-height:1.4 !important;
+    color:var(--text) !important;
+    white-space:normal !important;
+    word-break:break-word !important;
+    overflow-wrap:anywhere !important;
+  }
+}
+</style>
+
+<div class="logs-mobile-wrap">
+  <% if (logs && logs.length) { %>
+    <% logs.forEach(function(e){
+      const _dt = (e.datetime_msk || formatTs(e.datetime || e.ts || e.time) || '').toString();
+      const _fio = ((e.actor_fio || e.fio || '').trim());
+      const _org = (e.actor_organization || e.organization || '').toString();
+      const _pos = (e.actor_position || e.position || '').toString();
+      const _phone = (e.actor_phone || e.phone || '').toString();
+      const _who = _fio || (e.source || '') || '—';
+      const _event = eventLabel(e.event || e.direction || e.action || '') || '—';
+      const _point = e.point || e.device_name || e.device || '—';
+      const _source = e.source || '—';
+      const _result = e.result || '—';
+      const _session = e.session || '';
+      const _requestId = e.request_id || e.requestId || '';
+      const _requestShort = _requestId ? String(_requestId).slice(0, 8) : '';
+    %>
+      <div class="logs-mobile-card">
+        <div class="logs-mobile-head">
+          <div class="logs-mobile-dt"><%= _dt || '—' %></div>
+          <div class="logs-mobile-badge"><span class="badge badge-soft"><%= _event %></span></div>
+        </div>
+
+        <div class="logs-mobile-row">
+          <div class="logs-mobile-label">Что открывали</div>
+          <div class="logs-mobile-value"><%= _point %></div>
+        </div>
+
+        <div class="logs-mobile-row">
+          <div class="logs-mobile-label">Кто</div>
+          <div class="logs-mobile-value">
+            <div style="font-weight:800;"><%= _who %></div>
+            <% if (_org || _pos) { %><div><%= [_org, _pos].filter(Boolean).join(' • ') %></div><% } %>
+            <% if (_phone) { %><div class="text-mono"><%= _phone %></div><% } %>
+          </div>
+        </div>
+
+        <div class="logs-mobile-row">
+          <div class="logs-mobile-label">Источник</div>
+          <div class="logs-mobile-value"><%= _source %></div>
+        </div>
+
+        <div class="logs-mobile-row">
+          <div class="logs-mobile-label">Результат</div>
+          <div class="logs-mobile-value"><span class="log-result-badge <%= resultTone(_result) %>"><%= resultLabel(_result) %></span></div>
+        </div>
+
+        <% if (_requestShort) { %>
+        <div class="logs-mobile-row">
+          <div class="logs-mobile-label">Команда</div>
+          <div class="logs-mobile-value text-mono"><%= _requestShort %></div>
+        </div>
+        <% } %>
+
+        <% if (_session) { %>
+        <div class="logs-mobile-row">
+          <div class="logs-mobile-label">Сессия</div>
+          <div class="logs-mobile-value"><%= _session %></div>
+        </div>
+        <% } %>
+      </div>
+    <% }) %>
+  <% } else { %>
+    <div class="logs-mobile-card">
+      <div class="logs-mobile-row">
+        <div class="logs-mobile-label">Журнал событий</div>
+        <div class="logs-mobile-value">Пока пусто</div>
+      </div>
+    </div>
+  <% } %>
+</div>
+<!-- LOGS_MOBILE_CARDS_FIXED_END -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- FILTERS_ROWS_FINAL_START -->
+<style>
+.filters-rows-form{
+  min-height:auto !important;
+  height:auto !important;
+}
+.filters-rows-grid{
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:14px;
+  align-items:end;
+  width:100%;
+}
+.filters-rows-field{
+  min-width:0;
+  width:100%;
+}
+.filters-rows-field label{
+  display:block;
+  margin:0 0 6px 0;
+  font-size:12px;
+  line-height:1.2;
+  color:rgba(255,255,255,.74);
+}
+.filters-rows-field .form-control,
+.filters-rows-field .form-select,
+.filters-rows-field input,
+.filters-rows-field select{
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+.fr-col-2{ grid-column:span 2; }
+.fr-col-3{ grid-column:span 3; }
+.fr-col-4{ grid-column:span 4; }
+
+.filters-rows-actions{
+  grid-column:1 / -1;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:12px;
+  margin-top:4px;
+}
+.filters-rows-actions .btn,
+.filters-rows-actions a.btn,
+.filters-rows-actions button{
+  min-width:160px !important;
+  width:auto !important;
+  height:40px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+
+@media (max-width: 900px){
+  .filters-rows-grid{
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+  .fr-col-2,
+  .fr-col-3,
+  .fr-col-4{
+    grid-column:1 / -1;
+  }
+  .filters-rows-actions{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .filters-rows-actions .btn,
+  .filters-rows-actions a.btn,
+  .filters-rows-actions button{
+    width:100% !important;
+    min-width:0 !important;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function move(parent, node) {
+    if (!parent || !node) return;
+    if (node.parentNode !== parent) parent.appendChild(node);
+  }
+
+  function makeField(input, labelText, cls) {
+    if (!input) return null;
+    const wrap = document.createElement('div');
+    wrap.className = 'filters-rows-field ' + cls;
+
+    const label = document.createElement('label');
+    label.textContent = labelText;
+
+    wrap.appendChild(label);
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  function createInput(name, placeholder) {
+    const el = document.createElement('input');
+    el.type = 'text';
+    el.name = name;
+    el.placeholder = placeholder;
+    el.className = 'form-control';
+    el.value = new URLSearchParams(window.location.search).get(name) || '';
+    return el;
+  }
+
+  function findCsv(form, csvPath) {
+    return (
+      form.querySelector('a[href*="' + csvPath + '"]') ||
+      form.parentElement?.querySelector('a[href*="' + csvPath + '"]') ||
+      document.querySelector('a[href*="' + csvPath + '"]')
+    );
+  }
+
+  function rebuild(form, csvPath) {
+    if (!form || form.dataset.filtersRowsReady === '1') return;
+
+    const hidden = Array.from(form.querySelectorAll('input[type="hidden"]'));
+    const dateFrom = form.querySelector('[name="date_from"]');
+    const dateTo = form.querySelector('[name="date_to"]');
+    const timeFrom = form.querySelector('[name="time_from"]');
+    const timeTo = form.querySelector('[name="time_to"]');
+    const status = form.querySelector('[name="status"]');
+    const point = form.querySelector('[name="point"]');
+    const event = form.querySelector('[name="event"]');
+    const result = form.querySelector('[name="result"]');
+    const requestId = form.querySelector('[name="request_id"]') || createInput('request_id', 'Например 2ce52abe');
+    const org = form.querySelector('[name="organization"]') || createInput('organization', 'Поиск по организации');
+    const fio = form.querySelector('[name="fio"]') || createInput('fio', 'Поиск по ФИО');
+    const pos = form.querySelector('[name="position"]') || createInput('position', 'Поиск по должности');
+
+    const submitBtn =
+      form.querySelector('button[type="submit"]') ||
+      form.querySelector('.btn.btn-primary') ||
+      form.querySelector('button');
+
+    const csvLink = findCsv(form, csvPath);
+
+    const grid = document.createElement('div');
+    grid.className = 'filters-rows-grid';
+
+    hidden.forEach(function (h) { move(grid, h); });
+
+    [
+      makeField(dateFrom, 'Дата с', 'fr-col-3'),
+      makeField(dateTo, 'Дата по', 'fr-col-3'),
+      makeField(timeFrom, 'Время с', 'fr-col-2'),
+      makeField(timeTo, 'Время по', 'fr-col-2'),
+      makeField(status, 'Режим', 'fr-col-2'),
+      makeField(point, 'Что открывали', 'fr-col-4'),
+      makeField(event, 'Событие', 'fr-col-4'),
+      makeField(result, 'Результат', 'fr-col-4'),
+      makeField(requestId, 'Команда', 'fr-col-4'),
+      makeField(fio, 'ФИО', 'fr-col-4'),
+      makeField(org, 'Организация', 'fr-col-4'),
+      makeField(pos, 'Должность', 'fr-col-4'),
+    ].forEach(function (field) {
+      if (field) grid.appendChild(field);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'filters-rows-actions';
+
+    if (submitBtn) {
+      submitBtn.classList.add('btn');
+      move(actions, submitBtn);
+    }
+    if (csvLink) {
+      csvLink.classList.add('btn');
+      move(actions, csvLink);
+    }
+
+    grid.appendChild(actions);
+    form.replaceChildren(grid);
+    form.classList.add('filters-rows-form');
+    form.dataset.filtersRowsReady = '1';
+
+    function syncCsv() {
+      if (!csvLink) return;
+      const url = new URL(csvPath, window.location.origin);
+      const fd = new FormData(form);
+
+      fd.forEach(function (value, key) {
+        const v = String(value || '').trim();
+        if (v) url.searchParams.set(key, v);
+      });
+
+      csvLink.setAttribute('href', url.pathname + url.search);
+    }
+
+    form.addEventListener('input', syncCsv);
+    form.addEventListener('change', syncCsv);
+    syncCsv();
+  }
+
+  rebuild(
+    document.querySelector('form[action="/logs"]') || document.querySelector('form[action*="/logs"]'),
+    '/logs.csv'
+  );
+
+  rebuild(
+    document.querySelector('form[action="/admin/audit"]') || document.querySelector('form[action*="/admin/audit"]'),
+    '/admin/audit.csv'
+  );
+});
+</script>
+<!-- FILTERS_ROWS_FINAL_END -->
+
+
+
+<!-- MOBILE_FILTER_OVERFLOW_FIX_START -->
+<style>
+@media (max-width: 760px){
+  form[action="/admin/audit"],
+  form[action*="/admin/audit"],
+  form[action="/logs"],
+  form[action*="/logs"]{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    overflow:hidden !important;
+    box-sizing:border-box !important;
+  }
+
+  .audit-filter-card,
+  .card.card-glass{
+    overflow:hidden !important;
+    max-width:100% !important;
+    box-sizing:border-box !important;
+  }
+
+  .filters-rows-grid,
+  .desktop-filters-grid,
+  .smart-filter-body,
+  .unified-filter-grid,
+  .audit-filter-grid{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:12px !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+  }
+
+  .filters-rows-field,
+  .desktop-filter-field,
+  .smart-filter-field,
+  .unified-filter-field,
+  .audit-filter-field,
+  .filters-rows-actions,
+  .desktop-filter-actions,
+  .smart-filter-actions,
+  .unified-filter-actions,
+  .audit-filter-actions{
+    grid-column:1 / -1 !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  .filters-rows-field label,
+  .desktop-filter-field label,
+  .smart-filter-field label,
+  .unified-filter-field label,
+  .audit-filter-field label{
+    display:block !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  .filters-rows-field .form-control,
+  .filters-rows-field .form-select,
+  .filters-rows-field input,
+  .filters-rows-field select,
+  .desktop-filter-field .form-control,
+  .desktop-filter-field .form-select,
+  .desktop-filter-field input,
+  .desktop-filter-field select,
+  .smart-filter-field .form-control,
+  .smart-filter-field .form-select,
+  .smart-filter-field input,
+  .smart-filter-field select,
+  .unified-filter-field .form-control,
+  .unified-filter-field .form-select,
+  .unified-filter-field input,
+  .unified-filter-field select,
+  .audit-filter-field .form-control,
+  .audit-filter-field .form-select,
+  .audit-filter-field input,
+  .audit-filter-field select{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+    margin:0 !important;
+  }
+
+  .filters-rows-actions,
+  .desktop-filter-actions,
+  .smart-filter-actions,
+  .unified-filter-actions,
+  .audit-filter-actions{
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:stretch !important;
+    justify-content:stretch !important;
+    gap:10px !important;
+  }
+
+  .filters-rows-actions .btn,
+  .filters-rows-actions a.btn,
+  .filters-rows-actions button,
+  .desktop-filter-actions .btn,
+  .desktop-filter-actions a.btn,
+  .desktop-filter-actions button,
+  .smart-filter-actions .btn,
+  .smart-filter-actions a.btn,
+  .smart-filter-actions button,
+  .unified-filter-actions .btn,
+  .unified-filter-actions a.btn,
+  .unified-filter-actions button,
+  .audit-filter-actions .btn,
+  .audit-filter-actions a.btn,
+  .audit-filter-actions button{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+}
+</style>
+<!-- MOBILE_FILTER_OVERFLOW_FIX_END -->
+
+
+<style>
+@media (min-width: 1100px){
+  /* card width */
+  .logs-filter-card,
+  .card.card-glass.p-3.mb-3{
+    max-width: 1200px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding: 10px 12px !important;
+  }
+
+  /* compact grid */
+  form.logs-filter{
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 8px !important;
+  }
+
+  form.logs-filter .logs-filter-grid{
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    align-items: end !important;
+  }
+
+  /* first 4 items = date/time small rectangles */
+  form.logs-filter .logs-filter-grid > .lf-field:nth-child(1),
+  form.logs-filter .logs-filter-grid > .lf-field:nth-child(2),
+  form.logs-filter .logs-filter-grid > .lf-field:nth-child(3),
+  form.logs-filter .logs-filter-grid > .lf-field:nth-child(4){
+    grid-column: auto !important;
+  }
+
+  /* organization + position = second row */
+  form.logs-filter .logs-filter-grid > .lf-field:nth-child(5){
+    grid-column: 1 / span 2 !important;
+  }
+  form.logs-filter .logs-filter-grid > .lf-field:nth-child(6){
+    grid-column: 3 / span 2 !important;
+  }
+
+  /* compact labels */
+  form.logs-filter .form-label{
+    font-size: 11px !important;
+    line-height: 1.1 !important;
+    margin: 0 0 3px !important;
+    opacity: .85 !important;
+  }
+
+  /* compact inputs */
+  form.logs-filter .form-control,
+  form.logs-filter .form-select{
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 5px 9px !important;
+    font-size: 12px !important;
+    border-radius: 9px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* compact submit */
+  form.logs-filter .lf-actions{
+    margin-top: 6px !important;
+  }
+  form.logs-filter .lf-actions .btn{
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 6px 10px !important;
+    font-size: 13px !important;
+    border-radius: 9px !important;
+    width: 100% !important;
+  }
+}
+</style>
+
+
+
+
+
+<!-- MOBILE_PICKER_FIX_START -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  if (!isTouch || typeof flatpickr === 'undefined') return;
+
+  const df = document.querySelector('input[name="date_from"]');
+  const dt = document.querySelector('input[name="date_to"]');
+  const tf = document.querySelector('input[name="time_from"]');
+  const tt = document.querySelector('input[name="time_to"]');
+
+  [df, dt].forEach(function(el){
+    if (!el) return;
+    el.type = 'text';
+    el.setAttribute('inputmode', 'none');
+    el.setAttribute('autocomplete', 'off');
+    flatpickr(el, {
+      dateFormat: 'Y-m-d',
+      allowInput: false,
+      disableMobile: true,
+      locale: 'ru'
+    });
+  });
+
+  [tf, tt].forEach(function(el){
+    if (!el) return;
+    el.type = 'text';
+    el.setAttribute('inputmode', 'none');
+    el.setAttribute('autocomplete', 'off');
+    flatpickr(el, {
+      enableTime: true,
+      noCalendar: true,
+      dateFormat: 'H:i',
+      time_24hr: true,
+      allowInput: false,
+      disableMobile: true
+    });
+  });
+});
+</script>
+<!-- MOBILE_PICKER_FIX_END -->
+
+
+<!-- ROLE_NAV_VISIBILITY_START -->
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const role = "<%= user && user.role ? user.role : '' %>";
+  const isSys = <%= user && user.is_is_admin ? 'true' : 'false' %>;
+  const effectiveRole = (role === 'admin' && isSys) ? 'sysadmin' : role;
+
+  const hideMap = {
+    admin: ['Устройства', 'Участки', 'Аудит'],
+    dispatcher: ['Пользователи', 'Устройства', 'Участки', 'Аудит'],
+    user: ['Журнал', 'Пользователи', 'Устройства', 'Участки', 'Аудит']
+  };
+
+  (hideMap[effectiveRole] || []).forEach(function(txt){
+    document.querySelectorAll('a,button').forEach(function(el){
+      if ((el.textContent || '').trim() === txt) {
+        const node = el.closest('a,button,li,div');
+        if (node) node.style.display = 'none';
+      }
+    });
+  });
+});
+</script>
+<!-- ROLE_NAV_VISIBILITY_END -->
+
+<%- include('partials/footer') %>

@@ -1,0 +1,773 @@
+<%- include('partials/header', { title, bodyClass, user, path: '/admin/users' }) %>
+
+<% const roleRu = (r) => (r==='admin' ? 'Администратор' : (r==='dispatcher' ? 'Диспетчер' : (r==='user' ? 'Арендатор' : r))); %>
+<% const pluralRu = (n, one, few, many) => { const mod10 = n % 10; const mod100 = n % 100; if (mod10 === 1 && mod100 !== 11) return one; if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few; return many; }; %>
+<% const _allZones = Array.isArray(allZones) ? allZones : (Array.isArray(zones) ? zones : []); %>
+<% const _isISAdmin = !!(user && user.is_is_admin); %>
+<% const _users = Array.isArray(users) ? users : []; %>
+<% const _tenantCount = _users.filter(u => u && u.role === 'user').length; %>
+<% const _dispatcherCount = _users.filter(u => u && u.role === 'dispatcher').length; %>
+<% const _adminCount = _users.filter(u => u && u.role === 'admin').length; %>
+
+<div class="mb-3">
+  <div class="d-flex flex-wrap gap-2 align-items-start justify-content-between">
+    <div style="min-width:240px;">
+      <h1 class="h4 mb-0">Люди</h1>
+      <div class="text-muted small">Добавляйте арендаторов, диспетчеров и администраторов.</div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <span class="badge-soft px-3 py-2">Всего: <%= _users.length %></span>
+      <span class="badge-soft px-3 py-2">Арендаторы: <%= _tenantCount %></span>
+      <span class="badge-soft px-3 py-2">Диспетчеры: <%= _dispatcherCount %></span>
+      <span class="badge-soft px-3 py-2">Админы: <%= _adminCount %></span>
+    </div>
+  </div>
+</div>
+
+
+<style>
+.ui-hidden{
+  display:none !important;
+}
+</style>
+
+<% if (typeof errorToast !== 'undefined' && errorToast) { %>
+<style>
+.user-delete-toast-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(10,14,24,.44);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  z-index:5000;
+}
+.user-delete-toast-card{
+  width:100%;
+  max-width:380px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:22px;
+  background:rgba(18,24,38,.96);
+  box-shadow:0 24px 60px rgba(0,0,0,.35);
+  color:#fff;
+  padding:18px 18px 16px;
+  position:relative;
+}
+.user-delete-toast-close{
+  position:absolute;
+  top:10px;
+  right:10px;
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:999px;
+  background:rgba(255,255,255,.06);
+  color:#fff;
+  font-size:18px;
+  line-height:1;
+  cursor:pointer;
+}
+.user-delete-toast-title{
+  font-size:18px;
+  font-weight:800;
+  line-height:1.25;
+  margin:0 34px 8px 0;
+}
+.user-delete-toast-text{
+  font-size:14px;
+  line-height:1.45;
+  color:rgba(255,255,255,.82);
+  margin:0 0 14px 0;
+}
+.user-delete-toast-actions{
+  display:flex;
+  justify-content:flex-end;
+}
+.user-delete-toast-actions .btn{
+  min-width:110px;
+}
+</style>
+
+<div class="user-delete-toast-backdrop" id="userDeleteToastBackdrop">
+  <div class="user-delete-toast-card" role="alertdialog" aria-modal="true" aria-labelledby="userDeleteToastTitle">
+    <button type="button" class="user-delete-toast-close" id="userDeleteToastClose" aria-label="Закрыть">×</button>
+    <div class="user-delete-toast-title" id="userDeleteToastTitle">Доступ ограничен</div>
+    <div class="user-delete-toast-text"><%= errorToast %></div>
+    <div class="user-delete-toast-actions">
+      <button type="button" class="btn btn-primary" id="userDeleteToastOk">Понятно</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const backdrop = document.getElementById('userDeleteToastBackdrop');
+  const closeBtn = document.getElementById('userDeleteToastClose');
+  const okBtn = document.getElementById('userDeleteToastOk');
+  if (!backdrop) return;
+
+  function closeToast() {
+    backdrop.style.display = 'none';
+    if (window.history && window.history.replaceState) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('error');
+      window.history.replaceState({}, document.title, url.pathname + (url.search ? url.search : ''));
+    }
+  }
+
+  if (closeBtn) closeBtn.addEventListener('click', closeToast);
+  if (okBtn) okBtn.addEventListener('click', closeToast);
+  backdrop.addEventListener('click', function (e) {
+    if (e.target === backdrop) closeToast();
+  });
+  setTimeout(closeToast, 4500);
+});
+</script>
+<% } %>
+
+<% if (typeof generatedPinNotice !== 'undefined' && generatedPinNotice && generatedPinNotice.pin) { %>
+<style>
+.generated-pin-notice{
+  border:1px solid rgba(34,197,94,.28);
+  background:rgba(20,83,45,.22);
+  border-radius:18px;
+  padding:14px 16px;
+}
+.generated-pin-notice-title{
+  font-weight:800;
+  margin-bottom:6px;
+}
+.generated-pin-notice-code{
+  display:inline-flex;
+  align-items:center;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:12px;
+  background:rgba(0,0,0,.22);
+  padding:8px 10px;
+  font-size:16px;
+  font-weight:800;
+}
+</style>
+<div class="generated-pin-notice mb-3" role="status">
+  <div class="generated-pin-notice-title">Пароль создан</div>
+  <div class="small text-muted mb-2">
+    Передайте этот пароль пользователю отдельно. Он показан только один раз.
+    <% if (generatedPinNotice.email && !generatedPinNotice.mail_includes_password) { %>
+      Письмо отправляется без пароля: пользователь увидит, что пароль нужно получить у администратора.
+    <% } %>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <span class="generated-pin-notice-code text-mono"><%= generatedPinNotice.pin %></span>
+    <% if (generatedPinNotice.fio || generatedPinNotice.phone || generatedPinNotice.user_id) { %>
+      <span class="small text-muted">
+        <%= [generatedPinNotice.fio, generatedPinNotice.phone, generatedPinNotice.user_id].filter(Boolean).join(' • ') %>
+      </span>
+    <% } %>
+  </div>
+</div>
+<% } %>
+
+
+<div class="card card-glass p-3 mb-3">
+  <h2 class="h6 mb-2">Добавить человека</h2>
+  <form method="post" action="/admin/users/create" class="row g-2">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="col-12 col-md-3">
+      <input name="fio" class="form-control" placeholder="ФИО" required />
+    </div>
+    <div class="col-12 col-md-3">
+      <input name="organization" class="form-control" placeholder="Организация (опц.)" />
+    </div>
+    <div class="col-12 col-md-2">
+      <input name="position" class="form-control" placeholder="Должность (опц.)" />
+    </div>
+    <div class="col-12 col-md-2">
+      <input name="phone" class="form-control" placeholder="Телефон (цифры)" required />
+    </div>
+    <div class="col-12 col-md-3">
+      <input name="email" type="email" class="form-control" placeholder="Email (опц.)" />
+    </div>
+    <div class="col-12 col-md-1">
+      <input name="pin" type="password" class="form-control" placeholder="Пароль" autocomplete="new-password" autocapitalize="none" spellcheck="false" />
+    </div>
+    <div class="col-12 col-md-1">
+      <select name="role" class="form-select" id="createRole">
+        <option value="user">Арендатор</option>
+        <option value="admin">Администратор</option>
+        <option value="dispatcher">Диспетчер</option>
+      </select>
+    </div>
+    <div class="col-12 col-md-3 d-flex align-items-center" id="createTenantContactWrap">
+      <label class="form-check mb-0">
+        <input class="form-check-input me-1" type="checkbox" name="is_tenant_contact" value="true" id="createTenantContact">
+        <span class="form-check-label">Контакт для арендаторов</span>
+      </label>
+    </div>
+    <% if (user && user.is_is_admin) { %>
+    <div class="col-12 col-md-2 d-flex align-items-center" id="createSysAdminWrap">
+      <label class="form-check mb-0">
+        <input class="form-check-input me-1" type="checkbox" name="is_is_admin" value="true" id="createSysAdmin">
+        <span class="form-check-label">Системный админ</span>
+      </label>
+    </div>
+    <% } %>
+    <% if (_isISAdmin) { %>
+    <div class="col-12" id="createAssignableZonesSection">
+      
+      <div class="d-flex flex-wrap gap-2">
+        <% _allZones.forEach(z => { %>
+          <label class="form-check form-check-inline badge-soft px-2 py-1">
+            <input class="form-check-input me-1" type="checkbox" name="assignable_zones" value="<%= z.id %>">
+            <span class="form-check-label"><%= z.name %></span>
+          </label>
+        <% }) %>
+      </div>
+      
+    </div>
+    <% } %>
+
+    <div class="col-12 p-0" id="createTenantProfileFields">
+      <div class="row g-2" style="margin:0;">
+        <div class="col-12">
+          <div class="small text-muted">Для арендатора: этаж, секция, места и привычный маршрут.</div>
+        </div>
+        <div class="col-12 col-md-2">
+          <input name="parking_floors" class="form-control" placeholder="Этажи: 7, 8" data-tenant-profile-field />
+        </div>
+        <div class="col-12 col-md-3">
+          <input name="parking_groups" class="form-control" placeholder="Секции: 7A, 7B" data-tenant-profile-field />
+        </div>
+        <div class="col-12 col-md-3">
+          <input name="parking_spots" class="form-control" placeholder="Места: 7-124, 7-125" data-tenant-profile-field />
+        </div>
+        <div class="col-12 col-md-4">
+          <input name="preferred_routes" class="form-control" placeholder="Маршрут: 7 этаж, въезд, выезд" data-tenant-profile-field />
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <button class="btn btn-gold w-100" type="submit">Добавить</button>
+    </div>
+    <div class="col-12">
+      <div class="small text-muted text-wrap">Разделы паркинга можно настроить сразу после создания.</div>
+    </div>
+  </form>
+</div>
+
+<div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-2">
+  <div class="text-muted small">Всего: <%= (users || []).length %></div>
+  <div style="flex: 1 1 280px; max-width: 380px;">
+    <input id="userSearch" class="form-control" placeholder="Поиск: ФИО / должность / организация / телефон / email" />
+  </div>
+</div>
+
+<div class="users-grid" id="usersGrid">
+  <% (users || []).forEach(u => { %>
+    <div class="user-card" data-user-id="<%= u.id %>">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <div style="min-width:220px; flex:1 1 220px;">
+          <div class="user-name"><%= u.fio || '—' %></div>
+          <div class="user-sub text-mono"><%= (u.phone || '').replace(/\D/g,'') %></div>
+          <% if (u.email) { %><div class="text-muted small"><%= u.email %></div><% } %>
+          <div class="text-muted small" style="line-height:1.2;">
+            <%= [u.organization, u.position].filter(Boolean).join(' • ') || '' %>
+          </div>
+          <% if (u.tenant_profile_summary) { %>
+            <div class="text-muted small" style="line-height:1.35; margin-top:4px;">
+              Профиль арендатора: <%= u.tenant_profile_summary %>
+            </div>
+          <% } %>
+          <% if (u.email) { %>
+            <div class="text-muted small" style="line-height:1.2; margin-top:4px;">
+              Email: <span class="text-mono"><%= u.email %></span>
+            </div>
+          <% } %>
+        </div>
+        <div class="d-flex gap-1 flex-wrap align-items-center" style="justify-content:flex-end;">
+          <span class="badge-soft"><%= roleRu(u.role) %></span>
+          <% if (u.is_tenant_contact) { %><span class="badge-soft">Контакт арендаторов</span><% } %>
+          <span class="badge-soft"><%= (u.is_active !== false) ? 'В работе' : 'Отключён' %></span>
+          <% const zoneCount = Array.isArray(u.zones) ? u.zones.length : 0; %>
+          <span class="badge-soft"><%= zoneCount %> <%= pluralRu(zoneCount, 'участок', 'участка', 'участков') %></span>
+        </div>
+      </div>
+      <div class="user-actions">
+        <button class="btn btn-soft btn-sm" type="button" data-edit-user="<%= u.id %>">Настроить</button>
+        <span class="muted small">id: <span class="text-mono"><%= u.id %></span></span>
+      </div>
+    </div>
+  <% }) %>
+
+  <% if (!users || !users.length) { %>
+    <div class="card">
+      <div class="muted">Пока никого нет</div>
+    </div>
+  <% } %>
+</div>
+
+<!-- Modal: compact user editor -->
+<div class="modal-backdrop" id="userModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Редактирование профиля">
+    <div class="modal-header">
+      <div style="min-width:0;">
+        <div class="modal-title" id="mTitle">Профиль</div>
+        <div class="text-muted small" id="mSub"></div>
+        
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" id="mClose">✕</button>
+    </div>
+
+    <div class="modal-body mobile-scroll">
+      <form id="userUpdateForm" method="post" action="">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="modal-grid">
+          <div>
+            <label class="form-label">ФИО</label>
+            <input name="fio" class="form-control" id="mFio" required />
+          </div>
+
+          <div>
+            <label class="form-label">Телефон</label>
+            <input name="phone" class="form-control" id="mPhone" required />
+          </div>
+
+          <div>
+            <label class="form-label">Email</label>
+            <input name="email" type="email" class="form-control" id="mEmail" placeholder="(опционально)" />
+          </div>
+
+          <div>
+            <label class="form-label">Организация</label>
+            <input name="organization" class="form-control" id="mOrg" placeholder="(опционально)" />
+          </div>
+
+          <div>
+            <label class="form-label">Должность</label>
+            <input name="position" class="form-control" id="mPos" placeholder="(опционально)" />
+          </div>
+
+          <div id="mTenantProfileSection" style="grid-column: 1 / -1;">
+            <div class="small text-muted" style="margin-bottom:8px;">Для арендатора: этаж, секция, места и привычный маршрут.</div>
+            <div class="modal-grid">
+              <div>
+                <label class="form-label">Этажи</label>
+                <input name="parking_floors" class="form-control" id="mParkingFloors" placeholder="7, 8" data-tenant-profile-field />
+              </div>
+
+              <div>
+                <label class="form-label">Группы мест</label>
+                <input name="parking_groups" class="form-control" id="mParkingGroups" placeholder="A7, B2" data-tenant-profile-field />
+              </div>
+
+              <div>
+                <label class="form-label">Места</label>
+                <input name="parking_spots" class="form-control" id="mParkingSpots" placeholder="7-124, 7-125" data-tenant-profile-field />
+              </div>
+
+              <div>
+                <label class="form-label">Маршруты</label>
+                <input name="preferred_routes" class="form-control" id="mPreferredRoutes" placeholder="7 этаж, лифты, въезды" data-tenant-profile-field />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label">Роль</label>
+            <select name="role" class="form-select" id="mRole">
+              <option value="user">Арендатор</option>
+              <option value="admin">Администратор</option>
+              <option value="dispatcher">Диспетчер</option>
+            </select>
+          </div>
+
+          <div id="mTenantContactSection">
+            <label class="form-label">Связь</label>
+            <div class="form-check form-switch" style="align-items:center;">
+              <input type="hidden" name="is_tenant_contact" value="false"><input class="form-check-input" type="checkbox" id="mTenantContact" name="is_tenant_contact" value="true">
+              <span class="text-muted small">использовать как контакт для арендаторов</span>
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label">Активен</label>
+            <div class="form-check form-switch" style="align-items:center;">
+              <input type="hidden" name="is_active" value="false"><input class="form-check-input" type="checkbox" id="mActive" name="is_active" value="true">
+              <span class="text-muted small">вкл/выкл</span>
+            </div>
+          </div>
+
+          <div style="grid-column: 1 / -1;">
+            <label class="form-label">Пароль</label>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <span class="badge-soft text-mono" id="mCurPin">Пароль: задан</span>
+              <div style="flex: 1 1 260px; min-width: 220px;">
+                <input name="pin" class="form-control" id="mNewPin" type="password" placeholder="Новый пароль" autocomplete="new-password" autocapitalize="none" spellcheck="false" />
+                <div class="text-muted small">Оставьте пустым — пароль не изменится.</div>
+                <div class="text-muted small">Кнопка «Сохранить и отправить на Email» без нового пароля создаст временный пароль и покажет его администратору один раз.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="grid-column: 1 / -1;">
+            <label class="form-label">Разделы паркинга</label>
+            <div class="d-flex flex-wrap gap-1" id="mZones">
+              <% (zones || []).forEach(z => { %>
+                <label class="zone-chip">
+                  <input class="form-check-input me-1" type="checkbox" name="zones" value="<%= z.id %>" data-zone-id="<%= z.id %>">
+                  <span><%= z.name %></span>
+                </label>
+              <% }) %>
+            </div>
+          </div>
+
+          <% if (_isISAdmin) { %>
+          <div style="grid-column: 1 / -1;" id="mAssignableZonesSection">
+            
+            <div class="d-flex flex-wrap gap-1" id="mAssignableZones">
+              <% _allZones.forEach(z => { %>
+                <label class="zone-chip">
+                  <input class="form-check-input me-1" type="checkbox" name="assignable_zones" value="<%= z.id %>" data-assignable-zone-id="<%= z.id %>">
+                  <span><%= z.name %></span>
+                </label>
+              <% }) %>
+            </div>
+            <div class="small text-muted">Для системного администратора не применяется.</div>
+          </div>
+          <% } %>
+        </div>
+      </form>
+
+            <form id="userResetForm" method="post" action="" style="display:none;"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
+      <form id="userDeleteForm" method="post" action=""><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-soft" type="button" id="mCancel">Отмена</button>
+      
+      <button class="btn btn-danger" type="submit" form="userDeleteForm" id="mDelete">Удалить</button>
+      <button class="btn btn-soft" type="submit" form="userUpdateForm" name="send_email" value="1">Сохранить и отправить на Email</button>
+      <button class="btn btn-primary" type="submit" form="userUpdateForm">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- USER_MODAL_RECOVERY_START -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const USERS = <%- JSON.stringify(users || []).replace(/[<>&\u2028\u2029]/g, function (c) { return { '<': '\\u003C', '>': '\\u003E', '&': '\\u0026', '\u2028': '\\u2028', '\u2029': '\\u2029' }[c]; }) %>;
+
+  const modal = document.getElementById('userModal');
+  if (!modal) return;
+
+  const byId = (id) => document.getElementById(id);
+
+  const closeBtn = byId('mClose');
+  const cancelBtn = byId('mCancel');
+  const titleEl = byId('mTitle');
+  const subEl = byId('mSub');
+
+  const fio = byId('mFio');
+  const phone = byId('mPhone');
+  const email = byId('mEmail');
+  const org = byId('mOrg');
+  const pos = byId('mPos');
+  const role = byId('mRole');
+  const parkingFloors = byId('mParkingFloors');
+  const parkingGroups = byId('mParkingGroups');
+  const parkingSpots = byId('mParkingSpots');
+  const preferredRoutes = byId('mPreferredRoutes');
+  const active = byId('mActive');
+  const createRole = byId('createRole');
+  const createTenantProfile = byId('createTenantProfileFields');
+  const createTenantContactWrap = byId('createTenantContactWrap');
+  const createTenantContact = byId('createTenantContact');
+  const createSysAdminWrap = byId('createSysAdminWrap');
+  const createSysAdmin = byId('createSysAdmin');
+  const createAssignableZonesSection = byId('createAssignableZonesSection');
+
+  const curPin = byId('mCurPin');
+  const newPin = byId('mNewPin');
+  const tenantContact = byId('mTenantContact');
+
+  const zonesWrap = byId('mZones');
+  const assignableZonesWrap = byId('mAssignableZones');
+  const assignableZonesSection = byId('mAssignableZonesSection');
+  const tenantProfileSection = byId('mTenantProfileSection');
+  const tenantContactSection = byId('mTenantContactSection');
+
+  const updateForm = byId('userUpdateForm');
+  const resetForm = byId('userResetForm');
+  const deleteForm = byId('userDeleteForm');
+
+  function setVisible(isOpen) {
+    modal.style.display = isOpen ? 'flex' : 'none';
+    modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    modal.classList.toggle('show', !!isOpen);
+    document.body.classList.toggle('modal-open', !!isOpen);
+  }
+
+  function renderCurrentPassword() {
+    if (!curPin) return;
+    curPin.textContent = curPin.dataset.pinSet === '1' ? 'Пароль: задан' : 'Пароль: не задан';
+  }
+
+  function setChecks(wrap, values) {
+    if (!wrap) return;
+    const set = new Set((Array.isArray(values) ? values : []).map(v => String(v)));
+    wrap.querySelectorAll('input[type="checkbox"]').forEach(function (inp) {
+      inp.checked = set.has(String(inp.value || ''));
+    });
+  }
+
+  function setSectionVisibility(section, show, selector) {
+    if (!section) return;
+    section.classList.toggle('ui-hidden', !show);
+    section.querySelectorAll(selector || 'input, select, textarea').forEach(function (field) {
+      field.disabled = !show;
+    });
+  }
+
+  function syncCreateRoleState() {
+    const value = createRole ? String(createRole.value || 'user') : 'user';
+    setSectionVisibility(createTenantProfile, value === 'user', '[data-tenant-profile-field]');
+    if (createTenantContactWrap) createTenantContactWrap.classList.toggle('ui-hidden', value === 'user');
+    if (createTenantContact) {
+      createTenantContact.disabled = value === 'user';
+      if (value === 'user') createTenantContact.checked = false;
+    }
+    if (createSysAdminWrap) createSysAdminWrap.classList.toggle('ui-hidden', value !== 'admin');
+    if (createSysAdmin) createSysAdmin.disabled = value !== 'admin';
+    if (createAssignableZonesSection) {
+      createAssignableZonesSection.classList.toggle('ui-hidden', value !== 'admin');
+      createAssignableZonesSection.querySelectorAll('input[type="checkbox"]').forEach(function (field) {
+        field.disabled = value !== 'admin';
+      });
+    }
+  }
+
+  function syncModalRoleState() {
+    const value = role ? String(role.value || 'user') : 'user';
+    setSectionVisibility(tenantProfileSection, value === 'user', '[data-tenant-profile-field]');
+    if (tenantContactSection) tenantContactSection.classList.toggle('ui-hidden', value === 'user');
+    if (tenantContact) {
+      tenantContact.disabled = value === 'user';
+      if (value === 'user') tenantContact.checked = false;
+    }
+    if (assignableZonesSection) {
+      const showAssignable = value === 'admin';
+      assignableZonesSection.classList.toggle('ui-hidden', !showAssignable);
+      assignableZonesSection.querySelectorAll('input[type="checkbox"]').forEach(function (field) {
+        field.disabled = !showAssignable;
+      });
+    }
+  }
+
+  function openUser(u) {
+    if (!u) return;
+
+    if (titleEl) titleEl.textContent = u.fio || 'Профиль';
+
+    const sub = [u.phone, u.email, u.organization, u.position].filter(Boolean).join(' • ');
+    if (subEl) subEl.textContent = sub;
+
+    if (fio) fio.value = u.fio || '';
+    if (phone) phone.value = u.phone || '';
+    if (email) email.value = u.email || '';
+    if (org) org.value = u.organization || '';
+    if (pos) pos.value = u.position || '';
+    if (role) role.value = u.role || 'user';
+    if (parkingFloors) parkingFloors.value = Array.isArray(u.parking_floors) ? u.parking_floors.join(', ') : '';
+    if (parkingGroups) parkingGroups.value = Array.isArray(u.parking_groups) ? u.parking_groups.join(', ') : '';
+    if (parkingSpots) parkingSpots.value = Array.isArray(u.parking_spots) ? u.parking_spots.join(', ') : '';
+    if (preferredRoutes) preferredRoutes.value = Array.isArray(u.preferred_routes) ? u.preferred_routes.join(', ') : '';
+    if (active) active.checked = u.is_active !== false;
+    if (tenantContact) tenantContact.checked = !!u.is_tenant_contact;
+    if (newPin) newPin.value = '';
+
+    if (curPin) {
+      curPin.dataset.pinSet = u.pin_is_set ? '1' : '0';
+      renderCurrentPassword();
+    }
+
+    setChecks(zonesWrap, u.zones || []);
+    setChecks(assignableZonesWrap, u.assignable_zones || []);
+
+    if (updateForm) updateForm.action = '/admin/users/' + encodeURIComponent(u.id) + '/update';
+    if (resetForm) resetForm.action = '/admin/users/' + encodeURIComponent(u.id) + '/reset_pin';
+    if (deleteForm) deleteForm.action = '/admin/users/' + encodeURIComponent(u.id) + '/delete';
+
+    syncModalRoleState();
+    setVisible(true);
+  }
+
+  function closeUser() {
+    setVisible(false);
+  }
+
+  document.querySelectorAll('[data-edit-user]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const id = btn.getAttribute('data-edit-user');
+      const u = USERS.find(x => String(x.id) === String(id));
+      openUser(u);
+    });
+  });
+
+  if (closeBtn) closeBtn.addEventListener('click', closeUser);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeUser);
+  if (createRole) createRole.addEventListener('change', syncCreateRoleState);
+  if (role) role.addEventListener('change', syncModalRoleState);
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeUser();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') {
+      closeUser();
+    }
+  });
+
+  if (deleteForm) {
+    deleteForm.addEventListener('submit', function (e) {
+      if (!confirm('Удалить учетную запись? Действие необратимо.')) e.preventDefault();
+    });
+  }
+
+  syncCreateRoleState();
+  syncModalRoleState();
+  setVisible(false);
+});
+</script>
+<!-- USER_MODAL_RECOVERY_END -->
+
+
+
+<!-- USERS_SEARCH_HARDFIX_START -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const searchInput = document.getElementById('userSearch');
+  const grid = document.getElementById('usersGrid');
+  if (!searchInput || !grid) return;
+
+  const cards = Array.from(grid.querySelectorAll('.user-card'));
+  if (!cards.length) return;
+
+  let emptyState = document.getElementById('usersSearchEmptyState');
+  if (!emptyState) {
+    emptyState = document.createElement('div');
+    emptyState.id = 'usersSearchEmptyState';
+    emptyState.className = 'card';
+    emptyState.style.display = 'none';
+    emptyState.innerHTML = '<div class="muted">Ничего не найдено</div>';
+    grid.appendChild(emptyState);
+  }
+
+  function normalize(s) {
+    return String(s || '')
+      .toLowerCase()
+      .replace(/ё/g, 'е')
+      .replace(/[^a-zа-я0-9@.+\s-]/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function compact(s) {
+    return normalize(s).replace(/\s+/g, '');
+  }
+
+  function cardText(card) {
+    return normalize(card.innerText || card.textContent || '');
+  }
+
+  function applySearch() {
+    const q = normalize(searchInput.value);
+    const qCompact = compact(searchInput.value);
+    let visible = 0;
+
+    cards.forEach(function (card) {
+      const text = cardText(card);
+      const show = !q || text.includes(q) || compact(text).includes(qCompact);
+      card.style.display = show ? '' : 'none';
+      if (show) visible += 1;
+    });
+
+    emptyState.style.display = visible ? 'none' : '';
+  }
+
+  searchInput.addEventListener('input', applySearch);
+  searchInput.addEventListener('keyup', applySearch);
+  applySearch();
+});
+</script>
+<!-- USERS_SEARCH_HARDFIX_END -->
+
+
+
+<!-- SYSADMIN_ACTIVE_LOCK_START -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const currentUserIsSysAdmin = <%- JSON.stringify(!!(user && user.is_is_admin)) %>;
+  const activeInput = document.getElementById('mActive');
+  const modal = document.getElementById('userModal');
+  if (!activeInput || typeof USERS === 'undefined') return;
+
+  function ensureLockNote() {
+    let note = document.getElementById('mActiveLockNote');
+    if (note) return note;
+
+    const wrap = activeInput.closest('div');
+    note = document.createElement('div');
+    note.id = 'mActiveLockNote';
+    note.className = 'text-muted small';
+    note.style.display = 'none';
+    note.style.marginTop = '8px';
+    note.textContent = 'Обычный админ не может отключать СИС-админа.';
+    if (wrap && wrap.parentNode) {
+      wrap.parentNode.appendChild(note);
+    }
+    return note;
+  }
+
+  function applyActiveLock(userId) {
+    const note = ensureLockNote();
+    const target = (USERS || []).find(function (u) {
+      return String(u.id) === String(userId);
+    });
+
+    const locked = !!(target && target.is_is_admin && !currentUserIsSysAdmin);
+
+    activeInput.disabled = locked;
+    if (locked) activeInput.checked = true;
+    if (note) note.style.display = locked ? '' : 'none';
+  }
+
+  document.querySelectorAll('[data-edit-user]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const id = btn.getAttribute('data-edit-user');
+      setTimeout(function () { applyActiveLock(id); }, 0);
+      setTimeout(function () { applyActiveLock(id); }, 80);
+    });
+  });
+
+  if (modal) {
+    const observer = new MutationObserver(function () {
+      const visible = modal.getAttribute('aria-hidden') !== 'true';
+      if (!visible) return;
+
+      const form = document.getElementById('userUpdateForm');
+      const action = form ? String(form.getAttribute('action') || '') : '';
+      const m = action.match(/\/admin\/users\/([^/]+)\/update/);
+      if (m && m[1]) applyActiveLock(m[1]);
+    });
+    observer.observe(modal, { attributes: true, attributeFilter: ['aria-hidden', 'class'] });
+  }
+});
+</script>
+<!-- SYSADMIN_ACTIVE_LOCK_END -->
+
+
+<%- include('partials/footer') %>

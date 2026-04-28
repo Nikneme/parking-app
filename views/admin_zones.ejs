@@ -1,0 +1,548 @@
+<%- include('partials/header', { title, bodyClass, user, path: '/admin/zones' }) %>
+<%
+  const __deviceTrailingNum = (d) => {
+    const label = String((d && (d.name || d.id)) || '').trim();
+    const m = label.match(/(\d+)(?!.*\d)/);
+    return m ? Number(m[1]) : Number.POSITIVE_INFINITY;
+  };
+
+  const __sortZoneDevices = (arr) => {
+    const list = Array.isArray(arr) ? [...arr] : [];
+    list.sort((a, b) => {
+      const an = __deviceTrailingNum(a);
+      const bn = __deviceTrailingNum(b);
+
+      if (an !== bn) return an - bn;
+
+      const aName = String((a && (a.name || a.id)) || '').trim();
+      const bName = String((b && (b.name || b.id)) || '').trim();
+
+      const byName = aName.localeCompare(bName, 'ru', {
+        numeric: true,
+        sensitivity: 'base'
+      });
+      if (byName !== 0) return byName;
+
+      return String((a && a.id) || '').localeCompare(String((b && b.id) || ''), 'ru', {
+        numeric: true,
+        sensitivity: 'base'
+      });
+    });
+    return list;
+  };
+  const __allDevices = __sortZoneDevices((typeof allDevices !== 'undefined' && Array.isArray(allDevices)) ? allDevices : []);
+  const __zones = (typeof zones !== 'undefined' && Array.isArray(zones)) ? zones : [];
+  const __zoneNameById = Object.fromEntries(__zones.map((zone) => [String(zone.id || ''), String(zone.name || zone.id || '')]));
+  const __linkedZoneIds = new Set(__allDevices.map((device) => String(device.zoneId || device.zone_id || device.zone || '')).filter(Boolean));
+  const __emptyZonesCount = __zones.filter((zone) => !__linkedZoneIds.has(String(zone.id || ''))).length;
+%>
+
+<div class="mb-3">
+  <div class="d-flex flex-wrap gap-2 align-items-start justify-content-between">
+    <div>
+      <h1 class="h4 mb-0">Участки</h1>
+      <div class="text-muted small">Здесь меняются и название, и состав устройств.</div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <span class="badge-soft px-3 py-2">Участков: <%= __zones.length %></span>
+      <span class="badge-soft px-3 py-2">Устройств: <%= __allDevices.length %></span>
+      <span class="badge-soft px-3 py-2">Пустые: <%= __emptyZonesCount %></span>
+    </div>
+  </div>
+</div>
+
+<div class="card card-glass p-3 p-md-4 mb-4">
+  <h2 class="h6 mb-3">Добавить участок</h2>
+  <form method="post" action="/admin/zones/create" class="row g-2">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="col-12 col-md-4">
+      <input class="form-control" name="id" placeholder="ID (можно пусто)" />
+    </div>
+    <div class="col-12 col-md-6">
+      <input class="form-control" name="name" placeholder="Название" required />
+    </div>
+    <div class="col-12 col-md-2 d-grid">
+      <button class="btn btn-primary" type="submit">Сохранить</button>
+    </div>
+  </form>
+</div>
+
+<div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-2">
+  <div class="text-muted small">Найти участок или устройство внутри него</div>
+  <div style="flex: 1 1 280px; max-width: 380px;">
+    <input id="zonesSearch" class="form-control" placeholder="Поиск: Ш1, 7 этаж, северный въезд" />
+  </div>
+</div>
+
+<div class="card card-glass p-0 overflow-hidden">
+  <div class="table-responsive">
+    <table class="table table-dark table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Название</th>
+          <th>Устройства</th>
+          <th class="text-end">Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+      <% zones.forEach(z => { %>
+        <% const ds = __sortZoneDevices((devicesByZone && devicesByZone[z.id]) ? devicesByZone[z.id] : []); %>
+        <% const _selectedIds = new Set(ds.map((d) => String(d.id || ''))); %>
+        <tr data-zone-row data-zone-search="<%= [z.id, z.name, ds.map(d => d.name || d.id).join(' ')].join(' ').toLowerCase() %>">
+          <td class="text-nowrap"><code><%= z.id %></code></td>
+          <td style="min-width:220px">
+            <input form="zoneupd-<%= z.id %>" class="form-control form-control-sm" name="name" value="<%= z.name %>" aria-label="Название участка <%= z.name %>" />
+          </td>
+          <td>
+            <div class="zone-devices-cell">
+            <% if (ds.length) { %>
+              <div class="chips">
+                <% ds.slice(0,8).forEach(d => { %>
+                  <span class="chip"><%= d.name || d.id %></span>
+                <% }) %>
+                <% if (ds.length > 8) { %><span class="chip">+<%= ds.length - 8 %></span><% } %>
+              </div>
+            <% } else { %>
+              <span class="text-muted">Пока пусто</span>
+            <% } %>
+              <button class="btn btn-ghost btn-sm zone-editor-toggle" type="button" data-zone-editor-toggle data-target="zone-editor-<%= z.id %>" aria-expanded="false">Изменить состав</button>
+            </div>
+          </td>
+          <td class="text-end">
+            <form id="zoneupd-<%= z.id %>" method="post" action="/admin/zones/<%= z.id %>/update" style="display:none">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="device_ids_present" value="1">
+            </form>
+            <div class="action-buttons">
+              <button class="btn btn-soft btn-sm" type="submit" form="zoneupd-<%= z.id %>">Сохранить</button>
+              <form method="post" action="/admin/zones/<%= z.id %>/delete" onsubmit="return confirm('Удалить участок?');" style="display:inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn btn-danger btn-sm" type="submit">Удалить</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        <tr class="zone-editor-row is-hidden" id="zone-editor-<%= z.id %>" data-zone-row data-zone-search="<%= [z.id, z.name, ds.map(d => d.name || d.id).join(' ')].join(' ').toLowerCase() %>">
+          <td colspan="4">
+            <div class="zone-editor-panel">
+              <div class="zone-editor-head">
+                <strong>Состав участка</strong>
+                <span class="text-muted small">Отметьте, какие устройства относятся к этому участку. Если устройство сейчас в другом участке, оно будет перенесено.</span>
+              </div>
+              <div class="zone-editor-search">
+                <input class="form-control form-control-sm" type="search" placeholder="Найти устройство: Ш1, въезд, лифт" data-zone-device-search data-zone-device-scope="zone-options-<%= z.id %>">
+              </div>
+              <div class="zone-device-options" id="zone-options-<%= z.id %>">
+                <% __allDevices.forEach((device) => { %>
+                  <% const _deviceId = String(device.id || ''); %>
+                  <% const _deviceName = String(device.name || device.id || ''); %>
+                  <% const _deviceZoneId = String(device.zoneId || device.zone_id || device.zone || ''); %>
+                  <% const _deviceZoneName = _deviceZoneId && __zoneNameById[_deviceZoneId] ? __zoneNameById[_deviceZoneId] : ''; %>
+                  <label class="zone-device-option" data-zone-device-option data-zone-device-search-text="<%= [_deviceName, _deviceId, _deviceZoneName].filter(Boolean).join(' ').toLowerCase() %>">
+                    <input form="zoneupd-<%= z.id %>" type="checkbox" name="device_ids" value="<%= _deviceId %>" <%= _selectedIds.has(_deviceId) ? 'checked' : '' %> />
+                    <span class="zone-device-option-copy">
+                      <span class="zone-device-option-name"><%= _deviceName %></span>
+                      <% if (_deviceZoneName && _deviceZoneId !== String(z.id)) { %>
+                        <span class="zone-device-option-meta">Сейчас: <%= _deviceZoneName %></span>
+                      <% } else if (_deviceZoneId === String(z.id)) { %>
+                        <span class="zone-device-option-meta">Уже в этом участке</span>
+                      <% } else { %>
+                        <span class="zone-device-option-meta">Пока не привязано</span>
+                      <% } %>
+                    </span>
+                  </label>
+                <% }) %>
+              </div>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="zones-mobile-wrap">
+  <% zones.forEach(z => { %>
+    <% const ds = __sortZoneDevices((devicesByZone && devicesByZone[z.id]) ? devicesByZone[z.id] : []); %>
+    <% const _selectedIds = new Set(ds.map((d) => String(d.id || ''))); %>
+    <div class="zones-mobile-card" data-zone-row data-zone-search="<%= [z.id, z.name, ds.map(d => d.name || d.id).join(' ')].join(' ').toLowerCase() %>">
+      <div class="zones-mobile-head">
+        <div>
+          <div class="zones-mobile-title"><%= z.name %></div>
+          <div class="zones-mobile-code"><code><%= z.id %></code></div>
+        </div>
+        <div class="zones-mobile-count"><%= ds.length %></div>
+      </div>
+
+      <form id="zoneupd-mobile-<%= z.id %>" method="post" action="/admin/zones/<%= z.id %>/update" class="zones-mobile-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="device_ids_present" value="1">
+        <label class="form-label">Название</label>
+        <input class="form-control" name="name" value="<%= z.name %>" aria-label="Название участка <%= z.name %>" />
+        <div class="zones-mobile-devices">
+          <div class="zones-mobile-devices-label">Устройства</div>
+          <% if (ds.length) { %>
+            <div class="chips">
+              <% ds.slice(0,8).forEach(d => { %>
+                <span class="chip"><%= d.name || d.id %></span>
+              <% }) %>
+              <% if (ds.length > 8) { %><span class="chip">+<%= ds.length - 8 %></span><% } %>
+            </div>
+          <% } else { %>
+            <div class="text-muted small">Пока ничего не привязано.</div>
+          <% } %>
+        </div>
+        <button class="btn btn-ghost btn-sm zone-editor-toggle" type="button" data-zone-editor-toggle data-target="zone-editor-mobile-<%= z.id %>" aria-expanded="false">Изменить состав</button>
+        <div class="zone-editor-panel is-hidden" id="zone-editor-mobile-<%= z.id %>">
+          <div class="zone-editor-head">
+            <strong>Состав участка</strong>
+            <span class="text-muted small">Выберите устройства для этого участка.</span>
+          </div>
+          <div class="zone-editor-search">
+            <input class="form-control form-control-sm" type="search" placeholder="Найти устройство" data-zone-device-search data-zone-device-scope="zone-options-mobile-<%= z.id %>">
+          </div>
+          <div class="zone-device-options" id="zone-options-mobile-<%= z.id %>">
+            <% __allDevices.forEach((device) => { %>
+              <% const _deviceId = String(device.id || ''); %>
+              <% const _deviceName = String(device.name || device.id || ''); %>
+              <% const _deviceZoneId = String(device.zoneId || device.zone_id || device.zone || ''); %>
+              <% const _deviceZoneName = _deviceZoneId && __zoneNameById[_deviceZoneId] ? __zoneNameById[_deviceZoneId] : ''; %>
+              <label class="zone-device-option" data-zone-device-option data-zone-device-search-text="<%= [_deviceName, _deviceId, _deviceZoneName].filter(Boolean).join(' ').toLowerCase() %>">
+                <input form="zoneupd-mobile-<%= z.id %>" type="checkbox" name="device_ids" value="<%= _deviceId %>" <%= _selectedIds.has(_deviceId) ? 'checked' : '' %> />
+                <span class="zone-device-option-copy">
+                  <span class="zone-device-option-name"><%= _deviceName %></span>
+                  <% if (_deviceZoneName && _deviceZoneId !== String(z.id)) { %>
+                    <span class="zone-device-option-meta">Сейчас: <%= _deviceZoneName %></span>
+                  <% } else if (_deviceZoneId === String(z.id)) { %>
+                    <span class="zone-device-option-meta">Уже в этом участке</span>
+                  <% } else { %>
+                    <span class="zone-device-option-meta">Пока не привязано</span>
+                  <% } %>
+                </span>
+              </label>
+            <% }) %>
+          </div>
+        </div>
+      </form>
+      <div class="zones-mobile-actions">
+          <button class="btn btn-soft" type="submit" form="zoneupd-mobile-<%= z.id %>">Сохранить</button>
+          <form method="post" action="/admin/zones/<%= z.id %>/delete" onsubmit="return confirm('Удалить участок?');" style="margin:0">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn-danger" type="submit">Удалить</button>
+          </form>
+      </div>
+    </div>
+  <% }) %>
+</div>
+
+<style>
+.is-search-hidden{ display:none !important; }
+.zones-mobile-wrap{ display:none !important; }
+.zones-mobile-card.is-search-hidden{ display:none !important; }
+.zone-editor-row.is-hidden{ display:none; }
+.zone-devices-cell{
+  display:grid;
+  gap:10px;
+  justify-items:start;
+}
+.zone-editor-toggle{
+  min-height:32px;
+}
+.zone-editor-panel{
+  display:grid;
+  gap:12px;
+  padding:14px;
+  border-radius:14px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+}
+.zone-editor-panel.is-hidden{
+  display:none;
+}
+.zone-editor-head{
+  display:grid;
+  gap:4px;
+}
+.zone-editor-search{
+  max-width:320px;
+}
+.zone-device-options{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:10px;
+}
+.zone-device-option{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--card);
+  cursor:pointer;
+}
+.zone-device-option input{
+  width:18px;
+  height:18px;
+  margin-top:2px;
+  flex:0 0 auto;
+}
+.zone-device-option-copy{
+  min-width:0;
+  display:grid;
+  gap:4px;
+}
+.zone-device-option-name{
+  font-size:13px;
+  font-weight:600;
+  line-height:1.3;
+}
+.zone-device-option-meta{
+  font-size:12px;
+  line-height:1.35;
+  color:var(--muted);
+}
+
+@media (max-width: 768px){
+  .table-responsive{
+    display:none !important;
+  }
+
+  .zones-mobile-wrap{
+    display:grid !important;
+    gap:14px;
+  }
+
+  .zones-mobile-card{
+    padding:14px 16px;
+    border-radius:20px;
+    background:var(--card);
+    border:1px solid var(--border);
+    box-shadow:var(--shadow-card);
+  }
+
+  .zones-mobile-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:12px;
+  }
+
+  .zones-mobile-title{
+    font-weight:700;
+    line-height:1.25;
+  }
+
+  .zones-mobile-code{
+    margin-top:6px;
+  }
+
+  .zones-mobile-count{
+    min-width:34px;
+    height:34px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--surface-2);
+    font-size:13px;
+    font-weight:700;
+  }
+
+  .zones-mobile-form{
+    display:grid;
+    gap:12px;
+  }
+
+  .zones-mobile-devices{
+    display:grid;
+    gap:8px;
+  }
+
+  .zones-mobile-devices-label{
+    font-size:12px;
+    font-weight:600;
+    color:var(--muted);
+  }
+
+  .zones-mobile-actions{
+    display:grid;
+    gap:8px;
+  }
+
+  .zone-editor-search{
+    max-width:none;
+  }
+
+  .zone-device-options{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const searchInput = document.getElementById('zonesSearch');
+  const rows = Array.from(document.querySelectorAll('[data-zone-row]'));
+
+  function normalize(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/[\u2013\u2014]/g, '-')
+      .replace(/ё/g, 'е')
+      .replace(/[^a-zа-я0-9/#+\-.\s]/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function compact(value) {
+    return normalize(value).replace(/\s+/g, '');
+  }
+
+  function levenshtein(a, b, maxDistance) {
+    const left = String(a || '');
+    const right = String(b || '');
+    const limit = Number.isFinite(maxDistance) ? maxDistance : Math.max(left.length, right.length);
+    if (Math.abs(left.length - right.length) > limit) return limit + 1;
+    const prev = Array.from({ length: right.length + 1 }, (_, idx) => idx);
+    for (let i = 1; i <= left.length; i += 1) {
+      const row = [i];
+      let rowMin = row[0];
+      for (let j = 1; j <= right.length; j += 1) {
+        const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+        const next = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + cost);
+        row[j] = next;
+        if (next < rowMin) rowMin = next;
+      }
+      if (rowMin > limit) return limit + 1;
+      for (let j = 0; j < row.length; j += 1) prev[j] = row[j];
+    }
+    return prev[right.length];
+  }
+
+  const SEARCH_ALIAS_GROUPS = [
+    {
+      label: '-1 этаж',
+      terms: ['-1', '-1 этаж', 'минус 1', 'минус первый', 'п1', 'подземный 1', 'въезд п1'],
+      matchTerms: ['-1 этаж', 'въезд п1', 'п1'],
+      related: ['Подземный уровень', 'въезд п1']
+    },
+    {
+      label: '-2 этаж',
+      terms: ['-2', '-2 этаж', 'минус 2', 'минус второй', 'п2', 'п2/3', 'подземный 2', 'въезд п2/3'],
+      matchTerms: ['-2 этаж', 'въезд п2/3', 'п2', 'п2/3'],
+      related: ['Подземный уровень', 'въезд п2/3']
+    },
+    {
+      label: 'Подземный уровень',
+      terms: ['подземный', 'подземный уровень', 'подземка', 'под землей', 'подземный въезд'],
+      matchTerms: ['Подземный уровень', 'въезд п1', 'въезд п2/3'],
+      related: ['Подземный уровень', 'въезд п1', 'въезд п2/3']
+    }
+  ];
+
+  function aliasGroupScore(query, group) {
+    const q = normalize(query);
+    const qCompact = compact(q);
+    if (!q || !group) return Number.POSITIVE_INFINITY;
+
+    let best = Number.POSITIVE_INFINITY;
+    [group.label].concat(group.terms || [], group.matchTerms || [], group.related || []).forEach((term) => {
+      const normalized = normalize(term);
+      const normalizedCompact = compact(normalized);
+      if (!normalized || !normalizedCompact) return;
+
+      if (normalized === q || normalizedCompact === qCompact) {
+        best = Math.min(best, 0);
+        return;
+      }
+      if (normalized.startsWith(q) || normalizedCompact.startsWith(qCompact)) {
+        best = Math.min(best, 1);
+        return;
+      }
+      if (q.length >= 3 && (normalized.includes(q) || normalizedCompact.includes(qCompact))) {
+        best = Math.min(best, 2);
+        return;
+      }
+      const limit = q.length >= 8 ? 2 : 1;
+      const distance = levenshtein(qCompact, normalizedCompact, limit);
+      if (distance <= limit) {
+        best = Math.min(best, 3 + distance);
+      }
+    });
+
+    return best;
+  }
+
+  function variants(value) {
+    const query = normalize(value);
+    if (!query) return [];
+    const floor = query.match(/^(\d{1,2})(?:\s*(?:эт|этаж|этажа))?$/);
+    const set = floor ? new Set() : new Set([query, query.replace(/\s+/g, '')]);
+    if (floor) {
+      set.add(floor[1] + ' этаж');
+      set.add('этаж ' + floor[1]);
+      set.add(floor[1] + 'эт');
+    }
+    SEARCH_ALIAS_GROUPS
+      .map((group) => ({ group, score: aliasGroupScore(query, group) }))
+      .filter((item) => Number.isFinite(item.score))
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 1)
+      .forEach((item) => {
+        (item.group.matchTerms || item.group.related || []).forEach((term) => set.add(normalize(term)));
+      });
+    return Array.from(set);
+  }
+
+  function applySearch() {
+    const queryVariants = variants(searchInput.value);
+    rows.forEach(function (row) {
+      const haystack = normalize(row.getAttribute('data-zone-search') || '');
+      const haystackCompact = haystack.replace(/\s+/g, '');
+      const visible = !queryVariants.length || queryVariants.some(function (item) {
+        return haystack.includes(item) || haystackCompact.includes(item.replace(/\s+/g, ''));
+      });
+      row.classList.toggle('is-search-hidden', !visible);
+    });
+  }
+
+  document.querySelectorAll('[data-zone-editor-toggle]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      const targetId = String(button.getAttribute('data-target') || '');
+      const panel = targetId ? document.getElementById(targetId) : null;
+      if (!panel) return;
+      const nextHidden = panel.classList.contains('is-hidden');
+      panel.classList.toggle('is-hidden', !nextHidden);
+      button.setAttribute('aria-expanded', String(nextHidden));
+      button.textContent = nextHidden ? 'Скрыть состав' : 'Изменить состав';
+    });
+  });
+
+  document.querySelectorAll('[data-zone-device-search]').forEach(function (input) {
+    input.addEventListener('input', function () {
+      const scopeId = String(input.getAttribute('data-zone-device-scope') || '');
+      const scope = scopeId ? document.getElementById(scopeId) : null;
+      if (!scope) return;
+      const query = normalize(input.value);
+      const options = Array.from(scope.querySelectorAll('[data-zone-device-option]'));
+      options.forEach(function (option) {
+        const haystack = normalize(option.getAttribute('data-zone-device-search-text') || option.textContent || '');
+        const visible = !query || haystack.includes(query) || haystack.replace(/\s+/g, '').includes(query.replace(/\s+/g, ''));
+        option.classList.toggle('is-search-hidden', !visible);
+      });
+    });
+  });
+
+  if (searchInput && rows.length) {
+    searchInput.addEventListener('input', applySearch);
+    applySearch();
+  }
+});
+</script>
+
+<%- include('partials/footer') %>

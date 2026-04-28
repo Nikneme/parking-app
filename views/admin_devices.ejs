@@ -1,0 +1,604 @@
+<%- include('partials/header', { title, bodyClass, user, path: '/admin/devices' }) %>
+
+<% const _devices = Array.isArray(devices) ? devices : []; %>
+<% const _activeDevices = _devices.filter(d => d && d.is_active !== false).length; %>
+<% const _inactiveDevices = _devices.length - _activeDevices; %>
+
+<div class="mb-3">
+  <div class="d-flex flex-wrap gap-2 align-items-start justify-content-between">
+    <div>
+      <h1 class="h4 mb-0">Устройства</h1>
+      <div class="text-muted small">Двери, лифты, ворота и шлагбаумы по участкам.</div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <span class="badge-soft px-3 py-2">Всего: <%= _devices.length %></span>
+      <span class="badge-soft px-3 py-2">Активны: <%= _activeDevices %></span>
+      <span class="badge-soft px-3 py-2">Отключены: <%= _inactiveDevices %></span>
+    </div>
+  </div>
+</div>
+
+<div class="card card-glass p-3 p-md-4 mb-3">
+  <h2 class="h6 mb-3">Добавить устройство</h2>
+  <form method="post" action="/admin/devices/create" class="row g-2">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="col-12 col-md-3">
+      <label class="form-label small text-muted">ID</label>
+      <input class="form-control" name="id" placeholder="door_1" />
+    </div>
+    <div class="col-12 col-md-4">
+      <label class="form-label small text-muted">Название</label>
+      <input class="form-control" name="name" placeholder="Дверь серверная" required />
+    </div>
+    <div class="col-12 col-md-3">
+      <label class="form-label small text-muted">Участок</label>
+      <select class="form-select" name="zoneId">
+        <option value="">—</option>
+        <% (zones || []).forEach(z => { %>
+          <option value="<%= z.id %>"><%= z.name %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-12 col-md-2">
+      <label class="form-label small text-muted">Метод</label>
+      <select class="form-select" name="method">
+        <option value="http">http</option>
+        <option value="rodos">rodos</option>
+      </select>
+    </div>
+    <div class="col-12">
+      <label class="form-label small text-muted">URL/IP</label>
+      <input class="form-control" name="url" placeholder="http://... или 192.168.1.10" />
+    </div>
+    <div class="col-12">
+      <button class="btn btn-primary w-100 w-md-auto" type="submit">Сохранить</button>
+    </div>
+  </form>
+</div>
+
+<div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-2">
+  <div class="text-muted small">Всего устройств: <%= (devices || []).length %></div>
+  <div style="flex: 1 1 280px; max-width: 380px;">
+    <input id="devicesSearch" class="form-control" placeholder="Поиск: Ш1, лифт, 8 этаж, въезд" />
+  </div>
+</div>
+
+<div class="card card-glass p-0 overflow-hidden">
+  <div class="table-responsive devices-table-wrap">
+    <table class="table table-dark table-hover align-middle m-0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Название</th>
+          <th>Участок</th>
+          <th>Метод</th>
+          <th>URL/IP</th>
+          <th class="text-center">Активен</th>
+          <th class="text-end sticky-actions">Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% (devices || []).forEach(d => { %>
+          <% const _tableZoneName = (((zones || []).find(z => String(z.id) === String(d.zoneId || d.zone_id || d.zone)) || {}).name) || ''; %>
+          <tr data-device-row data-device-search="<%= [d.id, d.name, _tableZoneName].filter(Boolean).join(' ').toLowerCase() %>">
+            <td class="text-mono" style="min-width:180px"><%= d.id %></td>
+            <td style="min-width:220px">
+              <input form="devupd-<%= d.id %>" class="form-control form-control-sm" name="name" value="<%= d.name || '' %>" />
+            </td>
+            <td style="min-width:220px">
+              <select form="devupd-<%= d.id %>" class="form-select form-select-sm" name="zoneId">
+                <option value="">—</option>
+                <% (zones || []).forEach(z => { %>
+                  <option value="<%= z.id %>" <%= (d.zoneId === z.id) ? 'selected' : '' %>><%= z.name %></option>
+                <% }) %>
+              </select>
+            </td>
+            <td style="min-width:120px">
+              <select form="devupd-<%= d.id %>" class="form-select form-select-sm" name="method">
+                <option value="http" <%= (d.method === 'http') ? 'selected' : '' %>>http</option>
+                <option value="rodos" <%= (d.method === 'rodos') ? 'selected' : '' %>>rodos</option>
+              </select>
+            </td>
+            <td style="min-width:260px">
+              <input form="devupd-<%= d.id %>" class="form-control form-control-sm" name="url" value="<%= d.url || '' %>" />
+            </td>
+            <td class="text-center" style="min-width:110px">
+              <input
+                form="devupd-<%= d.id %>"
+                class="form-check-input"
+                type="checkbox"
+                name="is_active"
+                <%= (d.is_active !== false) ? 'checked' : '' %>
+              />
+            </td>
+            <td class="text-end sticky-actions" style="min-width:150px">
+              <div class="action-buttons">
+                <button class="btn btn-soft btn-sm" type="submit" form="devupd-<%= d.id %>">Обновить</button>
+                <form method="post" action="/admin/devices/<%= d.id %>/delete" onsubmit="return confirm('Удалить устройство?');">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn-danger btn-sm" type="submit">Удалить</button>
+                </form>
+              </div>
+              <form id="devupd-<%= d.id %>" method="post" action="/admin/devices/<%= d.id %>/update"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
+            </td>
+          </tr>
+        <% }) %>
+        <% if (!devices || !devices.length) { %>
+          <tr><td colspan="7" class="text-muted p-3">Пока ничего не добавлено</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+
+
+
+<!-- DEVICES_MOBILE_MANAGE_START -->
+<style>
+.devices-mobile-wrap{ display:none !important; }
+.is-search-hidden{ display:none !important; }
+.devices-mobile-card.is-search-hidden{ display:none !important; }
+
+@media (max-width: 768px){
+  .devices-table-wrap,
+  .table-responsive.devices-table-wrap{
+    display:none !important;
+  }
+
+  .devices-mobile-wrap{
+    display:block !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    margin:12px 0 0 0 !important;
+    padding:0 !important;
+  }
+
+  .devices-mobile-card{
+    display:block !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    margin:0 0 14px 0 !important;
+    padding:14px 16px !important;
+    border-radius:20px !important;
+    background:var(--card) !important;
+    border:1px solid var(--border) !important;
+    box-shadow:var(--shadow-card) !important;
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+  }
+
+  .devices-mobile-head{
+    display:flex !important;
+    align-items:flex-start !important;
+    justify-content:space-between !important;
+    gap:10px !important;
+    margin-bottom:12px !important;
+  }
+
+  .devices-mobile-title{
+    font-size:16px !important;
+    line-height:1.3 !important;
+    font-weight:800 !important;
+    color:var(--text) !important;
+  }
+
+  .devices-mobile-sub{
+    font-size:12px !important;
+    line-height:1.35 !important;
+    color:var(--muted) !important;
+    margin-top:3px !important;
+    word-break:break-word !important;
+    overflow-wrap:anywhere !important;
+  }
+
+  .devices-mobile-badge .badge-soft{
+    white-space:nowrap !important;
+    border-radius:999px !important;
+  }
+
+  .devices-mobile-grid{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:10px !important;
+    width:100% !important;
+  }
+
+  .devices-mobile-field{
+    width:100% !important;
+    min-width:0 !important;
+  }
+
+  .devices-mobile-field label{
+    display:block !important;
+    margin:0 0 6px 0 !important;
+    font-size:11px !important;
+    line-height:1.2 !important;
+    color:var(--muted) !important;
+  }
+
+  .devices-mobile-field .form-control,
+  .devices-mobile-field .form-select{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  .devices-mobile-switch{
+    display:flex !important;
+    align-items:center !important;
+    gap:10px !important;
+    padding-top:4px !important;
+  }
+
+  .devices-mobile-actions{
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    gap:10px !important;
+    margin-top:12px !important;
+  }
+
+  .devices-mobile-actions form,
+  .devices-mobile-actions .btn{
+    margin:0 !important;
+    width:100% !important;
+  }
+
+  .devices-mobile-actions .btn{
+    min-height:42px !important;
+  }
+}
+</style>
+
+<div class="devices-mobile-wrap">
+  <% if (devices && devices.length) { %>
+    <% devices.forEach(function(d){ 
+      const _name = d.name || d.id || '—';
+      const _zone = String(d.zone_id || d.zoneId || d.zone || '');
+      const _zoneName = (((zones || []).find(z => String(z.id) === String(_zone)) || {}).name) || '';
+      const _method = d.method || 'http';
+      const _endpoint = d.url || d.ip || '';
+      const _active = (d.is_active !== false);
+    %>
+      <div class="devices-mobile-card" data-device-row data-device-search="<%= [d.id, _name, _zoneName].filter(Boolean).join(' ').toLowerCase() %>">
+        <div class="devices-mobile-head">
+          <div>
+            <div class="devices-mobile-title"><%= _name %></div>
+            <div class="devices-mobile-sub text-mono">ID: <%= d.id || '—' %></div>
+          </div>
+          <div class="devices-mobile-badge">
+            <span class="badge-soft"><%= _active ? 'В работе' : 'Отключено' %></span>
+          </div>
+        </div>
+
+        <form method="post" action="/admin/devices/<%= d.id %>/update">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="devices-mobile-grid">
+            <div class="devices-mobile-field">
+              <label>Название</label>
+              <input class="form-control" type="text" name="name" value="<%= d.name || '' %>" required>
+            </div>
+
+            <div class="devices-mobile-field">
+              <label>Участок</label>
+              <select class="form-select" name="zoneId">
+                <option value="">Без привязки</option>
+                <% (zones || []).forEach(function(z){ %>
+                  <option value="<%= z.id %>" <%= String(z.id) === String(_zone) ? 'selected' : '' %>><%= z.name %></option>
+                <% }) %>
+              </select>
+            </div>
+
+            <div class="devices-mobile-field">
+              <label>Метод</label>
+              <input class="form-control" type="text" name="method" value="<%= _method %>">
+            </div>
+
+            <div class="devices-mobile-field">
+              <label>Адрес / URL</label>
+              <input class="form-control text-mono" type="text" name="url" value="<%= _endpoint %>">
+            </div>
+
+            <div class="devices-mobile-field">
+              <label>Активен</label>
+              <div class="devices-mobile-switch">
+                <input class="form-check-input" type="checkbox" name="is_active" value="true" <%= _active ? 'checked' : '' %>>
+                <span class="text-muted small">вкл/выкл</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="devices-mobile-actions">
+            <button class="btn btn-primary" type="submit">Сохранить</button>
+        </form>
+
+            <form method="post" action="/admin/devices/<%= d.id %>/delete" onsubmit="return confirm('Удалить устройство?');">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn btn-danger" type="submit">Удалить</button>
+            </form>
+          </div>
+      </div>
+    <% }) %>
+  <% } else { %>
+    <div class="devices-mobile-card">
+      <div class="devices-mobile-title">Устройства</div>
+      <div class="devices-mobile-sub">Пока ничего не добавлено</div>
+    </div>
+  <% } %>
+</div>
+<!-- DEVICES_MOBILE_MANAGE_END -->
+
+
+<!-- DEVICES_MASK_URLS_START -->
+<script>
+(function(){
+  function maskUrl(v){
+    v = String(v || '').trim();
+    if (!v) return '';
+    try {
+      const u = new URL(v);
+      if (u.username || u.password) {
+        const login = u.username ? (u.username.slice(0,2) + '***') : '';
+        return u.protocol + '//' + (login ? login + ':' : '') + '******@' + u.host + (u.pathname || '') + (u.search || '');
+      }
+      return v;
+    } catch(e){
+      return v.replace(/\/\/([^:@\/\s]+):([^@\/\s]+)@/g, '//$1:******@');
+    }
+  }
+
+  // mask URL/IP fields visually but submit original value
+  document.querySelectorAll('input[name="url"], input[name="ip"]').forEach(function(inp){
+    if (!inp.dataset.realValue) inp.dataset.realValue = inp.value || '';
+    const real = inp.dataset.realValue;
+    if (real) inp.value = maskUrl(real);
+
+    inp.addEventListener('focus', function(){
+      if (inp.dataset.realValue) inp.value = inp.dataset.realValue;
+    });
+    inp.addEventListener('blur', function(){
+      inp.dataset.realValue = inp.value || inp.dataset.realValue || '';
+      inp.value = maskUrl(inp.dataset.realValue);
+    });
+  });
+
+  document.querySelectorAll('form').forEach(function(f){
+    f.addEventListener('submit', function(){
+      f.querySelectorAll('input[name="url"], input[name="ip"]').forEach(function(inp){
+        if (inp.dataset.realValue) inp.value = inp.dataset.realValue;
+      });
+    });
+  });
+})();
+</script>
+<!-- DEVICES_MASK_URLS_END -->
+
+
+
+<!-- DEVICES_SECRET_SPLIT_START -->
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  function maskUrl(v){
+    v = String(v || '').trim();
+    if (!v) return '';
+    try {
+      const u = new URL(v);
+      if (u.username || u.password) {
+        const login = u.username ? (u.username.slice(0,2) + '***') : '';
+        return u.protocol + '//' + (login ? login + ':' : '') + '******@' + u.host + (u.pathname || '') + (u.search || '');
+      }
+      return v;
+    } catch {
+      return v.replace(/\/\/([^:@\/\s]+):([^@\/\s]+)@/g, '//$1:******@');
+    }
+  }
+
+  function ensureSecretFields(form){
+    if (!form || form.querySelector('.device-auth-block')) return;
+    const urlInput = form.querySelector('input[name="url"], input[name="ip"]');
+    if (!urlInput) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'device-auth-block';
+    wrap.style.display = 'grid';
+    wrap.style.gridTemplateColumns = '1fr 1fr 1fr';
+    wrap.style.gap = '8px';
+    wrap.style.marginTop = '8px';
+
+    const auth = document.createElement('select');
+    auth.name = 'auth_type';
+    auth.className = 'form-control';
+    auth.innerHTML = '<option value="none">Без авторизации</option><option value="basic">Basic Auth</option>';
+
+    const user = document.createElement('input');
+    user.name = 'username';
+    user.className = 'form-control';
+    user.placeholder = 'Логин устройства';
+
+    const pass = document.createElement('input');
+    pass.name = 'password';
+    pass.type = 'password';
+    pass.className = 'form-control';
+    pass.placeholder = 'Пароль устройства';
+
+    wrap.appendChild(auth);
+    wrap.appendChild(user);
+    wrap.appendChild(pass);
+    urlInput.parentNode.insertBefore(wrap, urlInput.nextSibling);
+
+    if (!urlInput.dataset.realValue) urlInput.dataset.realValue = urlInput.value || '';
+    if (urlInput.dataset.realValue) urlInput.value = maskUrl(urlInput.dataset.realValue);
+
+    urlInput.addEventListener('focus', function(){
+      if (urlInput.dataset.realValue) urlInput.value = urlInput.dataset.realValue;
+    });
+    urlInput.addEventListener('blur', function(){
+      urlInput.dataset.realValue = urlInput.value || urlInput.dataset.realValue || '';
+      urlInput.value = maskUrl(urlInput.dataset.realValue);
+    });
+  }
+
+  document.querySelectorAll('form').forEach(ensureSecretFields);
+
+  document.querySelectorAll('form').forEach(function(f){
+    f.addEventListener('submit', function(){
+      f.querySelectorAll('input[name="url"], input[name="ip"]').forEach(function(inp){
+        if (inp.dataset.realValue) inp.value = inp.dataset.realValue;
+      });
+    });
+  });
+});
+</script>
+<!-- DEVICES_SECRET_SPLIT_END -->
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const searchInput = document.getElementById('devicesSearch');
+  const rows = Array.from(document.querySelectorAll('[data-device-row]'));
+  if (!searchInput || !rows.length) return;
+
+  function normalize(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/[\u2013\u2014]/g, '-')
+      .replace(/ё/g, 'е')
+      .replace(/[^a-zа-я0-9/#+\-.\s]/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function compact(value) {
+    return normalize(value).replace(/\s+/g, '');
+  }
+
+  function levenshtein(a, b, maxDistance) {
+    const left = String(a || '');
+    const right = String(b || '');
+    const limit = Number.isFinite(maxDistance) ? maxDistance : Math.max(left.length, right.length);
+    if (Math.abs(left.length - right.length) > limit) return limit + 1;
+    const prev = Array.from({ length: right.length + 1 }, (_, idx) => idx);
+    for (let i = 1; i <= left.length; i += 1) {
+      const row = [i];
+      let rowMin = row[0];
+      for (let j = 1; j <= right.length; j += 1) {
+        const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+        const next = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + cost);
+        row[j] = next;
+        if (next < rowMin) rowMin = next;
+      }
+      if (rowMin > limit) return limit + 1;
+      for (let j = 0; j < row.length; j += 1) prev[j] = row[j];
+    }
+    return prev[right.length];
+  }
+
+  const SEARCH_ALIAS_GROUPS = [
+    {
+      label: '-1 этаж',
+      terms: ['-1', '-1 этаж', 'минус 1', 'минус первый', 'п1', 'подземный 1', 'въезд п1'],
+      matchTerms: ['-1 этаж', 'въезд п1', 'п1'],
+      related: ['Подземный уровень', 'въезд п1']
+    },
+    {
+      label: '-2 этаж',
+      terms: ['-2', '-2 этаж', 'минус 2', 'минус второй', 'п2', 'п2/3', 'подземный 2', 'въезд п2/3'],
+      matchTerms: ['-2 этаж', 'въезд п2/3', 'п2', 'п2/3'],
+      related: ['Подземный уровень', 'въезд п2/3']
+    },
+    {
+      label: 'Подземный уровень',
+      terms: ['подземный', 'подземный уровень', 'подземка', 'под землей', 'подземный въезд'],
+      matchTerms: ['Подземный уровень', 'въезд п1', 'въезд п2/3'],
+      related: ['Подземный уровень', 'въезд п1', 'въезд п2/3']
+    }
+  ];
+
+  function aliasGroupScore(query, group) {
+    const q = normalize(query);
+    const qCompact = compact(q);
+    if (!q || !group) return Number.POSITIVE_INFINITY;
+
+    let best = Number.POSITIVE_INFINITY;
+    [group.label].concat(group.terms || [], group.matchTerms || [], group.related || []).forEach((term) => {
+      const normalized = normalize(term);
+      const normalizedCompact = compact(normalized);
+      if (!normalized || !normalizedCompact) return;
+
+      if (normalized === q || normalizedCompact === qCompact) {
+        best = Math.min(best, 0);
+        return;
+      }
+      if (normalized.startsWith(q) || normalizedCompact.startsWith(qCompact)) {
+        best = Math.min(best, 1);
+        return;
+      }
+      if (q.length >= 3 && (normalized.includes(q) || normalizedCompact.includes(qCompact))) {
+        best = Math.min(best, 2);
+        return;
+      }
+      const limit = q.length >= 8 ? 2 : 1;
+      const distance = levenshtein(qCompact, normalizedCompact, limit);
+      if (distance <= limit) {
+        best = Math.min(best, 3 + distance);
+      }
+    });
+
+    return best;
+  }
+
+  function looksClose(query, term) {
+    const q = normalize(query);
+    const t = normalize(term);
+    if (!q || !t) return false;
+    if (q === t) return true;
+    if (q.length >= 4 && (t.includes(q) || q.includes(t))) return true;
+    return levenshtein(compact(q), compact(t), q.length >= 8 ? 2 : 1) <= (q.length >= 8 ? 2 : 1);
+  }
+
+  function variants(value) {
+    const query = normalize(value);
+    if (!query) return [];
+    const floor = query.match(/^(\d{1,2})(?:\s*(?:эт|этаж|этажа))?$/);
+    const set = floor ? new Set() : new Set([query, query.replace(/\s+/g, '')]);
+    if (floor) {
+      set.add(floor[1] + ' этаж');
+      set.add('этаж ' + floor[1]);
+      set.add(floor[1] + 'эт');
+      set.add('въезд ' + floor[1] + 'эт');
+      set.add('выезд ' + floor[1] + 'эт');
+    }
+    SEARCH_ALIAS_GROUPS
+      .map((group) => ({ group, score: aliasGroupScore(query, group) }))
+      .filter((item) => Number.isFinite(item.score))
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 1)
+      .forEach((item) => {
+        (item.group.matchTerms || item.group.related || []).forEach((term) => set.add(normalize(term)));
+      });
+    return Array.from(set);
+  }
+
+  function applySearch() {
+    const queryVariants = variants(searchInput.value);
+    rows.forEach(function (row) {
+      const haystack = normalize(row.getAttribute('data-device-search') || '');
+      const haystackCompact = haystack.replace(/\s+/g, '');
+      const visible = !queryVariants.length || queryVariants.some(function (item) {
+        return haystack.includes(item) || haystackCompact.includes(item.replace(/\s+/g, ''));
+      });
+      row.classList.toggle('is-search-hidden', !visible);
+    });
+  }
+
+  searchInput.addEventListener('input', applySearch);
+  applySearch();
+});
+</script>
+
+<%- include('partials/footer') %>

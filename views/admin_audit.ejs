@@ -1,0 +1,1470 @@
+<%- include('partials/header', { title: 'Админ • Аудит изменений', bodyClass, user, path: '/admin/audit' }) %>
+
+<%
+  const ACTION_LABELS = {
+    login: 'Вход',
+    open: 'Открытие устройства',
+    create: 'Создание',
+    update: 'Изменение',
+    reset_pin: 'Сброс PIN',
+    clear_transit_log: 'Очистка журнала транзита',
+    delete: 'Удаление',
+  };
+
+  const TYPE_LABELS = {
+    user: 'Учетная запись',
+    users: 'Учетные записи',
+    device: 'Устройство',
+    devices: 'Устройства',
+    zone: 'Участок',
+    zones: 'Участки',
+    transit_event: 'Событие транзита',
+    transit_events: 'Журнал транзита',
+    audit: 'Аудит',
+    log: 'Журнал',
+    logs: 'Журнал событий',
+  };
+
+  const ROLE_LABELS = {
+    user: 'Арендатор',
+    admin: 'Администратор',
+    dispatcher: 'Диспетчер',
+  };
+
+  const METHOD_LABELS = {
+    http: 'HTTP',
+    https: 'HTTPS',
+    get: 'GET',
+    post: 'POST',
+    none: 'Без авторизации',
+    basic: 'Базовая авторизация',
+  };
+
+  const ZONE_LABELS = {
+    'buffer': 'Северный въезд',
+    'europlan': 'Этажи 2-9',
+    'Elevator doors': 'Лифтовые двери',
+    'Above-ground gates': 'Надземные ворота',
+    'Above-ground doors': 'Надземные двери',
+    'Underground gates': 'Подземные ворота',
+    'Underground doors': 'Подземные двери',
+    'overground': 'Наземный уровень',
+    'pedestrian': 'Входы и лифты',
+    'underground': 'Подземный уровень',
+    'transit': 'Рампа на эстакаду',
+  };
+
+  const boolRu = (v) => (v ? 'да' : 'нет');
+  const zoneLabel = (z) => ZONE_LABELS[String(z || '').trim()] || String(z || '');
+  const DEVICE_LABELS = {
+    lift1: 'Лифт 1',
+    p2: 'Въезд П2/3',
+  };
+  const deviceLabel = (d) => DEVICE_LABELS[String(d || '').trim()] || String(d || '');
+
+  const parseAuditDetails = (d) => {
+    if (!d) return null;
+    if (typeof d === 'object') return d;
+    try { return JSON.parse(d); } catch { return null; }
+  };
+
+  const targetDisplay = (e) => {
+    const type = String((e && (e.targetType || e.target_type)) || '').trim();
+    const id = String((e && (e.targetId || e.target_id)) || '').trim();
+    const obj = parseAuditDetails(e && e.details);
+
+    if (type === 'zone' || type === 'zones') {
+      return zoneLabel(id) || '—';
+    }
+
+    if (type === 'device' || type === 'devices') {
+      const gwName =
+        (obj && obj.gw && obj.gw.data && Array.isArray(obj.gw.data.results) && obj.gw.data.results[0] && obj.gw.data.results[0].name) ||
+        (obj && obj.name) ||
+        deviceLabel(id);
+      return gwName || id || '—';
+    }
+
+    if (type === 'user' || type === 'users') {
+      return (obj && obj.fio) || id || '—';
+    }
+
+    return id || '—';
+  };
+  const actionLabel = (a) => ACTION_LABELS[String(a || '').trim()] || String(a || '');
+  const typeLabel = (t) => TYPE_LABELS[String(t || '').trim()] || String(t || '');
+  const roleLabel = (r) => ROLE_LABELS[String(r || '').trim()] || String(r || '');
+  const methodLabel = (m) => METHOD_LABELS[String(m || '').trim().toLowerCase()] || String(m || '');
+
+  const safeTargetText = (e) => {
+    const type = String((e && (e.targetType || e.target_type)) || '').trim();
+    const id = String((e && (e.targetId || e.target_id)) || '').trim();
+
+    let details = e && e.details;
+    if (typeof details === 'string') {
+      try { details = JSON.parse(details); } catch { details = null; }
+    }
+
+    if (type === 'zone' || type === 'zones') {
+      return zoneLabel(id || (details && (details.zoneId || details.zone)) || '') || '—';
+    }
+
+    if (type === 'user' || type === 'users') {
+      if (details && details.fio) return details.fio;
+      if (id === 'admin') return 'Администратор';
+      if (id === 'user') return 'Арендатор';
+      if (id === 'dispatcher') return 'Диспетчер';
+      return id || 'Учетная запись';
+    }
+
+    if (type === 'device' || type === 'devices') {
+      const gwName =
+        details && details.gw && details.gw.data &&
+        Array.isArray(details.gw.data.results) &&
+        details.gw.data.results[0] &&
+        details.gw.data.results[0].name
+          ? details.gw.data.results[0].name
+          : '';
+      return gwName || id || '—';
+    }
+
+    return id || '—';
+  };
+
+  const actionClass = (a) => {
+    const k = String(a || '').trim();
+    if (k === 'open' || k === 'login') return 'audit-badge-success';
+    if (k === 'update' || k === 'reset_pin') return 'audit-badge-warn';
+    if (k === 'delete') return 'audit-badge-danger';
+    return 'audit-badge-info';
+  };
+
+  const summarizeDetails = (d) => {
+    if (!d) return '—';
+
+    let obj = d;
+    if (typeof d === 'string') {
+      try {
+        obj = JSON.parse(d);
+      } catch {
+        return String(d)
+          .replace(/\busers\b/gi, 'Учетные записи')
+          .replace(/\buser\b/gi, 'Учетная запись')
+          .replace(/\bdevices\b/gi, 'Устройства')
+          .replace(/\bdevice\b/gi, 'Устройство')
+          .replace(/\bzones\b/gi, 'Участки')
+          .replace(/\bzone\b/gi, 'Участок')
+          .replace(/\btransit_event\b/gi, 'Событие транзита')
+          .replace(/\btransit_events\b/gi, 'Журнал транзита')
+          .replace(/Elevator doors/g, 'Лифтовые двери')
+          .replace(/Above-ground gates/g, 'Надземные ворота')
+          .replace(/Above-ground doors/g, 'Надземные двери')
+          .replace(/Underground gates/g, 'Подземные ворота')
+          .replace(/Underground doors/g, 'Подземные двери')
+          .replace(/\bbuffer\b/g, 'Северный въезд')
+          .replace(/\beuroplan\b/g, 'Этажи 2-9')
+          .replace(/\boverground\b/g, 'Наземный уровень')
+          .replace(/\bpedestrian\b/g, 'Входы и лифты')
+          .replace(/\bunderground\b/g, 'Подземный уровень')
+          .replace(/\btransit\b/g, 'Рампа на эстакаду')
+          .replace(/Elevator doors/g, 'Лифтовые двери')
+          .replace(/Above-ground gates/g, 'Надземные ворота')
+          .replace(/Above-ground doors/g, 'Надземные двери')
+          .replace(/Underground gates/g, 'Подземные ворота')
+          .replace(/Underground doors/g, 'Подземные двери')
+          .replace(/\bbuffer\b/g, 'Северный въезд')
+          .replace(/\beuroplan\b/g, 'Этажи 2-9')
+          .replace(/\boverground\b/g, 'Наземный уровень')
+          .replace(/\bpedestrian\b/g, 'Входы и лифты')
+          .replace(/\bunderground\b/g, 'Подземный уровень')
+          .replace(/\btransit\b/g, 'Рампа на эстакаду')
+          .replace(/\badmin\b/g, 'Администратор')
+          .replace(/\bdispatcher\b/g, 'Диспетчер')
+          .replace(/\bhttp\b/gi, 'HTTP')
+          .replace(/\bnone\b/gi, 'Без авторизации')
+          .replace(/\bbasic\b/gi, 'Базовая авторизация')
+          .slice(0, 160);
+      }
+    }
+
+    if (typeof obj !== 'object' || obj === null) return String(obj).slice(0, 160);
+
+    const out = [];
+
+    if (obj.fio) out.push('ФИО: ' + obj.fio);
+    if (obj.phone) out.push('Телефон: ' + obj.phone);
+    if (obj.email) out.push('Email: ' + obj.email);
+    if (obj.role) out.push('Роль: ' + roleLabel(obj.role));
+    if (obj.zoneId) {
+      out.push('Участок: ' + zoneLabel(obj.zoneId));
+    }
+    if (obj.zone) out.push('Участок: ' + zoneLabel(obj.zone));
+    if (obj.name) out.push('Название: ' + obj.name);
+    if (obj.method) out.push('Метод: ' + methodLabel(obj.method));
+    if (obj.url) out.push('Адрес: ' + obj.url);
+    if (obj.ip) out.push('IP: ' + obj.ip);
+    if (obj.auth_type) out.push('Авторизация: ' + methodLabel(obj.auth_type));
+    if (obj.isActive !== undefined) out.push('Активен: ' + boolRu(obj.isActive));
+    if (obj.is_active !== undefined) out.push('Активен: ' + boolRu(obj.is_active));
+    if (obj.pin_changed) out.push('Пароль изменён');
+    if (obj.pin_generated) out.push('Пароль сгенерирован');
+    if (obj.pin_set) out.push('Пароль задан вручную');
+    if (obj.http_status) out.push('HTTP статус: ' + obj.http_status);
+    if (obj.gw && obj.gw.http_status) out.push('Шлюз: HTTP ' + obj.gw.http_status);
+
+    return out.length ? out.join(' • ') : '—';
+  };
+%>
+
+
+
+
+
+<style>
+html, body{
+  max-width:100%;
+  overflow-x:hidden !important;
+}
+
+.audit-page{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow-x:hidden;
+  padding-bottom:12px;
+  background:transparent !important;
+  color:var(--text);
+}
+
+.audit-head{
+  margin-bottom:16px;
+}
+
+.audit-filter-card{
+  margin:0 auto 16px auto;
+  width:100%;
+  max-width:700px;
+  min-width:0;
+  overflow:hidden !important;
+  box-sizing:border-box !important;
+  background:var(--card) !important;
+  border:1px solid var(--border) !important;
+  color:var(--text) !important;
+  backdrop-filter:blur(10px);
+  box-shadow:var(--shadow-card);
+}
+
+.audit-filter-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  align-items:end;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+
+.audit-filter-field{
+  min-width:0;
+  width:100%;
+  max-width:100%;
+}
+
+.audit-filter-field label{
+  display:block;
+  margin-bottom:6px;
+  color:var(--muted);
+}
+
+.audit-filter-field input,
+.audit-filter-field .form-control{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+  background:var(--field-bg) !important;
+  border:1px solid var(--field-border) !important;
+  color:var(--text) !important;
+}
+
+.audit-filter-actions{
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:12px;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+
+.audit-filter-actions .btn,
+.audit-filter-actions a.btn{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  box-sizing:border-box;
+}
+
+.audit-table-wrap{
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+
+.audit-mobile-wrap{
+  display:none;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+
+.audit-table{
+  width:100%;
+  table-layout:fixed;
+}
+
+.audit-table th,
+.audit-table td{
+  word-break:break-word;
+  overflow-wrap:anywhere;
+  white-space:normal;
+  vertical-align:top;
+}
+
+.audit-col-time{ width:16%; }
+.audit-col-who{ width:24%; }
+.audit-col-action{ width:18%; }
+.audit-col-target{ width:16%; }
+.audit-col-details{ width:26%; }
+
+.audit-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:5px 12px;
+  border-radius:999px;
+  font-size:12px;
+  line-height:1.2;
+  font-weight:700;
+  border:1px solid transparent;
+}
+
+.audit-badge-success{
+  background:#1f8f57;
+  color:#ffffff;
+  border-color:#35b874;
+}
+.audit-badge-warn{
+  background:#c98a09;
+  color:#111827;
+  border-color:#f5c542;
+}
+.audit-badge-danger{
+  background:#b42318;
+  color:#ffffff;
+  border-color:#ef6b63;
+}
+.audit-badge-info{
+  background:#2457d6;
+  color:#ffffff;
+  border-color:#6f9bff;
+}
+
+.audit-card{
+  border-radius:18px;
+  padding:14px;
+  margin-bottom:12px;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  overflow:hidden;
+  background:var(--card) !important;
+  border:1px solid var(--border) !important;
+  color:var(--text) !important;
+  backdrop-filter:blur(10px);
+  box-shadow:var(--shadow-card);
+}
+
+.audit-card-top{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:10px;
+}
+
+.audit-card-time{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.audit-card-row{
+  margin-bottom:8px;
+}
+
+.audit-card-label{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:2px;
+}
+
+.audit-card-value{
+  font-size:14px;
+  line-height:1.35;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+  color:var(--text);
+}
+
+.audit-table-shell{
+  background:var(--card) !important;
+  border:1px solid var(--border) !important;
+  color:var(--text) !important;
+  backdrop-filter:blur(10px);
+  box-shadow:var(--shadow-card);
+}
+
+.audit-table-shell .table{
+  color:var(--text) !important;
+  background:transparent !important;
+}
+
+.audit-table-shell thead th{
+  color:var(--muted) !important;
+  border-bottom:1px solid var(--border) !important;
+}
+
+.audit-table-shell td{
+  border-bottom:1px solid var(--border) !important;
+}
+
+.audit-table-shell .text-muted,
+.audit-page .text-muted{
+  color:var(--muted) !important;
+}
+
+.audit-table-shell .fw-semibold,
+.audit-page .fw-semibold,
+.audit-page strong,
+.audit-page h1,
+.audit-page h2,
+.audit-page h3{
+  color:var(--text) !important;
+}
+
+@media (max-width: 768px){
+  html, body{
+    overflow-x:hidden !important;
+  }
+
+  .container, .container-fluid, .content, main{
+    max-width:100% !important;
+    overflow-x:hidden !important;
+  }
+
+  .audit-page,
+  .audit-head,
+  .audit-filter-card,
+  .audit-filter-grid,
+  .audit-filter-field,
+  .audit-filter-actions,
+  .audit-mobile-wrap,
+  .audit-card{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  .audit-filter-grid{
+    grid-template-columns:1fr !important;
+    gap:10px !important;
+    align-items:stretch !important;
+  }
+
+  .audit-filter-field,
+  .audit-filter-field input,
+  .audit-filter-field .form-control{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    box-sizing:border-box !important;
+  }
+
+  .audit-filter-actions{
+    grid-template-columns:1fr !important;
+    gap:10px !important;
+  }
+
+  .audit-filter-actions .btn,
+  .audit-filter-actions a.btn{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+  }
+
+  .audit-table-wrap{
+    display:none;
+  }
+
+  .audit-mobile-wrap{
+    display:block;
+  }
+}
+</style>
+
+
+
+
+
+
+
+
+
+
+
+
+<style>
+/* AUDIT_COMPACT_IOS_FIX_START */
+body.page-audit form[action="/admin/audit"].audit-filter-card{
+  padding:12px !important;
+}
+
+body.page-audit form[action="/admin/audit"] .audit-filter-grid{
+  grid-template-columns:1fr 1fr !important;
+  gap:10px !important;
+  align-items:end !important;
+}
+
+body.page-audit form[action="/admin/audit"] .audit-filter-field label{
+  display:block !important;
+  margin:0 0 6px !important;
+  line-height:1.2 !important;
+  font-size:14px !important;
+}
+
+body.page-audit form[action="/admin/audit"] .audit-filter-field input,
+body.page-audit form[action="/admin/audit"] .audit-filter-field .form-control{
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  height:44px !important;
+  min-height:44px !important;
+  padding:10px 14px !important;
+  line-height:1.2 !important;
+  font-size:16px !important;
+  border-radius:14px !important;
+  -webkit-appearance:none !important;
+  appearance:none !important;
+}
+
+body.page-audit form[action="/admin/audit"] .audit-filter-actions{
+  grid-column:1 / -1 !important;
+  display:grid !important;
+  grid-template-columns:1fr 1fr 1fr !important;
+  gap:10px !important;
+}
+
+body.page-audit form[action="/admin/audit"] .audit-filter-actions .btn,
+body.page-audit form[action="/admin/audit"] .audit-filter-actions a.btn{
+  height:44px !important;
+  min-height:44px !important;
+  border-radius:14px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:100% !important;
+  margin:0 !important;
+  padding:0 12px !important;
+  white-space:nowrap !important;
+}
+
+/* убираем кривой safari-рендер date/time */
+body.page-audit form[action="/admin/audit"] input[type="date"]::-webkit-datetime-edit,
+body.page-audit form[action="/admin/audit"] input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+body.page-audit form[action="/admin/audit"] input[type="date"]::-webkit-datetime-edit-text,
+body.page-audit form[action="/admin/audit"] input[type="date"]::-webkit-datetime-edit-day-field,
+body.page-audit form[action="/admin/audit"] input[type="date"]::-webkit-datetime-edit-month-field,
+body.page-audit form[action="/admin/audit"] input[type="date"]::-webkit-datetime-edit-year-field,
+body.page-audit form[action="/admin/audit"] input[type="time"]::-webkit-datetime-edit,
+body.page-audit form[action="/admin/audit"] input[type="time"]::-webkit-datetime-edit-fields-wrapper,
+body.page-audit form[action="/admin/audit"] input[type="time"]::-webkit-datetime-edit-text,
+body.page-audit form[action="/admin/audit"] input[type="time"]::-webkit-datetime-edit-hour-field,
+body.page-audit form[action="/admin/audit"] input[type="time"]::-webkit-datetime-edit-minute-field{
+  padding:0 !important;
+  line-height:1.2 !important;
+}
+
+@media (max-width: 768px){
+  body.page-audit form[action="/admin/audit"].audit-filter-card{
+    padding:10px !important;
+  }
+
+  body.page-audit form[action="/admin/audit"] .audit-filter-grid{
+    grid-template-columns:1fr !important;
+    gap:10px !important;
+    align-items:stretch !important;
+  }
+
+  body.page-audit form[action="/admin/audit"] .audit-filter-actions{
+    grid-template-columns:1fr !important;
+    gap:10px !important;
+  }
+
+  body.page-audit form[action="/admin/audit"] .audit-filter-field input,
+  body.page-audit form[action="/admin/audit"] .audit-filter-field .form-control,
+  body.page-audit form[action="/admin/audit"] .audit-filter-actions .btn,
+  body.page-audit form[action="/admin/audit"] .audit-filter-actions a.btn{
+    height:42px !important;
+    min-height:42px !important;
+    border-radius:14px !important;
+  }
+}
+/* AUDIT_COMPACT_IOS_FIX_END */
+</style>
+
+
+
+<style>
+/* AUDIT_COMPACT_SEARCH_BLOCK_START */
+body.page-audit .audit-filter-card{
+  padding:10px !important;
+  border-radius:16px !important;
+  max-width:1180px !important;
+  margin:0 auto 16px !important;
+}
+
+body.page-audit .audit-filter-grid{
+  display:grid !important;
+  grid-template-columns:repeat(4, minmax(0, 1fr)) !important;
+  gap:8px !important;
+  align-items:end !important;
+}
+
+body.page-audit .audit-filter-field{
+  min-width:0 !important;
+  width:100% !important;
+}
+
+body.page-audit .audit-filter-field label{
+  display:block !important;
+  margin:0 0 3px !important;
+  font-size:11px !important;
+  line-height:1.1 !important;
+  color:var(--muted) !important;
+}
+
+body.page-audit .audit-filter-field input,
+body.page-audit .audit-filter-field .form-control{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:30px !important;
+  min-height:30px !important;
+  padding:4px 10px !important;
+  border-radius:9px !important;
+  font-size:12px !important;
+  line-height:1.15 !important;
+  box-sizing:border-box !important;
+}
+
+body.page-audit .audit-filter-field--org{
+  grid-column:1 / span 2 !important;
+}
+
+body.page-audit .audit-filter-field--position{
+  grid-column:3 / span 2 !important;
+}
+
+body.page-audit .audit-filter-actions{
+  grid-column:1 / -1 !important;
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  gap:0 !important;
+  margin-top:2px !important;
+}
+
+body.page-audit .audit-filter-actions .btn,
+body.page-audit .audit-filter-actions a.btn{
+  width:100% !important;
+  height:32px !important;
+  min-height:32px !important;
+  border-radius:9px !important;
+  font-size:13px !important;
+  padding:0 12px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+
+body.page-audit .audit-filter-actions .btn-secondary{
+  display:none !important;
+}
+
+@media (max-width: 768px){
+  body.page-audit .audit-filter-card{
+    padding:10px !important;
+    max-width:100% !important;
+  }
+
+  body.page-audit .audit-filter-grid{
+    grid-template-columns:1fr !important;
+    gap:8px !important;
+  }
+
+  body.page-audit .audit-filter-field--org,
+  body.page-audit .audit-filter-field--position{
+    grid-column:auto !important;
+  }
+
+  body.page-audit .audit-filter-field label{
+    font-size:12px !important;
+    margin-bottom:4px !important;
+  }
+
+  body.page-audit .audit-filter-field input,
+  body.page-audit .audit-filter-field .form-control{
+    height:38px !important;
+    min-height:38px !important;
+    font-size:14px !important;
+  }
+
+  body.page-audit .audit-filter-actions .btn,
+  body.page-audit .audit-filter-actions a.btn{
+    height:38px !important;
+    min-height:38px !important;
+    font-size:14px !important;
+  }
+}
+/* AUDIT_COMPACT_SEARCH_BLOCK_END */
+</style>
+
+
+<div class="audit-page">
+  <div class="audit-head">
+    <div>
+      <h1 class="h4 mb-0">Аудит</h1>
+      <div class="text-muted small">Кто и что менял.</div>
+    </div>
+  </div>
+
+  
+  <form method="get" action="/admin/audit" class="card card-glass p-3 mb-3 audit-filter-card audit-filter-card-logsclone" style="max-width:100%;overflow:hidden;">
+  <div class="audit-logsclone-grid" style="width:100%;max-width:100%;">
+    <div class="alc-field alc-date">
+      <label class="form-label">Дата с</label>
+      <input class="form-control" type="date" name="date_from" value="<%= (filters && filters.date_from) ? filters.date_from : '' %>">
+    </div>
+
+    <div class="alc-field alc-date">
+      <label class="form-label">Дата по</label>
+      <input class="form-control" type="date" name="date_to" value="<%= (filters && filters.date_to) ? filters.date_to : '' %>">
+    </div>
+
+    <div class="alc-field alc-time">
+      <label class="form-label">Время с</label>
+      <input class="form-control" type="time" name="time_from" value="<%= (filters && filters.time_from) ? filters.time_from : '' %>">
+    </div>
+
+    <div class="alc-field alc-time">
+      <label class="form-label">Время по</label>
+      <input class="form-control" type="time" name="time_to" value="<%= (filters && filters.time_to) ? filters.time_to : '' %>">
+    </div>
+
+    <div class="alc-field alc-org">
+      <label class="form-label">Организация</label>
+      <input class="form-control" type="text" name="organization" placeholder="Поиск по организации" value="<%= (filters && filters.organization) ? filters.organization : '' %>">
+    </div>
+
+    <div class="alc-field alc-fio">
+      <label class="form-label">ФИО</label>
+      <input class="form-control" type="text" name="fio" placeholder="Поиск по ФИО" value="<%= (filters && filters.fio) ? filters.fio : '' %>">
+    </div>
+
+    <div class="alc-field alc-pos">
+      <label class="form-label">Должность</label>
+      <input class="form-control" type="text" name="position" placeholder="Поиск по должности" value="<%= (filters && filters.position) ? filters.position : '' %>">
+    </div>
+
+    <div class="alc-actions">
+      <button class="btn btn-primary w-100" type="submit">Применить</button>
+      <a class="btn btn-secondary" href="<%= typeof csvUrl !== 'undefined' ? csvUrl : '/admin/audit.csv' %>">CSV</a>
+    </div>
+  </div>
+</form>
+
+<!-- AUDIT_LOGSCLONE_FINAL_START -->
+<style>
+body.page-audit .audit-filter-card-logsclone{
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+  box-sizing:border-box !important;
+}
+
+body.page-audit .audit-filter-card-logsclone .audit-logsclone-grid{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:12px !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+}
+
+body.page-audit .audit-filter-card-logsclone .alc-field,
+body.page-audit .audit-filter-card-logsclone .alc-actions{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  box-sizing:border-box !important;
+}
+
+body.page-audit .audit-filter-card-logsclone .form-label{
+  display:block !important;
+  margin:0 0 6px !important;
+  white-space:normal !important;
+  line-height:1.2 !important;
+}
+
+body.page-audit .audit-filter-card-logsclone input,
+body.page-audit .audit-filter-card-logsclone select,
+body.page-audit .audit-filter-card-logsclone textarea,
+body.page-audit .audit-filter-card-logsclone .form-control,
+body.page-audit .audit-filter-card-logsclone .form-select{
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+}
+
+body.page-audit .audit-filter-card-logsclone .alc-actions{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:12px !important;
+  margin-top:0 !important;
+}
+
+body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
+  width:100% !important;
+}
+
+@supports (-webkit-touch-callout: none){
+  body.page-audit .audit-filter-card-logsclone input,
+  body.page-audit .audit-filter-card-logsclone select,
+  body.page-audit .audit-filter-card-logsclone textarea{
+    font-size:16px !important;
+  }
+}
+
+@media (hover:hover) and (pointer:fine) and (min-width: 1100px){
+  body.page-audit .audit-filter-card-logsclone{
+    width:100% !important;
+    max-width:1200px !important;
+    margin:0 auto 12px !important;
+    padding:12px 14px !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone .audit-logsclone-grid{
+    display:grid !important;
+    grid-template-columns:repeat(4, minmax(0,1fr)) !important;
+    gap:8px 10px !important;
+    align-items:end !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone .alc-date,
+  body.page-audit .audit-filter-card-logsclone .alc-time,
+  body.page-audit .audit-filter-card-logsclone .alc-org,
+  body.page-audit .audit-filter-card-logsclone .alc-fio,
+  body.page-audit .audit-filter-card-logsclone .alc-pos{
+    grid-column:auto !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone .alc-org{
+    grid-column:1 / span 2 !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone .alc-fio{
+    grid-column:3 / span 1 !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone .alc-pos{
+    grid-column:4 / span 1 !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone .alc-actions{
+    grid-column:3 / span 2 !important;
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) 160px !important;
+    gap:10px !important;
+    margin-top:0 !important;
+    align-self:end !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone .form-label{
+    font-size:11px !important;
+    line-height:1.1 !important;
+    margin:0 0 4px !important;
+    opacity:.8 !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone .form-control,
+  body.page-audit .audit-filter-card-logsclone .form-select{
+    height:34px !important;
+    min-height:34px !important;
+    padding:6px 10px !important;
+    font-size:12px !important;
+    border-radius:10px !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
+    height:34px !important;
+    min-height:34px !important;
+    padding:6px 10px !important;
+    font-size:13px !important;
+    border-radius:10px !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone .alc-actions .btn:first-child{
+    width:100% !important;
+  }
+}
+</style>
+<!-- AUDIT_LOGSCLONE_FINAL_END -->
+
+
+  <div class="card card-glass p-2 p-md-3 audit-table-shell">
+    <div class="table-responsive audit-table-wrap">
+      <table class="table table-dark table-hover align-middle mb-0 audit-table">
+        <thead>
+          <tr>
+            <th class="audit-col-time">Время (МСК)</th>
+            <th class="audit-col-who">Кто</th>
+            <th class="audit-col-action">Действие</th>
+            <th class="audit-col-target">Что меняли</th>
+            <th class="audit-col-details">Детали</th>
+          </tr>
+        </thead>
+        <tbody>
+        <% (entries || []).forEach(function(e){ const fmt = (e.tsMsk || e.ts_msk || ''); %>
+          <tr>
+            <td class="small text-muted"><%= fmt %></td>
+            <td>
+              <div class="fw-semibold"><%= e.actorFio || '—' %></div>
+              <div class="small text-muted"><%= [e.actorOrganization, e.actorPosition].filter(Boolean).join(' • ') %></div>
+              <div class="small text-muted"><%= e.actorPhone || '' %></div>
+            </td>
+            <td>
+              <span class="audit-badge <%= actionClass(e.action) %>"><%= actionLabel(e.action) %></span>
+            </td>
+            <td class="small">
+              <div class="text-muted"><%= typeLabel(e.targetType) %></div>
+              <div class="fw-semibold"><%= safeTargetText(e) %></div>
+            </td>
+            <td class="small text-muted"><%= summarizeDetails(e.details) %></td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="audit-mobile-wrap">
+      <% (entries || []).forEach(function(e){ const fmt = (e.tsMsk || e.ts_msk || ''); %>
+        <div class="audit-card">
+          <div class="audit-card-top">
+            <div class="audit-card-time"><%= fmt %></div>
+            <span class="audit-badge <%= actionClass(e.action) %>"><%= actionLabel(e.action) %></span>
+          </div>
+
+          <div class="audit-card-row">
+            <div class="audit-card-label">Кто</div>
+            <div class="audit-card-value">
+              <div><strong><%= e.actorFio || '—' %></strong></div>
+              <div><%= [e.actorOrganization, e.actorPosition].filter(Boolean).join(' • ') %></div>
+              <div><%= e.actorPhone || '' %></div>
+            </div>
+          </div>
+
+          <div class="audit-card-row">
+            <div class="audit-card-label">Что меняли</div>
+            <div class="audit-card-value">
+              <div><%= typeLabel(e.targetType) %></div>
+              <div><strong><%= safeTargetText(e) %></strong></div>
+            </div>
+          </div>
+
+          <div class="audit-card-row">
+            <div class="audit-card-label">Детали</div>
+            <div class="audit-card-value"><%= summarizeDetails(e.details) %></div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- AUDIT_TABLE_PC_FIX_START -->
+<style>
+@media (min-width: 901px){
+  body.page-audit .audit-table-wrap{
+    display:block !important;
+    overflow-x:auto !important;
+  }
+
+  body.page-audit .audit-mobile-wrap{
+    display:none !important;
+  }
+
+  body.page-audit table.audit-table{
+    width:100% !important;
+    table-layout:fixed !important;
+    border-collapse:collapse !important;
+  }
+
+  body.page-audit table.audit-table th,
+  body.page-audit table.audit-table td{
+    vertical-align:top !important;
+    white-space:normal !important;
+    overflow-wrap:anywhere !important;
+    word-break:break-word !important;
+    line-height:1.35 !important;
+  }
+
+  body.page-audit table.audit-table thead th{
+    font-size:12px !important;
+    line-height:1.25 !important;
+    text-align:left !important;
+    padding-top:12px !important;
+    padding-bottom:12px !important;
+  }
+
+  body.page-audit table.audit-table tbody td{
+    padding-top:12px !important;
+    padding-bottom:12px !important;
+  }
+
+  /* ширины колонок */
+  body.page-audit .audit-col-time{ width:15% !important; }
+  body.page-audit .audit-col-who{ width:24% !important; }
+  body.page-audit .audit-col-action{ width:15% !important; }
+  body.page-audit .audit-col-target{ width:16% !important; }
+  body.page-audit .audit-col-details{ width:30% !important; }
+
+  body.page-audit table.audit-table th:nth-child(1),
+  body.page-audit table.audit-table td:nth-child(1){ width:15% !important; }
+
+  body.page-audit table.audit-table th:nth-child(2),
+  body.page-audit table.audit-table td:nth-child(2){ width:24% !important; }
+
+  body.page-audit table.audit-table th:nth-child(3),
+  body.page-audit table.audit-table td:nth-child(3){ width:15% !important; }
+
+  body.page-audit table.audit-table th:nth-child(4),
+  body.page-audit table.audit-table td:nth-child(4){ width:16% !important; }
+
+  body.page-audit table.audit-table th:nth-child(5),
+  body.page-audit table.audit-table td:nth-child(5){ width:30% !important; }
+
+  body.page-audit table.audit-table td .fw-semibold,
+  body.page-audit table.audit-table td strong{
+    display:block !important;
+    line-height:1.3 !important;
+  }
+
+  body.page-audit table.audit-table td .small,
+  body.page-audit table.audit-table td .text-muted{
+    white-space:normal !important;
+    overflow-wrap:anywhere !important;
+    word-break:break-word !important;
+  }
+
+  body.page-audit table.audit-table td .audit-badge{
+    display:inline-flex !important;
+    max-width:100% !important;
+    white-space:normal !important;
+    text-align:left !important;
+    line-height:1.2 !important;
+  }
+}
+
+@media (max-width: 900px){
+  body.page-audit .audit-table-wrap{
+    display:none !important;
+  }
+
+  body.page-audit .audit-mobile-wrap{
+    display:block !important;
+  }
+}
+</style>
+<!-- AUDIT_TABLE_PC_FIX_START -->
+
+
+
+<!-- AUDIT_TABLE_PC_FIX_START -->
+<style>
+@media (min-width: 901px){
+  body.page-audit .audit-table-wrap{
+    display:block !important;
+    overflow-x:auto !important;
+  }
+
+  body.page-audit .audit-mobile-wrap{
+    display:none !important;
+  }
+
+  body.page-audit table.audit-table{
+    width:100% !important;
+    table-layout:fixed !important;
+    border-collapse:collapse !important;
+  }
+
+  body.page-audit table.audit-table th,
+  body.page-audit table.audit-table td{
+    vertical-align:top !important;
+    white-space:normal !important;
+    overflow-wrap:anywhere !important;
+    word-break:break-word !important;
+    line-height:1.35 !important;
+  }
+
+  body.page-audit table.audit-table thead th{
+    font-size:12px !important;
+    line-height:1.25 !important;
+    text-align:left !important;
+    padding-top:12px !important;
+    padding-bottom:12px !important;
+  }
+
+  body.page-audit table.audit-table tbody td{
+    padding-top:12px !important;
+    padding-bottom:12px !important;
+  }
+
+  /* ширины колонок */
+  body.page-audit .audit-col-time{ width:15% !important; }
+  body.page-audit .audit-col-who{ width:24% !important; }
+  body.page-audit .audit-col-action{ width:15% !important; }
+  body.page-audit .audit-col-target{ width:16% !important; }
+  body.page-audit .audit-col-details{ width:30% !important; }
+
+  body.page-audit table.audit-table th:nth-child(1),
+  body.page-audit table.audit-table td:nth-child(1){ width:15% !important; }
+
+  body.page-audit table.audit-table th:nth-child(2),
+  body.page-audit table.audit-table td:nth-child(2){ width:24% !important; }
+
+  body.page-audit table.audit-table th:nth-child(3),
+  body.page-audit table.audit-table td:nth-child(3){ width:15% !important; }
+
+  body.page-audit table.audit-table th:nth-child(4),
+  body.page-audit table.audit-table td:nth-child(4){ width:16% !important; }
+
+  body.page-audit table.audit-table th:nth-child(5),
+  body.page-audit table.audit-table td:nth-child(5){ width:30% !important; }
+
+  body.page-audit table.audit-table td .fw-semibold,
+  body.page-audit table.audit-table td strong{
+    display:block !important;
+    line-height:1.3 !important;
+  }
+
+  body.page-audit table.audit-table td .small,
+  body.page-audit table.audit-table td .text-muted{
+    white-space:normal !important;
+    overflow-wrap:anywhere !important;
+    word-break:break-word !important;
+  }
+
+  body.page-audit table.audit-table td .audit-badge{
+    display:inline-flex !important;
+    max-width:100% !important;
+    white-space:normal !important;
+    text-align:left !important;
+    line-height:1.2 !important;
+  }
+}
+
+@media (max-width: 900px){
+  body.page-audit .audit-table-wrap{
+    display:none !important;
+  }
+
+  body.page-audit .audit-mobile-wrap{
+    display:block !important;
+  }
+}
+</style>
+<!-- AUDIT_TABLE_PC_FIX_START -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- AUDIT_NATIVE_PICKERS_FIX_START -->
+<style>
+@media (max-width: 760px){
+  body.page-audit .audit-filter-card-logsclone,
+  body.page-audit .audit-filter-card-logsclone .audit-logsclone-grid,
+  body.page-audit .audit-filter-card-logsclone .alc-field,
+  body.page-audit .audit-filter-card-logsclone .alc-actions{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone{
+    overflow:hidden !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone .alc-field input,
+  body.page-audit .audit-filter-card-logsclone .alc-field .form-control{
+    display:block !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    inline-size:100% !important;
+    box-sizing:border-box !important;
+    margin:0 !important;
+  }
+
+  /* Нативные pickers: календарь и прокрутка времени */
+  body.page-audit .audit-filter-card-logsclone input[type="date"],
+  body.page-audit .audit-filter-card-logsclone input[type="time"]{
+    -webkit-appearance:auto !important;
+    appearance:auto !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    inline-size:100% !important;
+    box-sizing:border-box !important;
+    padding-right:14px !important;
+  }
+
+  /* Safari/iPhone любит внутренние поля делать уже/шире */
+  body.page-audit .audit-filter-card-logsclone input[type="date"]::-webkit-date-and-time-value,
+  body.page-audit .audit-filter-card-logsclone input[type="time"]::-webkit-date-and-time-value{
+    text-align:left !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone input[type="date"]::-webkit-datetime-edit,
+  body.page-audit .audit-filter-card-logsclone input[type="time"]::-webkit-datetime-edit{
+    padding:0 !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone input[type="date"]::-webkit-calendar-picker-indicator,
+  body.page-audit .audit-filter-card-logsclone input[type="time"]::-webkit-calendar-picker-indicator{
+    opacity:1 !important;
+    display:block !important;
+  }
+}
+</style>
+<!-- AUDIT_NATIVE_PICKERS_FIX_END -->
+
+
+
+<!-- AUDIT_MOBILE_NATIVE_WRAP_FIX_START -->
+<style>
+@media (max-width: 760px){
+  body.page-audit .audit-filter-card-logsclone{
+    overflow:hidden !important;
+  }
+
+  body.page-audit .audit-filter-card-logsclone .alc-field{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    overflow:hidden !important;
+    box-sizing:border-box !important;
+  }
+
+  body.page-audit .audit-picker-wrap{
+    position:relative !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    overflow:hidden !important;
+    box-sizing:border-box !important;
+  }
+
+  body.page-audit .audit-picker-visual{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+    padding:10px 14px !important;
+    border-radius:14px !important;
+    border:1px solid rgba(255,255,255,.14) !important;
+    background:rgba(255,255,255,.06) !important;
+    color:var(--text) !important;
+    line-height:1.2 !important;
+    min-height:42px !important;
+    display:flex !important;
+    align-items:center !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+
+  body.page-audit .audit-picker-visual.is-empty{
+    color:rgba(255,255,255,.50) !important;
+  }
+
+  body.page-audit .audit-picker-native{
+    position:absolute !important;
+    inset:0 !important;
+    width:100% !important;
+    height:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    opacity:0.01 !important;
+    cursor:pointer !important;
+    box-sizing:border-box !important;
+    margin:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    background:transparent !important;
+    -webkit-appearance:auto !important;
+    appearance:auto !important;
+  }
+
+  body.page-audit .audit-picker-native::-webkit-calendar-picker-indicator{
+    opacity:1 !important;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.innerWidth > 760) return;
+
+  const form =
+    document.querySelector('form[action="/admin/audit"]') ||
+    document.querySelector('form[action*="/admin/audit"]');
+
+  if (!form) return;
+  if (form.dataset.auditNativeWrapReady === '1') return;
+
+  function prettyDate(v) {
+    if (!v) return 'Выберите дату';
+    return v;
+  }
+
+  function prettyTime(v) {
+    if (!v) return 'Выберите время';
+    return v;
+  }
+
+  function wrapInput(name, emptyText, formatter) {
+    const input = form.querySelector('input[name="' + name + '"]');
+    if (!input) return;
+    if (input.closest('.audit-picker-wrap')) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'audit-picker-wrap';
+
+    const visual = document.createElement('div');
+    visual.className = 'audit-picker-visual';
+
+    function sync() {
+      const text = formatter(input.value || '');
+      visual.textContent = text || emptyText;
+      visual.classList.toggle('is-empty', !input.value);
+    }
+
+    input.classList.add('audit-picker-native');
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(visual);
+    wrap.appendChild(input);
+
+    input.addEventListener('input', sync);
+    input.addEventListener('change', sync);
+    sync();
+  }
+
+  wrapInput('date_from', 'Выберите дату', prettyDate);
+  wrapInput('date_to', 'Выберите дату', prettyDate);
+  wrapInput('time_from', 'Выберите время', prettyTime);
+  wrapInput('time_to', 'Выберите время', prettyTime);
+
+  form.dataset.auditNativeWrapReady = '1';
+});
+</script>
+<!-- AUDIT_MOBILE_NATIVE_WRAP_FIX_END -->
+
+
+<%- include('partials/footer') %>

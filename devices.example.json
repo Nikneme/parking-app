@@ -1,0 +1,20 @@
+{
+  "sh1": { "name": "Ш1", "zone": "buffer", "type": "http", "method": "POST", "url": "http://example.local/open/sh1" },
+  "sh2": { "name": "Ш2", "zone": "buffer", "type": "http", "method": "POST", "url": "http://example.local/open/sh2" },
+  "sh34": { "name": "Ш3/4", "zone": "buffer", "type": "http", "method": "POST", "url": "http://example.local/open/sh34" },
+  "v1": { "name": "Въезд В1", "zone": "overground", "type": "http", "method": "POST", "url": "http://example.local/open/v1" },
+  "lift1": { "name": "Лифт 1", "zone": "pedestrian", "type": "http", "method": "POST", "url": "http://example.local/open/lift1" },
+  "lift2": { "name": "Лифт 2", "zone": "pedestrian", "type": "http", "method": "POST", "url": "http://example.local/open/lift2" },
+  "door1": { "name": "Дверь 1", "zone": "pedestrian", "type": "http", "method": "POST", "url": "http://example.local/open/door1" },
+  "door2": { "name": "Дверь 2", "zone": "pedestrian", "type": "http", "method": "POST", "url": "http://example.local/open/door2" },
+  "e7_in": { "name": "Въезд 7эт", "zone": "europlan", "type": "http", "method": "POST", "url": "http://example.local/open/e7-in" },
+  "e7_out": { "name": "Выезд 7эт", "zone": "europlan", "type": "http", "method": "POST", "url": "http://example.local/open/e7-out" },
+  "e8_in": { "name": "Въезд 8эт", "zone": "europlan", "type": "http", "method": "POST", "url": "http://example.local/open/e8-in" },
+  "e8_out": { "name": "Выезд 8эт", "zone": "europlan", "type": "http", "method": "POST", "url": "http://example.local/open/e8-out" },
+  "e9_in": { "name": "Въезд 9эт", "zone": "europlan", "type": "http", "method": "POST", "url": "http://example.local/open/e9-in" },
+  "e9_out": { "name": "Выезд 9эт", "zone": "europlan", "type": "http", "method": "POST", "url": "http://example.local/open/e9-out" },
+  "p1": { "name": "Въезд П1", "zone": "underground", "type": "http", "method": "POST", "url": "http://example.local/open/p1" },
+  "p2": { "name": "Въезд П2/3", "zone": "underground", "type": "http", "method": "POST", "url": "http://example.local/open/p2" },
+  "sh6": { "name": "Ш 6", "zone": "transit", "type": "http", "method": "POST", "url": "http://example.local/open/sh6" },
+  "sh7": { "name": "Ш 7", "zone": "transit", "type": "http", "method": "POST", "url": "http://example.local/open/sh7" }
+}

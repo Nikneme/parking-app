@@ -1,0 +1,11 @@
+node_modules
+.env
+.DS_Store
+.git
+__MACOSX
+data
+public/data
+devices.json
+*.zip
+*.tar.gz
+tree.txt

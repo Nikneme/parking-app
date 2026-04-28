@@ -1,0 +1,11 @@
+node_modules
+.env
+.DS_Store
+data
+devices.json
+public/data
+server.js.rej
+
+*.zip
+*.tar.gz
+tree.txt

@@ -31,7 +31,7 @@ function deviceNaturalSort(a, b) {
   });
 }
 
-function mapDeviceRow(deviceRow = {}) {
+function mapDeviceRow(deviceRow = {}, decryptDeviceSecret = (value) => value) {
   return {
     id: deviceRow.id,
     name: deviceRow.name,
@@ -43,16 +43,16 @@ function mapDeviceRow(deviceRow = {}) {
     relay: deviceRow.relay ?? null,
     auth_type: deviceRow.auth_type || 'none',
     username: deviceRow.username || '',
-    password: deviceRow.password || '',
+    password: decryptDeviceSecret(deviceRow.password || ''),
     enabled: deviceRow.enabled !== false,
     sort: deviceRow.sort ?? 0,
     is_active: deviceRow.is_active !== false,
   };
 }
 
-async function loadOperationsState({ dbQuery, mapAdminUser }) {
+async function loadOperationsState({ dbQuery, mapAdminUser, decryptDeviceSecret = (value) => value }) {
   const [users, zones, devices] = await Promise.all([
-    dbQuery(`SELECT id,fio,phone,email,organization,position,pin,role,is_is_admin,zones,assignable_zones,is_tenant_contact,parking_floors,parking_groups,parking_spots,preferred_routes,is_active FROM public.users ORDER BY created_at ASC`),
+    dbQuery(`SELECT id,fio,phone,email,organization,position,pin,role,is_is_admin,zones,assignable_zones,is_tenant_contact,parking_floors,parking_groups,parking_spots,preferred_routes,is_active,must_change_pin,pin_expires_at FROM public.users ORDER BY created_at ASC`),
     dbQuery(`SELECT id,name,sort FROM public.zones ORDER BY sort ASC, name ASC`),
     dbQuery(`SELECT id,name,zone_id,type,method,url,ip,relay,enabled,sort,is_active,auth_type,username,password FROM public.devices ORDER BY sort ASC, name ASC`),
   ]);
@@ -60,7 +60,7 @@ async function loadOperationsState({ dbQuery, mapAdminUser }) {
   return {
     users: toMapById((users.rows || []).map(mapAdminUser)),
     zones: toMapById((zones.rows || []).map((zone) => ({ id: zone.id, name: zone.name, sort: zone.sort ?? 0 }))),
-    devices: toMapById((devices.rows || []).map(mapDeviceRow)),
+    devices: toMapById((devices.rows || []).map((row) => mapDeviceRow(row, decryptDeviceSecret))),
   };
 }
 

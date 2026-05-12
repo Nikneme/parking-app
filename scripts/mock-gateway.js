@@ -1,5 +1,10 @@
 'use strict';
 
+if (process.env.NODE_ENV === 'production' && String(process.env.ALLOW_DEMO_ARTIFACTS || '').toLowerCase() !== 'true') {
+  console.error('This demo/development script is disabled in production.');
+  process.exit(1);
+}
+
 const http = require('http');
 
 const port = Number(process.env.MOCK_GATEWAY_PORT || 9090);

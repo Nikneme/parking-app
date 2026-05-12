@@ -67,11 +67,30 @@ async function main() {
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ phone: PHONE, pin: PIN, _csrf: csrf }),
   });
+  const loginLocation = login.res.headers.get('location') || '';
   assertStep(
     'login succeeds',
-    login.res.status === 302 && login.res.headers.get('location') === '/',
-    `status=${login.res.status}, location=${login.res.headers.get('location')}`,
+    login.res.status === 302 && (loginLocation === '/' || loginLocation.startsWith('/change-password')),
+    `status=${login.res.status}, location=${loginLocation}`,
   );
+
+  let activeCsrf = csrf;
+  if (loginLocation.startsWith('/change-password')) {
+    const changePage = await request(loginLocation);
+    const changeCsrf = extractCsrf(changePage.text);
+    const newPin = `${PIN}!changed`;
+    const changePassword = await request('/change-password', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ new_pin: newPin, new_pin_confirm: newPin, _csrf: changeCsrf }),
+    });
+    assertStep(
+      'temporary password change succeeds',
+      changePassword.res.status === 302 && changePassword.res.headers.get('location') === '/',
+      `status=${changePassword.res.status}, location=${changePassword.res.headers.get('location')}`,
+    );
+    activeCsrf = changeCsrf;
+  }
 
   const dashboard = await request('/');
   assertStep('dashboard loads', dashboard.res.status === 200 && dashboard.text.includes('data-open-device'), `status=${dashboard.res.status}`);
@@ -81,7 +100,7 @@ async function main() {
     headers: {
       accept: 'application/json',
       'content-type': 'application/json',
-      'x-csrf-token': csrf,
+      'x-csrf-token': activeCsrf,
     },
     body: '{}',
   });
@@ -118,7 +137,7 @@ async function main() {
   const zoneUpdate = await request(`/admin/zones/${encodeURIComponent(ZONE_ID)}/update`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ name: ZONE_NAME_EDITED, _csrf: csrf }),
+    body: new URLSearchParams({ name: ZONE_NAME_EDITED, _csrf: activeCsrf }),
   });
   assertStep(
     'zone rename redirects',
@@ -136,7 +155,7 @@ async function main() {
   await request(`/admin/zones/${encodeURIComponent(ZONE_ID)}/update`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ name: ZONE_NAME, _csrf: csrf }),
+    body: new URLSearchParams({ name: ZONE_NAME, _csrf: activeCsrf }),
   });
 }
 

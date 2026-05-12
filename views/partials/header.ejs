@@ -456,6 +456,26 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
+    .theme-toggle{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      min-height:40px;
+      padding:8px 12px;
+      white-space:nowrap;
+    }
+    .theme-toggle-icon{
+      display:inline-flex;
+      width:18px;
+      justify-content:center;
+      font-size:14px;
+      line-height:1;
+    }
+    .theme-toggle-label{
+      font-size:13px;
+      font-weight:600;
+      line-height:1.1;
+    }
     .mobile-nav-backdrop{
       position:fixed;
       inset:0;
@@ -541,7 +561,12 @@
     .auth-head{
       display:grid;
       gap:12px;
-      justify-items:start;
+    }
+    .auth-head-row{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
     }
 
     .card{
@@ -1074,6 +1099,9 @@
         padding:8px 11px;
         font-size:13px;
       }
+      .theme-toggle-label{
+        display:none;
+      }
       .toolbar-nav-link{
         min-height:40px;
         padding:8px 12px;
@@ -1168,6 +1196,10 @@
             <span class="badge-soft"><%= _roleLabel %></span>
             <% if (_user.phone) { %><span class="badge-soft text-mono"><%= _user.phone %></span><% } %>
           </div>
+          <button class="btn btn-ghost theme-toggle" type="button" data-theme-toggle>
+            <span class="theme-toggle-icon" data-theme-icon>◐</span>
+            <span class="theme-toggle-label" data-theme-label>Светлая тема</span>
+          </button>
         </div>
       </aside>
       <% } %>
@@ -1188,6 +1220,10 @@
               <% if (_showMobileMenu) { %>
                 <button class="btn btn-ghost toolbar-menu-btn" type="button" data-mobile-nav-open aria-expanded="false" aria-controls="mobileNavSheet">Разделы</button>
               <% } %>
+              <button class="btn btn-ghost theme-toggle" type="button" data-theme-toggle>
+                <span class="theme-toggle-icon" data-theme-icon>◐</span>
+                <span class="theme-toggle-label" data-theme-label>Светлая тема</span>
+              </button>
               <div class="toolbar-user">
                 <span class="toolbar-user-name"><%= _user.fio || _user.phone || _user.id %></span>
                 <% if (!_isTenant) { %><span class="toolbar-user-role"><%= _roleLabel %></span><% } %>
@@ -1273,11 +1309,17 @@
     <div class="auth-shell">
       <main class="auth-main">
         <div class="auth-head">
-          <a class="app-brand" href="/" title="На главную">
-            <span class="app-brand-copy">
-              <span class="app-brand-name">Моя парковка</span>
-              <span class="app-brand-note">Войдите, чтобы открыть въезд, дверь или шлагбаум.</span>
-            </span>
-          </a>
+          <div class="auth-head-row">
+            <a class="app-brand" href="/" title="На главную">
+              <span class="app-brand-copy">
+                <span class="app-brand-name">Моя парковка</span>
+                <span class="app-brand-note">Войдите, чтобы открыть въезд, дверь или шлагбаум.</span>
+              </span>
+            </a>
+            <button class="btn btn-ghost theme-toggle" type="button" data-theme-toggle>
+              <span class="theme-toggle-icon" data-theme-icon>◐</span>
+              <span class="theme-toggle-label" data-theme-label>Светлая тема</span>
+            </button>
+          </div>
         </div>
   <% } %>

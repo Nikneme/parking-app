@@ -77,6 +77,9 @@ function registerAdminAuditRoutes({
       create: 'Создание',
       update: 'Изменение',
       reset_pin: 'Сброс пароля',
+      change_pin: 'Смена пароля',
+      login_failed: 'Неудачный вход',
+      login_rate_limited: 'Ограничение входа',
       clear_transit_log: 'Очистка журнала транзита',
       delete: 'Удаление',
     };

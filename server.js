@@ -61,6 +61,11 @@ const GATEWAY_KEY = String(process.env.GATEWAY_KEY || '');
 const GATEWAY_TIMEOUT_MS = Number(process.env.GATEWAY_TIMEOUT_MS || 7000);
 const NODE_ENV = String(process.env.NODE_ENV || 'development').trim().toLowerCase();
 const IS_PRODUCTION = NODE_ENV === 'production';
+const ALLOW_REFERENCE_DEVICE_SEED = String(process.env.ALLOW_REFERENCE_DEVICE_SEED || (IS_PRODUCTION ? 'false' : 'true')).toLowerCase() === 'true';
+
+if (IS_PRODUCTION && isDevDb) {
+  throw new Error('DEV_MEMORY_DB=true is forbidden in production. Configure DATABASE_URL/PG_URL.');
+}
 
 const APP_BASE_URL = String(process.env.APP_BASE_URL || 'https://moyaparkovka.ru').replace(/\/+$/g, '');
 const DISPATCHER_PHONE = String(process.env.DISPATCHER_PHONE || '+7 936 004-67-42').trim();
@@ -71,21 +76,23 @@ const SMTP_SECURE = String(process.env.SMTP_SECURE || 'true').toLowerCase() === 
 const SMTP_USER = String(process.env.SMTP_USER || '');
 const SMTP_PASS = String(process.env.SMTP_PASS || '');
 const MAIL_FROM = String(process.env.MAIL_FROM || SMTP_USER || 'mmoyaparkovka@yandex.ru');
-const MAIL_INCLUDE_PASSWORD = String(process.env.MAIL_INCLUDE_PASSWORD || '').toLowerCase() === 'true';
+const MAIL_INCLUDE_PASSWORD = false; // ТЗ 4.2: действующие PIN/пароли никогда не отправляются по email
 const GATEWAY_SEND_DEVICE_SECRETS = String(process.env.GATEWAY_SEND_DEVICE_SECRETS || '').toLowerCase() === 'true';
+const START_PIN_TTL_HOURS = Math.max(1, Number(process.env.START_PIN_TTL_HOURS || 24));
+const PIN_MIN_LENGTH = Math.max(8, Number(process.env.PIN_MIN_LENGTH || 8));
+const LOGIN_WINDOW_MS = Number(process.env.LOGIN_RATE_WINDOW_MS || 15 * 60 * 1000);
+const LOGIN_MAX_ATTEMPTS = Number(process.env.LOGIN_RATE_MAX || 8);
+const LOGIN_IP_RATE_MAX = Math.max(LOGIN_MAX_ATTEMPTS, Number(process.env.LOGIN_IP_RATE_MAX || LOGIN_MAX_ATTEMPTS * 5));
+const LOGIN_PHONE_RATE_MAX = Math.max(LOGIN_MAX_ATTEMPTS, Number(process.env.LOGIN_PHONE_RATE_MAX || LOGIN_MAX_ATTEMPTS * 3));
 const ALLOW_FILE_TRANSIT_FALLBACK = String(process.env.ALLOW_FILE_TRANSIT_FALLBACK || (IS_PRODUCTION ? 'false' : 'true')).toLowerCase() === 'true';
 const ALLOW_DB_INIT_FAILURE = String(process.env.ALLOW_DB_INIT_FAILURE || '').toLowerCase() === 'true';
-
-if (IS_PRODUCTION && MAIL_INCLUDE_PASSWORD) {
-  throw new Error('MAIL_INCLUDE_PASSWORD=true is forbidden in production.');
-}
 
 if (IS_PRODUCTION && GATEWAY_SEND_DEVICE_SECRETS) {
   throw new Error('GATEWAY_SEND_DEVICE_SECRETS=true is forbidden in production.');
 }
 
-if (MAIL_INCLUDE_PASSWORD) {
-  console.warn('⚠️ MAIL_INCLUDE_PASSWORD=true: passwords may be sent by email. Disable this outside of temporary internal use.');
+if (String(process.env.MAIL_INCLUDE_PASSWORD || '').toLowerCase() === 'true') {
+  console.warn('⚠️ MAIL_INCLUDE_PASSWORD is ignored: passwords are never sent by email.');
 }
 
 if (GATEWAY_SEND_DEVICE_SECRETS) {
@@ -95,9 +102,6 @@ if (GATEWAY_SEND_DEVICE_SECRETS) {
 if (ALLOW_FILE_TRANSIT_FALLBACK) {
   console.warn('⚠️ File transit fallback is enabled. When DB fails, part of the transit log may be written to a local file.');
 }
-
-const LOGIN_WINDOW_MS = Number(process.env.LOGIN_RATE_WINDOW_MS || 15 * 60 * 1000);
-const LOGIN_MAX_ATTEMPTS = Number(process.env.LOGIN_RATE_MAX || 8);
 
 const gatewayService = createGatewayService({
   gatewayBaseUrl: GATEWAY_BASE_URL,
@@ -118,6 +122,8 @@ const authSessionService = createAuthSessionService({
   mailIncludePassword: MAIL_INCLUDE_PASSWORD,
   loginWindowMs: LOGIN_WINDOW_MS,
   loginMaxAttempts: LOGIN_MAX_ATTEMPTS,
+  loginIpMaxAttempts: LOGIN_IP_RATE_MAX,
+  loginPhoneMaxAttempts: LOGIN_PHONE_RATE_MAX,
 });
 
 const {
@@ -244,20 +250,86 @@ async function verifyPin(inputPin, storedPin) {
   return crypto.timingSafeEqual(actual, expected);
 }
 
+
+function getStartPinExpiresAt() {
+  return new Date(Date.now() + START_PIN_TTL_HOURS * 60 * 60 * 1000);
+}
+
+function isPinExpired(user) {
+  if (!user || !user.pin_expires_at) return false;
+  const expiresAt = new Date(user.pin_expires_at);
+  return !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= Date.now();
+}
+
+function userNeedsPinChange(user) {
+  return !!(user && (user.must_change_pin || isPinExpired(user)));
+}
+
+function pinChangeReason(user) {
+  return isPinExpired(user) ? 'expired' : 'required';
+}
+
+function validateNewPin(pin, user = {}) {
+  const value = String(pin || '');
+  if (value.length < PIN_MIN_LENGTH) {
+    return `Пароль должен содержать не менее ${PIN_MIN_LENGTH} символов.`;
+  }
+  const digits = digitsOnly(value);
+  if (digits && digits === digitsOnly(user.phone || '')) {
+    return 'Пароль не должен совпадать с номером телефона.';
+  }
+  if (/^(.)\1+$/.test(value)) {
+    return 'Пароль не должен состоять из одного повторяющегося символа.';
+  }
+  return '';
+}
+
+const DEVICE_SECRET_PREFIX = 'enc:v1:gcm:';
+const DEVICE_SECRET_KEY_MATERIAL = String(process.env.DEVICE_SECRET_ENCRYPTION_KEY || '').trim();
+const DEVICE_SECRET_PLACEHOLDERS = new Set(['', 'change-me', 'replace-with-another-long-random-secret']);
+if (DEVICE_SECRET_PLACEHOLDERS.has(DEVICE_SECRET_KEY_MATERIAL)) {
+  if (IS_PRODUCTION) {
+    throw new Error('DEVICE_SECRET_ENCRYPTION_KEY must be set to a strong unique value in production.');
+  }
+  console.warn('DEVICE_SECRET_ENCRYPTION_KEY is not set; falling back to SESSION_SECRET for local development only.');
+}
+const DEVICE_SECRET_KEY = crypto.createHash('sha256').update(DEVICE_SECRET_KEY_MATERIAL || SESSION_SECRET).digest();
+
+function encryptDeviceSecret(value) {
+  const plain = String(value || '');
+  if (!plain || plain.startsWith(DEVICE_SECRET_PREFIX)) return plain;
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', DEVICE_SECRET_KEY, iv);
+  const encrypted = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `${DEVICE_SECRET_PREFIX}${iv.toString('base64')}:${tag.toString('base64')}:${encrypted.toString('base64')}`;
+}
+
+function decryptDeviceSecret(value) {
+  const stored = String(value || '');
+  if (!stored || !stored.startsWith(DEVICE_SECRET_PREFIX)) return stored;
+  try {
+    const rest = stored.slice(DEVICE_SECRET_PREFIX.length);
+    const [ivB64, tagB64, dataB64] = rest.split(':');
+    if (!ivB64 || !tagB64 || !dataB64) return '';
+    const decipher = crypto.createDecipheriv('aes-256-gcm', DEVICE_SECRET_KEY, Buffer.from(ivB64, 'base64'));
+    decipher.setAuthTag(Buffer.from(tagB64, 'base64'));
+    return Buffer.concat([decipher.update(Buffer.from(dataB64, 'base64')), decipher.final()]).toString('utf8');
+  } catch (error) {
+    console.warn('device secret decrypt failed:', error?.message || error);
+    return '';
+  }
+}
+
 async function sendWelcomeEmail({ to, fio, phone, pin, role }) {
   if (!to || !mailTransport) return false;
 
   const siteUrl = APP_BASE_URL || 'https://moyaparkovka.ru';
   const safeName = String(fio || 'Коллега');
   const safeLogin = String(phone || '');
-  const safePin = String(pin || '');
   const safeRole = roleLabelRu(String(role || 'user'));
-  const passwordLineHtml = MAIL_INCLUDE_PASSWORD
-    ? `<div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">Пароль:</span> <b>${safePin}</b></div>`
-    : `<div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">Пароль:</span> получите у администратора</div>`;
-  const passwordLineText = MAIL_INCLUDE_PASSWORD
-    ? `Пароль: ${safePin}`
-    : 'Пароль: получите у администратора';
+  const passwordLineHtml = `<div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">Пароль:</span> получите у администратора</div>`;
+  const passwordLineText = 'Пароль: получите у администратора';
 
   const html = `
   <div style="margin:0;padding:0;background:#0b1220;font-family:Arial,sans-serif;color:#e5e7eb;">
@@ -310,6 +382,9 @@ async function sendWelcomeEmail({ to, fio, phone, pin, role }) {
 app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'");
   res.setHeader('Referrer-Policy', 'same-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   if (process.env.NODE_ENV === 'production') {
@@ -372,13 +447,23 @@ app.use((req, res, next) => {
   return res.status(403).send('CSRF token invalid');
 });
 
-app.use(['/data', '/public/data'], (req, res) => {
+app.use(['/data', '/public/data', '/.git', '/__MACOSX'], (req, res) => {
   res.status(404).send('Not found');
 });
 
+const STATIC_OPTIONS = {
+  dotfiles: 'deny',
+  index: false,
+  redirect: false,
+  setHeaders(res) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', IS_PRODUCTION ? 'public, max-age=86400' : 'no-store');
+  },
+};
+
 // Static assets: allow both /app.css and /public/app.css
-app.use('/public', express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use('/public', express.static(path.join(__dirname, 'public'), STATIC_OPTIONS));
+app.use(express.static(path.join(__dirname, 'public'), STATIC_OPTIONS));
 
 // Default locals for all templates (prevents EJS ReferenceError on missing vars)
 app.use((req, res, next) => {
@@ -394,7 +479,7 @@ app.use(async (req, res, next) => {
 
   try {
     const r = await dbQuery(
-      `SELECT id, fio, phone, organization, position, role, is_is_admin, zones, assignable_zones, is_tenant_contact, parking_floors, parking_groups, parking_spots, preferred_routes, is_active
+      `SELECT id, fio, phone, organization, position, role, is_is_admin, zones, assignable_zones, is_tenant_contact, parking_floors, parking_groups, parking_spots, preferred_routes, is_active, must_change_pin, pin_expires_at
        FROM public.users
        WHERE id = $1
        LIMIT 1`,
@@ -414,6 +499,26 @@ app.use(async (req, res, next) => {
     console.warn('inactive session guard error:', e?.message || e);
     return next();
   }
+});
+
+
+function isPinChangeBypassRequest(req) {
+  if (isStaticRequest(req)) return true;
+  return req.path === '/login'
+    || req.path === '/logout'
+    || req.path === '/change-password'
+    || req.path === '/health';
+}
+
+app.use((req, res, next) => {
+  const user = req.session?.user || null;
+  if (!user || !userNeedsPinChange(user) || isPinChangeBypassRequest(req)) return next();
+
+  if (req.xhr || req.headers.accept?.includes('application/json') || req.path.startsWith('/api/')) {
+    return res.status(428).json({ ok: false, error: 'Требуется сменить временный пароль.' });
+  }
+
+  return res.redirect(`/change-password?reason=${encodeURIComponent(pinChangeReason(user))}`);
 });
 
 // If browser auto-translation rewrites URLs into Russian, keep the app working.
@@ -707,7 +812,7 @@ async function getGatewayStatus() {
 }
 
 async function loadAll() {
-  return loadOperationsState({ dbQuery, mapAdminUser });
+  return loadOperationsState({ dbQuery, mapAdminUser, decryptDeviceSecret });
 }
 
 function buildDashboardAccess({ zones, devices }, user) {
@@ -982,9 +1087,13 @@ async function seedDevicesFromJson() {
     }
   }
 
-  // If file is missing/empty — create a reference device set with real route names.
+  // Reference devices are allowed only for local/demo runs. Production must use real inventory.
   if (!list.length) {
-    console.log('ℹ️ devices.json пустой/не найден — создаю референсный набор устройств');
+    if (!ALLOW_REFERENCE_DEVICE_SEED) {
+      console.warn('devices.json пустой/не найден — референсные устройства не создаются в production. Добавьте реальные устройства через админку или импорт.');
+      return;
+    }
+    console.log('ℹ️ devices.json пустой/не найден — создаю референсный набор устройств для локальной проверки');
     list = buildReferenceDevices();
   }
 
@@ -1120,7 +1229,7 @@ function parseDeviceSecretFields(rawUrl, authTypeIn, usernameIn, passwordIn, kee
     ip,
     auth_type: authType,
     username,
-    password,
+    password: password ? encryptDeviceSecret(password) : '',
   };
 }
 
@@ -1138,7 +1247,7 @@ async function ensureExtraSecuritySchema() {
       const u = new URL(url);
       if (u.username || u.password) {
         const login = d.username || u.username || null;
-        const pwd = d.password || u.password || null;
+        const pwd = d.password ? encryptDeviceSecret(d.password) : (u.password ? encryptDeviceSecret(u.password) : null);
         u.username = '';
         u.password = '';
         await dbQuery(
@@ -1153,6 +1262,14 @@ async function ensureExtraSecuritySchema() {
         );
       }
     } catch {}
+  }
+
+  const secretRows = await dbQuery("SELECT id, password FROM public.devices WHERE COALESCE(password,'') <> ''");
+  for (const d of secretRows.rows || []) {
+    const stored = String(d.password || '');
+    if (stored && !stored.startsWith(DEVICE_SECRET_PREFIX)) {
+      await dbQuery('UPDATE public.devices SET password=$2, updated_at=NOW() WHERE id=$1', [d.id, encryptDeviceSecret(stored)]);
+    }
   }
 }
 
@@ -1185,6 +1302,11 @@ registerAuthRoutes({
   recordLoginFailure,
   clearLoginFailures,
   appendAudit,
+  getStartPinExpiresAt,
+  userNeedsPinChange,
+  pinChangeReason,
+  validateNewPin,
+  pinMinLength: PIN_MIN_LENGTH,
 });
 
 registerDashboardRoutes({
@@ -1243,6 +1365,8 @@ registerAdminUsersRoutes({
   parseZonesInput,
   parseListInput,
   mapSessionUser,
+  getStartPinExpiresAt,
+  startPinTtlHours: START_PIN_TTL_HOURS,
 });
 
 registerAdminDevicesRoutes({
@@ -1300,10 +1424,10 @@ async function ensureDefaultAdmin() {
   const fio = process.env.ADMIN_FIO || 'Администратор';
   // если зон ещё нет — оставляем пусто, можно назначить в админке
   await dbQuery(
-    `INSERT INTO public.users(id,fio,phone,organization,position,pin,role,is_is_admin,zones,is_active)
-     VALUES ($1,$2,$3,$4,$5,$6,'admin',true,$7,true)
+    `INSERT INTO public.users(id,fio,phone,organization,position,pin,role,is_is_admin,zones,is_active,must_change_pin,pin_created_at,pin_expires_at)
+     VALUES ($1,$2,$3,$4,$5,$6,'admin',true,$7,true,true,NOW(),$8)
      ON CONFLICT (id) DO NOTHING`,
-    [id, fio, adminPhone, null, null, await hashPin(adminPin), []]
+    [id, fio, adminPhone, null, null, await hashPin(adminPin), [], getStartPinExpiresAt()]
   );
 
   console.log('✅ Создан админ по умолчанию:', adminPhone);
@@ -1322,8 +1446,8 @@ async function ensureDemoUser(spec = {}) {
   if (exists.rows.length) return false;
 
   await dbQuery(
-    `INSERT INTO public.users(id,fio,phone,email,organization,position,pin,role,is_is_admin,zones,assignable_zones,is_tenant_contact,parking_floors,parking_groups,parking_spots,preferred_routes,is_active)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,true)
+    `INSERT INTO public.users(id,fio,phone,email,organization,position,pin,role,is_is_admin,zones,assignable_zones,is_tenant_contact,parking_floors,parking_groups,parking_spots,preferred_routes,is_active,must_change_pin,pin_changed_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,true,false,NOW())
      ON CONFLICT (id) DO NOTHING`,
     [
       spec.id,
@@ -1461,13 +1585,13 @@ async function ensureDemoUsers() {
     await ensureSchema();
     // 1) создаём стандартные зоны
     await ensureDefaultZones();
-    // 2) загружаем устройства из devices.json или создаём тестовые
+    // 2) загружаем устройства из devices.json; reference seed только вне production или при явном разрешении
     await seedDevicesFromJson();
     // 3) выносим секреты устройств из URL в отдельные поля
     await ensureExtraSecuritySchema();
     // 4) создаём админа по умолчанию
     await ensureDefaultAdmin();
-    // 5) создаём демо-роли для локальной проверки интерфейса
+    // 5) создаём демо-роли только для локальной DEV_MEMORY_DB-проверки
     await ensureDemoUsers();
     // 6) прогреваем кэш
     await loadAll();

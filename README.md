@@ -40,21 +40,22 @@ DEV_MEMORY_DB=true SESSION_SECRET=replace-with-secret ADMIN_PHONE=79000000000 AD
 
 Без `DEV_MEMORY_DB=true` приложению нужен `DATABASE_URL` или `PG_URL`. Если база недоступна, сервер не стартует: это защищает от "полуживого" запуска без пользователей, журналов и сессий.
 
-PIN/пароли пользователей хранятся как `scrypt`-хеш. Старые открытые PIN автоматически перехешируются после успешного входа.
-Пароли не отправляются в приветственном письме по умолчанию. Для старого поведения нужно явно задать `MAIL_INCLUDE_PASSWORD=true`.
+PIN/пароли пользователей хранятся как `scrypt`-хеш. Старые открытые PIN автоматически перехешируются после успешного входа и требуют смены.
+Стартовые пароли являются временными: пользователь обязан сменить их при первом входе, а срок действия стартового пароля ограничен `START_PIN_TTL_HOURS` часами.
+Пароли не отправляются в приветственном письме: email содержит только логин и инструкцию получить временный пароль у администратора по отдельному каналу.
 
 ## Передача доступа новым пользователям
 1) Администратор создает пользователя в разделе **Люди**.
 2) Если поле "Пароль" пустое, система генерирует временный пароль, сохраняет его только как `scrypt`-хеш и показывает администратору один раз.
 3) Если задан email, письмо отправляется пользователю. По умолчанию пароль в письме не раскрывается: пользователь видит, что пароль нужно получить у администратора.
-4) Если нужно отправлять пароль прямо в письме, явно включите `MAIL_INCLUDE_PASSWORD=true`, но это менее безопасный режим.
-5) При сбросе пароля новый временный пароль также показывается администратору один раз.
+4) При первом входе пользователь попадает на страницу обязательной смены временного пароля и не может использовать рабочие функции до смены.
+5) При сбросе пароля новый временный пароль также показывается администратору один раз и снова требует смены пользователем.
 
 ## Обновление существующего сервера
 1) Сделайте бэкап текущей базы PostgreSQL.
 2) Замените код приложения, не копируя `node_modules`, `.env`, `data`, `public/data`, `.DS_Store`, `devices.json`.
 3) На сервере выполните `npm ci`.
-4) Проверьте переменные окружения: `DATABASE_URL`/`PG_URL`, `SESSION_SECRET`, `ADMIN_PHONE`, `ADMIN_PIN`, `APP_BASE_URL`, `GATEWAY_BASE_URL`, `GATEWAY_KEY`, `DISPATCHER_PHONE`.
+4) Проверьте переменные окружения: `DATABASE_URL`/`PG_URL`, `SESSION_SECRET`, `DEVICE_SECRET_ENCRYPTION_KEY`, `ADMIN_PHONE`, `ADMIN_PIN`, `APP_BASE_URL`, `GATEWAY_BASE_URL`, `GATEWAY_KEY`, `DISPATCHER_PHONE`, `START_PIN_TTL_HOURS`.
 5) Запустите `npm start`. Миграции таблиц выполняются автоматически при старте.
 6) После старта проверьте `/health`, вход администратора, открытие тестового устройства и журнал транзита.
 
@@ -74,3 +75,26 @@ node scripts/emulate-scenarios.js
 GATEWAY_KEY=dev-gateway-key node scripts/mock-gateway.js
 GATEWAY_BASE_URL=http://127.0.0.1:9090 GATEWAY_KEY=dev-gateway-key SESSION_SECRET=replace-with-secret DATABASE_URL=postgresql://... node server.js
 ```
+
+## Комплект выполнения ТЗ по передаче и эксплуатации
+
+Для закрытия полного ТЗ по передаче контроля, безопасности, эксплуатационной упаковке, регламентам, инвентаризации и приёмке добавлены документы:
+
+- `docs/tz-compliance-report.md` — сводный отчёт выполнения ТЗ.
+- `docs/deployment.md` — развёртывание с нуля.
+- `docs/update-rollback.md` — обновление, выкладка и откат.
+- `docs/backup-recovery.md` — резервное копирование и восстановление.
+- `docs/operations-regulations.md` — регламенты backup, обновлений и доступов.
+- `docs/inventory-and-handover.md` — реестр передачи контроля и внешних зависимостей.
+- `docs/acceptance-act-template.md` — шаблон акта/отчёта приёмки.
+
+Эксплуатационные команды:
+
+```bash
+npm run smoke:runtime
+npm run ops:inventory
+npm run db:backup
+CONFIRM_RESTORE=YES npm run db:restore -- ./backups/<backup>.dump
+```
+
+В production обязательно задайте `NODE_ENV=production`, `DATABASE_URL` или `PG_URL`, `SESSION_SECRET`, `DEVICE_SECRET_ENCRYPTION_KEY`, `ADMIN_PHONE`, `ADMIN_PIN`, `GATEWAY_BASE_URL` и `GATEWAY_KEY`. Не включайте `DEV_MEMORY_DB`, `ALLOW_REFERENCE_DEVICE_SEED`, `ALLOW_DEMO_ARTIFACTS` и `GATEWAY_SEND_DEVICE_SECRETS` в production без отдельного письменного решения.

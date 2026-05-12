@@ -9,3 +9,7 @@ server.js.rej
 *.zip
 *.tar.gz
 tree.txt
+backups/
+reports/
+*.dump
+*.dump.sha256

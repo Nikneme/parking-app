@@ -7,6 +7,9 @@ function createAuditService({ dbQuery }) {
     create: 'Создание',
     update: 'Изменение',
     reset_pin: 'Сброс PIN',
+    change_pin: 'Смена PIN',
+    login_failed: 'Неудачный вход',
+    login_rate_limited: 'Ограничение входа',
     clear_transit_log: 'Очистка журнала транзита',
   };
 

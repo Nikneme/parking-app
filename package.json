@@ -9,7 +9,10 @@
     "dev": "node server.js",
     "emulate": "node scripts/emulate-scenarios.js",
     "mock-gateway": "node scripts/mock-gateway.js",
-    "smoke:runtime": "node scripts/runtime-smoke.js"
+    "smoke:runtime": "node scripts/runtime-smoke.js",
+    "ops:inventory": "node scripts/generate-ops-inventory.js",
+    "db:backup": "bash scripts/backup-postgres.sh",
+    "db:restore": "bash scripts/restore-postgres.sh"
   },
   "dependencies": {
     "axios": "^1.13.2",

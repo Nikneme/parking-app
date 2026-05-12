@@ -82,6 +82,10 @@ function normalizeUser(row = {}) {
     parking_spots: Array.isArray(row.parking_spots) ? row.parking_spots : [],
     preferred_routes: Array.isArray(row.preferred_routes) ? row.preferred_routes : [],
     is_active: row.is_active !== false,
+    must_change_pin: !!row.must_change_pin,
+    pin_created_at: row.pin_created_at || null,
+    pin_changed_at: row.pin_changed_at || null,
+    pin_expires_at: row.pin_expires_at || null,
     created_at: row.created_at || now(),
     updated_at: row.updated_at || now(),
   };
@@ -151,6 +155,8 @@ function selectUsersForLoadAll() {
     parking_spots: u.parking_spots,
     preferred_routes: u.preferred_routes,
     is_active: u.is_active,
+    must_change_pin: !!u.must_change_pin,
+    pin_expires_at: u.pin_expires_at || null,
     created_at: u.created_at,
   })));
 }
@@ -313,7 +319,7 @@ async function dbQuery(text, params = []) {
 
   if (q.startsWith('insert into public.users')) {
     if (q.includes('email,organization,position')) {
-      const [id, fio, phone, email, organization, position, pin, role, isIsAdmin, zones, assignableZones, isTenantContact, parkingFloors, parkingGroups, parkingSpots, preferredRoutes] = params;
+      const [id, fio, phone, email, organization, position, pin, role, isIsAdmin, zones, assignableZones, isTenantContact, parkingFloors, parkingGroups, parkingSpots, preferredRoutes, pinExpiresAt] = params;
       state.users.set(String(id), normalizeUser({
         id: String(id),
         fio,
@@ -332,9 +338,13 @@ async function dbQuery(text, params = []) {
         parking_spots: parkingSpots,
         preferred_routes: preferredRoutes,
         is_active: true,
+        must_change_pin: q.includes('pin_expires_at'),
+        pin_created_at: q.includes('pin_created_at') ? now() : null,
+        pin_changed_at: q.includes('pin_changed_at') ? now() : null,
+        pin_expires_at: q.includes('pin_expires_at') ? (pinExpiresAt || null) : null,
       }));
     } else {
-      const [id, fio, phone, organization, position, pin, zones] = params;
+      const [id, fio, phone, organization, position, pin, zones, pinExpiresAt] = params;
       if (!state.users.has(String(id))) {
         state.users.set(String(id), normalizeUser({
           id: String(id),
@@ -347,6 +357,9 @@ async function dbQuery(text, params = []) {
           is_is_admin: true,
           zones,
           is_active: true,
+          must_change_pin: q.includes('pin_expires_at'),
+          pin_created_at: q.includes('pin_created_at') ? now() : null,
+          pin_expires_at: q.includes('pin_expires_at') ? (pinExpiresAt || null) : null,
         }));
       }
     }
@@ -392,7 +405,7 @@ async function dbQuery(text, params = []) {
     return ok();
   }
 
-  if (q.startsWith('select id,fio,phone,email,organization,position,pin,role,is_is_admin,zones,assignable_zones,is_tenant_contact,parking_floors,parking_groups,parking_spots,preferred_routes,is_active from public.users')) {
+  if (q.startsWith('select id,fio,phone,email,organization,position,pin,role,is_is_admin,zones,assignable_zones,is_tenant_contact,parking_floors,parking_groups,parking_spots,preferred_routes,is_active')) {
     return ok(selectUsersForLoadAll());
   }
 
@@ -436,14 +449,20 @@ async function dbQuery(text, params = []) {
     return ok(user ? [{ id: user.id }] : []);
   }
 
-  if (q.startsWith('select id,fio,phone,organization,position,pin,role,is_is_admin,zones,assignable_zones,is_tenant_contact,parking_floors,parking_groups,parking_spots,preferred_routes,is_active from public.users where regexp_replace')) {
+  if (q.startsWith('select id,fio,phone,organization,position,pin,role,is_is_admin,zones,assignable_zones,is_tenant_contact,parking_floors,parking_groups,parking_spots,preferred_routes,is_active')) {
     const user = findUserByPhone(params[0]);
     return ok(user ? [clone(user)] : []);
   }
 
-  if (q.startsWith('select id, fio, phone, organization, position, role, is_is_admin, zones, assignable_zones, is_tenant_contact, parking_floors, parking_groups, parking_spots, preferred_routes, is_active from public.users where id = $1')) {
+  if (q.startsWith('select id, fio, phone, organization, position, role, is_is_admin, zones, assignable_zones, is_tenant_contact, parking_floors, parking_groups, parking_spots, preferred_routes, is_active')) {
     const user = state.users.get(String(params[0]));
     return ok(user ? [clone(user)] : []);
+  }
+
+
+  if (q.startsWith('select id, phone, pin, is_active from public.users where id=$1')) {
+    const user = state.users.get(String(params[0]));
+    return ok(user ? [{ id: user.id, phone: user.phone, pin: user.pin, is_active: user.is_active }] : []);
   }
 
   if (q.startsWith('select id, is_is_admin, assignable_zones, is_tenant_contact, email, pin from public.users where id=$1')) {
@@ -556,17 +575,28 @@ async function dbQuery(text, params = []) {
   }
 
   if (q.startsWith('update public.users set pin=$2')) {
-    const [id, pin] = params;
+    const [id, pin, pinExpiresAt] = params;
     const user = state.users.get(String(id));
     if (user) {
       user.pin = pin;
+      if (q.includes('must_change_pin=true')) {
+        user.must_change_pin = true;
+        user.pin_created_at = now();
+        user.pin_expires_at = pinExpiresAt || null;
+        user.pin_changed_at = null;
+      } else if (q.includes('must_change_pin=false')) {
+        user.must_change_pin = false;
+        user.pin_changed_at = now();
+        user.pin_created_at = null;
+        user.pin_expires_at = null;
+      }
       user.updated_at = now();
     }
     return ok();
   }
 
   if (q.startsWith('update public.users set fio=$2')) {
-    const [id, fio, phone, email, organization, position, role, zones, assignableZones, isTenantContact, parkingFloors, parkingGroups, parkingSpots, preferredRoutes, isActive, pin] = params;
+    const [id, fio, phone, email, organization, position, role, zones, assignableZones, isTenantContact, parkingFloors, parkingGroups, parkingSpots, preferredRoutes, isActive, pin, pinExpiresAt] = params;
     const user = state.users.get(String(id));
     if (user) {
       Object.assign(user, {
@@ -586,7 +616,29 @@ async function dbQuery(text, params = []) {
         is_active: isActive,
         updated_at: now(),
       });
-      if (pin) user.pin = pin;
+      if (pin) {
+        user.pin = pin;
+        user.must_change_pin = true;
+        user.pin_created_at = now();
+        user.pin_expires_at = pinExpiresAt || null;
+        user.pin_changed_at = null;
+      }
+    }
+    return ok();
+  }
+
+  if (q.startsWith("select id, password from public.devices where coalesce(password,'') <> ''")) {
+    return ok(Array.from(state.devices.values())
+      .filter((d) => String(d.password || '') !== '')
+      .map((d) => ({ id: d.id, password: d.password })));
+  }
+
+  if (q.startsWith('update public.devices set password=$2')) {
+    const [id, password] = params;
+    const device = state.devices.get(String(id));
+    if (device) {
+      device.password = password;
+      device.updated_at = now();
     }
     return ok();
   }

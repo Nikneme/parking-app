@@ -90,6 +90,8 @@ function mapSessionUser(userRow = {}) {
     preferred_routes: tenantProfile.preferred_routes,
     tenant_profile: tenantProfile,
     is_active: userRow.is_active !== false,
+    must_change_pin: !!userRow.must_change_pin,
+    pin_expires_at: userRow.pin_expires_at || null,
   };
 }
 
@@ -99,6 +101,8 @@ function mapAdminUser(userRow = {}) {
     ...sessionUser,
     email: userRow.email,
     pin_is_set: !!userRow.pin,
+    must_change_pin: !!userRow.must_change_pin,
+    pin_expires_at: userRow.pin_expires_at || null,
     tenant_profile_summary: buildTenantProfileSummary(sessionUser.tenant_profile),
   };
 }

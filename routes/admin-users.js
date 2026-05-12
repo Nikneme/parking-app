@@ -62,6 +62,8 @@ function registerAdminUsersRoutes({
   parseZonesInput,
   parseListInput,
   mapSessionUser,
+  getStartPinExpiresAt,
+  startPinTtlHours = 24,
 }) {
   app.get('/admin/users', requirePermission('users.manage'), async (req, res) => {
     const { users, zones } = await loadAll();
@@ -102,11 +104,12 @@ function registerAdminUsersRoutes({
     const pinFromForm = String(req.body.pin ?? '');
     const rawPin = (pinFromForm && pinFromForm.length >= 4) ? pinFromForm : genPassword(10);
     const storedPin = await hashPin(rawPin);
+    const startPinExpiresAt = getStartPinExpiresAt();
 
     await dbQuery(
-      `INSERT INTO public.users(id,fio,phone,email,organization,position,pin,role,is_is_admin,zones,assignable_zones,is_tenant_contact,parking_floors,parking_groups,parking_spots,preferred_routes,is_active)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,true)`,
-      [id, fio || null, phone, email || null, organization || null, position || null, storedPin, role, isIsAdmin, zones, assignableZones, isTenantContact, parkingFloors, parkingGroups, parkingSpots, preferredRoutes]
+      `INSERT INTO public.users(id,fio,phone,email,organization,position,pin,role,is_is_admin,zones,assignable_zones,is_tenant_contact,parking_floors,parking_groups,parking_spots,preferred_routes,is_active,must_change_pin,pin_created_at,pin_expires_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,true,true,NOW(),$17)`,
+      [id, fio || null, phone, email || null, organization || null, position || null, storedPin, role, isIsAdmin, zones, assignableZones, isTenantContact, parkingFloors, parkingGroups, parkingSpots, preferredRoutes, startPinExpiresAt]
     );
     if (isTenantContact) {
       await dbQuery(`UPDATE public.users SET is_tenant_contact=false WHERE id<>$1`, [id]);
@@ -129,6 +132,8 @@ function registerAdminUsersRoutes({
       preferred_routes: preferredRoutes,
       pin_set: !!pinFromForm,
       pin_generated: !pinFromForm,
+      must_change_pin: true,
+      pin_expires_at: startPinExpiresAt,
     });
 
     if (email) {
@@ -147,6 +152,8 @@ function registerAdminUsersRoutes({
         email,
         pin: rawPin,
         reason: 'create',
+        expires_at: startPinExpiresAt,
+        ttl_hours: startPinTtlHours,
       });
     }
 
@@ -176,6 +183,7 @@ function registerAdminUsersRoutes({
       ? pinFromForm
       : (sendEmail ? genPassword(10) : null);
     const storedPin = rawPin ? await hashPin(rawPin) : null;
+    const startPinExpiresAt = storedPin ? getStartPinExpiresAt() : null;
 
     const targetRes = await dbQuery('SELECT id, is_is_admin, assignable_zones, is_tenant_contact, email, pin FROM public.users WHERE id=$1', [id]);
     const target = targetRes.rows[0];
@@ -196,9 +204,13 @@ function registerAdminUsersRoutes({
       `UPDATE public.users
        SET fio=$2, phone=$3, email=$4, organization=$5, position=$6, role=$7, zones=$8, assignable_zones=$9, is_tenant_contact=$10, parking_floors=$11, parking_groups=$12, parking_spots=$13, preferred_routes=$14, is_active=$15,
            pin = COALESCE($16, pin),
+           must_change_pin = CASE WHEN $16 IS NULL THEN must_change_pin ELSE TRUE END,
+           pin_created_at = CASE WHEN $16 IS NULL THEN pin_created_at ELSE NOW() END,
+           pin_expires_at = CASE WHEN $16 IS NULL THEN pin_expires_at ELSE $17 END,
+           pin_changed_at = CASE WHEN $16 IS NULL THEN pin_changed_at ELSE NULL END,
            updated_at = NOW()
        WHERE id=$1`,
-      [id, fio || null, phone, email || null, organization || null, position || null, role, zones, nextAssignableZones, isTenantContact, parkingFloors, parkingGroups, parkingSpots, preferredRoutes, isActive, storedPin]
+      [id, fio || null, phone, email || null, organization || null, position || null, role, zones, nextAssignableZones, isTenantContact, parkingFloors, parkingGroups, parkingSpots, preferredRoutes, isActive, storedPin, startPinExpiresAt]
     );
     if (isTenantContact) {
       await dbQuery(`UPDATE public.users SET is_tenant_contact=false WHERE id<>$1`, [id]);
@@ -220,6 +232,8 @@ function registerAdminUsersRoutes({
       preferred_routes: preferredRoutes,
       isActive,
       pin_changed: !!storedPin,
+      must_change_pin: !!storedPin,
+      pin_expires_at: startPinExpiresAt,
     });
 
     const targetEmail = email || String(target.email || '').trim();
@@ -246,6 +260,8 @@ function registerAdminUsersRoutes({
         email: targetEmail,
         pin: rawPin,
         reason: 'email',
+        expires_at: startPinExpiresAt,
+        ttl_hours: startPinTtlHours,
       });
     }
 
@@ -268,6 +284,8 @@ function registerAdminUsersRoutes({
           parking_spots: parkingSpots,
           preferred_routes: preferredRoutes,
           is_active: isActive,
+          must_change_pin: storedPin ? true : req.session.user.must_change_pin,
+          pin_expires_at: storedPin ? startPinExpiresAt : req.session.user.pin_expires_at,
         }),
       };
     }
@@ -278,10 +296,11 @@ function registerAdminUsersRoutes({
   app.post('/admin/users/:id/reset_pin', requirePermission('pin.reset'), async (req, res) => {
     const id = String(req.params.id);
     const rawPin = genPassword(10);
+    const startPinExpiresAt = getStartPinExpiresAt();
     const targetRes = await dbQuery('SELECT fio, phone, email FROM public.users WHERE id=$1 LIMIT 1', [id]);
     const target = targetRes.rows[0] || {};
-    await dbQuery(`UPDATE public.users SET pin=$2 WHERE id=$1`, [id, await hashPin(rawPin)]);
-    await appendAudit(req, 'reset_pin', 'user', id, { pin_generated: true });
+    await dbQuery(`UPDATE public.users SET pin=$2, must_change_pin=true, pin_created_at=NOW(), pin_expires_at=$3, pin_changed_at=NULL, updated_at=NOW() WHERE id=$1`, [id, await hashPin(rawPin), startPinExpiresAt]);
+    await appendAudit(req, 'reset_pin', 'user', id, { pin_generated: true, must_change_pin: true, pin_expires_at: startPinExpiresAt });
     setGeneratedPinNotice(req, {
       user_id: id,
       fio: target.fio || '',
@@ -289,7 +308,13 @@ function registerAdminUsersRoutes({
       email: target.email || '',
       pin: rawPin,
       reason: 'reset',
+      expires_at: startPinExpiresAt,
+      ttl_hours: startPinTtlHours,
     });
+    if (req.session.user && String(req.session.user.id) === id) {
+      req.session.user.must_change_pin = true;
+      req.session.user.pin_expires_at = startPinExpiresAt;
+    }
     res.redirect('/admin/users');
   });
 

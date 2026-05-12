@@ -154,13 +154,16 @@ document.addEventListener('DOMContentLoaded', function () {
 <div class="generated-pin-notice mb-3" role="status">
   <div class="generated-pin-notice-title">Пароль создан</div>
   <div class="small text-muted mb-2">
-    Передайте этот пароль пользователю отдельно. Он показан только один раз.
+    Передайте этот временный пароль пользователю отдельно. Он показан только один раз и потребует смены при первом входе.
     <% if (generatedPinNotice.email && !generatedPinNotice.mail_includes_password) { %>
       Письмо отправляется без пароля: пользователь увидит, что пароль нужно получить у администратора.
     <% } %>
   </div>
   <div class="d-flex flex-wrap gap-2 align-items-center">
     <span class="generated-pin-notice-code text-mono"><%= generatedPinNotice.pin %></span>
+    <% if (generatedPinNotice.expires_at || generatedPinNotice.ttl_hours) { %>
+      <span class="small text-muted">Действует: <%= generatedPinNotice.ttl_hours ? (generatedPinNotice.ttl_hours + " ч.") : "ограничено" %></span>
+    <% } %>
     <% if (generatedPinNotice.fio || generatedPinNotice.phone || generatedPinNotice.user_id) { %>
       <span class="small text-muted">
         <%= [generatedPinNotice.fio, generatedPinNotice.phone, generatedPinNotice.user_id].filter(Boolean).join(' • ') %>
@@ -407,7 +410,7 @@ document.addEventListener('DOMContentLoaded', function () {
               <div style="flex: 1 1 260px; min-width: 220px;">
                 <input name="pin" class="form-control" id="mNewPin" type="password" placeholder="Новый пароль" autocomplete="new-password" autocapitalize="none" spellcheck="false" />
                 <div class="text-muted small">Оставьте пустым — пароль не изменится.</div>
-                <div class="text-muted small">Кнопка «Сохранить и отправить на Email» без нового пароля создаст временный пароль и покажет его администратору один раз.</div>
+                <div class="text-muted small">Кнопка «Сохранить и отправить на Email» без нового пароля создаст временный пароль, покажет его администратору один раз и отправит пользователю письмо без пароля.</div>
               </div>
             </div>
           </div>

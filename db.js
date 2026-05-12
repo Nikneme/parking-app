@@ -46,6 +46,10 @@ if (USE_DEV_DB) {
       parking_spots TEXT[] NOT NULL DEFAULT '{}'::text[],
       preferred_routes TEXT[] NOT NULL DEFAULT '{}'::text[],
       is_active BOOLEAN DEFAULT TRUE,
+      must_change_pin BOOLEAN DEFAULT FALSE,
+      pin_created_at TIMESTAMPTZ,
+      pin_changed_at TIMESTAMPTZ,
+      pin_expires_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );
@@ -168,6 +172,10 @@ if (USE_DEV_DB) {
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS parking_spots TEXT[];`);
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS preferred_routes TEXT[];`);
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_active BOOLEAN;`);
+  await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS must_change_pin BOOLEAN;`);
+  await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS pin_created_at TIMESTAMPTZ;`);
+  await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS pin_changed_at TIMESTAMPTZ;`);
+  await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS pin_expires_at TIMESTAMPTZ;`);
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ;`);
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;`);
 
@@ -245,6 +253,7 @@ if (USE_DEV_DB) {
   await dbQuery(`ALTER TABLE public.users ALTER COLUMN parking_spots SET DEFAULT '{}'::text[];`);
   await dbQuery(`ALTER TABLE public.users ALTER COLUMN preferred_routes SET DEFAULT '{}'::text[];`);
   await dbQuery(`ALTER TABLE public.users ALTER COLUMN is_active SET DEFAULT TRUE;`);
+  await dbQuery(`ALTER TABLE public.users ALTER COLUMN must_change_pin SET DEFAULT FALSE;`);
   await dbQuery(`ALTER TABLE public.users ALTER COLUMN created_at SET DEFAULT NOW();`);
   await dbQuery(`ALTER TABLE public.users ALTER COLUMN updated_at SET DEFAULT NOW();`);
   await dbQuery(`UPDATE public.users SET role = COALESCE(role,'user') WHERE role IS NULL;`);
@@ -254,6 +263,9 @@ if (USE_DEV_DB) {
   await dbQuery(`UPDATE public.users SET parking_spots = COALESCE(parking_spots,'{}'::text[]) WHERE parking_spots IS NULL;`);
   await dbQuery(`UPDATE public.users SET preferred_routes = COALESCE(preferred_routes,'{}'::text[]) WHERE preferred_routes IS NULL;`);
   await dbQuery(`UPDATE public.users SET is_active = COALESCE(is_active, TRUE) WHERE is_active IS NULL;`);
+  await dbQuery(`UPDATE public.users SET must_change_pin = COALESCE(must_change_pin, FALSE) WHERE must_change_pin IS NULL;`);
+  await dbQuery(`UPDATE public.users SET pin_changed_at = COALESCE(pin_changed_at, updated_at, created_at, NOW()) WHERE pin_changed_at IS NULL AND COALESCE(must_change_pin, FALSE) = FALSE AND pin IS NOT NULL;`);
+  await dbQuery(`UPDATE public.users SET must_change_pin = TRUE, pin_created_at = COALESCE(pin_created_at, NOW()), pin_expires_at = COALESCE(pin_expires_at, NOW() + INTERVAL '24 hours') WHERE pin IS NOT NULL AND pin NOT LIKE 'pin:v1:scrypt:%';`);
   await dbQuery(`UPDATE public.users SET created_at = COALESCE(created_at, NOW()) WHERE created_at IS NULL;`);
   await dbQuery(`UPDATE public.users SET updated_at = COALESCE(updated_at, NOW()) WHERE updated_at IS NULL;`);
 
@@ -395,6 +407,7 @@ if (USE_DEV_DB) {
   await dbQuery(`CREATE INDEX IF NOT EXISTS devices_zone_id_idx ON public.devices (zone_id);`);
   await dbQuery(`CREATE INDEX IF NOT EXISTS transit_logs_ts_idx ON public.transit_logs (ts DESC);`);
   await dbQuery(`CREATE INDEX IF NOT EXISTS audit_ts_idx ON public.audit (ts DESC);`);
+  await dbQuery(`CREATE INDEX IF NOT EXISTS users_pin_expires_idx ON public.users (pin_expires_at);`);
   await dbQuery(`CREATE INDEX IF NOT EXISTS sessions_expires_idx ON public.sessions (expires);`);
   };
 }

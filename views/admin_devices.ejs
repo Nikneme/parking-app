@@ -1,4 +1,4 @@
-﻿<%- include('partials/header', { title, bodyClass, user, path: '/admin/devices' }) %>
+<%- include('partials/header', { title, bodyClass, user, path: '/admin/devices' }) %>
 
 <% const _devices = Array.isArray(devices) ? devices : []; %>
 <% const _activeDevices = _devices.filter(d => d && d.is_active !== false).length; %>
@@ -340,8 +340,6 @@
       return v.replace(/\/\/([^:@\/\s]+):([^@\/\s]+)@/g, '//$1:******@');
     }
   }
-
-  // mask URL/IP fields visually but submit original value
   document.querySelectorAll('input[name="url"], input[name="ip"]').forEach(function(inp){
     if (!inp.dataset.realValue) inp.dataset.realValue = inp.value || '';
     const real = inp.dataset.realValue;

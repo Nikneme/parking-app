@@ -1,4 +1,4 @@
-﻿const DATABASE_URL = process.env.DATABASE_URL || process.env.PG_URL || '';
+const DATABASE_URL = process.env.DATABASE_URL || process.env.PG_URL || '';
 const USE_DEV_DB = String(process.env.DEV_MEMORY_DB || '').toLowerCase() === 'true';
 const DATABASE_URL_CONFIGURED = !!DATABASE_URL;
 
@@ -10,8 +10,6 @@ if (USE_DEV_DB) {
   console.warn('DEV_MEMORY_DB is active: PostgreSQL is not configured, using in-memory development storage.');
 } else {
   const { Pool } = require('pg');
-
-  // Railway/Render/Heroku С‡Р°СЃС‚Рѕ С‚СЂРµР±СѓСЋС‚ SSL.
   const useSSL =
     String(process.env.PGSSL || '').toLowerCase() === 'true' ||
     /sslmode=require/i.test(DATABASE_URL);
@@ -26,7 +24,6 @@ if (USE_DEV_DB) {
   };
 
   ensureSchema = async function ensureSchema() {
-  // 1) РЎРѕР·РґР°С‘Рј С‚Р°Р±Р»РёС†С‹, РµСЃР»Рё РёС… РµС‰С‘ РЅРµС‚
   await dbQuery(`
     CREATE TABLE IF NOT EXISTS public.users (
       id TEXT PRIMARY KEY,
@@ -106,9 +103,6 @@ if (USE_DEV_DB) {
       ua TEXT
     );
   `);
-
-  // Transit journal (UI: "Р–СѓСЂРЅР°Р» С‚СЂР°РЅР·РёС‚Р°")
-  // Used by /logs, /logs.csv and /logs/clear
   await dbQuery(`
     CREATE TABLE IF NOT EXISTS public.transit_events (
       id BIGSERIAL PRIMARY KEY,
@@ -122,8 +116,6 @@ if (USE_DEV_DB) {
       details JSONB
     );
   `);
-
-  // Helpful index for recent-first queries
   await dbQuery(`CREATE INDEX IF NOT EXISTS idx_transit_events_datetime_desc ON public.transit_events(datetime DESC);`);
 
   await dbQuery(`
@@ -152,9 +144,6 @@ if (USE_DEV_DB) {
       expires TIMESTAMPTZ NOT NULL
     );
   `);
-
-  // 2) РњРР“Р РђР¦РР: РґРѕР±Р°РІР»СЏРµРј РЅРµРґРѕСЃС‚Р°СЋС‰РёРµ РєРѕР»РѕРЅРєРё РІ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… С‚Р°Р±Р»РёС†Р°С…
-  // users
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS fio TEXT;`);
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone TEXT;`);
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS email TEXT;`);
@@ -177,8 +166,6 @@ if (USE_DEV_DB) {
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS pin_expires_at TIMESTAMPTZ;`);
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ;`);
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;`);
-
-  // migrate zones jsonb -> text[] (if needed)
   try {
     const zt = await dbQuery(
       `SELECT data_type, udt_name
@@ -267,9 +254,6 @@ if (USE_DEV_DB) {
   await dbQuery(`UPDATE public.users SET must_change_pin = TRUE, pin_created_at = COALESCE(pin_created_at, NOW()), pin_expires_at = COALESCE(pin_expires_at, NOW() + INTERVAL '24 hours') WHERE pin IS NOT NULL AND pin NOT LIKE 'pin:v1:scrypt:%';`);
   await dbQuery(`UPDATE public.users SET created_at = COALESCE(created_at, NOW()) WHERE created_at IS NULL;`);
   await dbQuery(`UPDATE public.users SET updated_at = COALESCE(updated_at, NOW()) WHERE updated_at IS NULL;`);
-
-
-  // zones
   await dbQuery(`ALTER TABLE public.zones ADD COLUMN IF NOT EXISTS name TEXT;`);
   await dbQuery(`ALTER TABLE public.zones ADD COLUMN IF NOT EXISTS description TEXT;`);
   await dbQuery(`ALTER TABLE public.zones ADD COLUMN IF NOT EXISTS sort INT;`);
@@ -284,8 +268,6 @@ if (USE_DEV_DB) {
   await dbQuery(`UPDATE public.zones SET is_active = COALESCE(is_active, TRUE) WHERE is_active IS NULL;`);
   await dbQuery(`UPDATE public.zones SET created_at = COALESCE(created_at, NOW()) WHERE created_at IS NULL;`);
   await dbQuery(`UPDATE public.zones SET updated_at = COALESCE(updated_at, NOW()) WHERE updated_at IS NULL;`);
-
-  // devices
   await dbQuery(`ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS name TEXT;`);
   await dbQuery(`ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS zone_id TEXT;`);
   await dbQuery(`ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS zone TEXT;`);
@@ -316,8 +298,6 @@ if (USE_DEV_DB) {
   await dbQuery(
     `UPDATE public.devices SET zone_id = COALESCE(zone_id, zone) WHERE zone_id IS NULL AND zone IS NOT NULL;`
   );
-
-  // transit_logs
   await dbQuery(`ALTER TABLE public.transit_logs ADD COLUMN IF NOT EXISTS ts TIMESTAMPTZ;`);
   await dbQuery(`ALTER TABLE public.transit_logs ADD COLUMN IF NOT EXISTS user_id TEXT;`);
   await dbQuery(`ALTER TABLE public.transit_logs ADD COLUMN IF NOT EXISTS user_phone TEXT;`);
@@ -336,8 +316,6 @@ if (USE_DEV_DB) {
   await dbQuery(`ALTER TABLE public.transit_logs ALTER COLUMN success SET DEFAULT TRUE;`);
   await dbQuery(`UPDATE public.transit_logs SET ts = COALESCE(ts, NOW()) WHERE ts IS NULL;`);
   await dbQuery(`UPDATE public.transit_logs SET success = COALESCE(success, TRUE) WHERE success IS NULL;`);
-
-  // transit_events (journal)
   await dbQuery(`CREATE TABLE IF NOT EXISTS public.transit_events (id BIGSERIAL PRIMARY KEY);`);
   await dbQuery(`ALTER TABLE public.transit_events ADD COLUMN IF NOT EXISTS datetime TIMESTAMPTZ;`);
   await dbQuery(`ALTER TABLE public.transit_events ADD COLUMN IF NOT EXISTS point TEXT;`);
@@ -370,8 +348,6 @@ if (USE_DEV_DB) {
      FROM public.users u
      WHERE regexp_replace(coalesce(u.phone,''), '[^0-9]', '', 'g') = regexp_replace(coalesce(te.actor_phone, te.source,''), '[^0-9]', '', 'g');`
   );
-
-  // audit
   await dbQuery(`ALTER TABLE public.audit ADD COLUMN IF NOT EXISTS ts TIMESTAMPTZ;`);
   await dbQuery(`ALTER TABLE public.audit ADD COLUMN IF NOT EXISTS actor_id TEXT;`);
   await dbQuery(`ALTER TABLE public.audit ADD COLUMN IF NOT EXISTS actor_phone TEXT;`);

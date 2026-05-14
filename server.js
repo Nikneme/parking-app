@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 require('dotenv').config();
 
@@ -39,22 +39,15 @@ const {
   parseListInput,
   parseZonesInput,
 } = require('./services/users-service');
-
-// Fallback file log (when DB is temporarily unavailable)
 const FALLBACK_TRANSIT_LOG = path.join(__dirname, 'data', 'transit_events.jsonl');
 
 const app = express();
 app.set('trust proxy', 1);
-
-
-// --- Р±Р°Р·РѕРІС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё ---
 const PORT = Number(process.env.PORT || 8080);
 const SESSION_SECRET = String(process.env.SESSION_SECRET || '').trim();
 if (!SESSION_SECRET || SESSION_SECRET === 'change-me-in-railway') {
   throw new Error('SESSION_SECRET must be set to a strong unique value.');
 }
-
-// --- object gateway (local devices) ---
 const GATEWAY_BASE_URL = String(process.env.GATEWAY_BASE_URL || '').replace(/\/+$/g, '');
 const GATEWAY_KEY = String(process.env.GATEWAY_KEY || '');
 const GATEWAY_TIMEOUT_MS = Number(process.env.GATEWAY_TIMEOUT_MS || 7000);
@@ -396,7 +389,6 @@ app.use(express.json());
 
 app.use(
   session({
-    // Railway / reverse-proxy: helps secure cookies + sessions work correctly
     proxy: true,
     store: SESSION_STORE_ENABLED ? new PgSessionStore() : undefined,
     secret: SESSION_SECRET,
@@ -459,20 +451,14 @@ const STATIC_OPTIONS = {
     res.setHeader('Cache-Control', IS_PRODUCTION ? 'public, max-age=86400' : 'no-store');
   },
 };
-
-// Static assets: allow both /app.css and /public/app.css
 app.use('/public', express.static(path.join(__dirname, 'public'), STATIC_OPTIONS));
 app.use(express.static(path.join(__dirname, 'public'), STATIC_OPTIONS));
-
-// Default locals for all templates (prevents EJS ReferenceError on missing vars)
 app.use((req, res, next) => {
   res.locals.title = res.locals.title || 'Parking GIT';
   res.locals.bodyClass = res.locals.bodyClass || '';
   res.locals.user = req.session?.user || null;
   next();
 });
-
-// session guard: block inactive users immediately
 app.use(async (req, res, next) => {
   if (!req.session?.user?.id) return next();
 
@@ -519,9 +505,6 @@ app.use((req, res, next) => {
 
   return res.redirect(`/change-password?reason=${encodeURIComponent(pinChangeReason(user))}`);
 });
-
-// If browser auto-translation rewrites URLs into Russian, keep the app working.
-// (e.g. "/Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ/СѓСЃС‚СЂРѕР№СЃС‚РІР°" -> "/admin/devices")
 app.use((req, res, next) => {
   const original = req.originalUrl || '';
   const rules = [
@@ -537,9 +520,7 @@ app.use((req, res, next) => {
     if (original === r.from || original.startsWith(r.from + '/') || original.startsWith(encodeURI(r.from) + '/')) {
       const suffix = original.startsWith(r.from) ? original.slice(r.from.length) : original.slice(encodeURI(r.from).length);
       const newUrl = r.to + suffix;
-      // For GET/HEAD it's safe to redirect.
       if (req.method === 'GET' || req.method === 'HEAD') return res.redirect(302, newUrl);
-      // For POST/PUT/etc. keep the method and internally rewrite the URL.
       req.url = newUrl;
       return next();
     }
@@ -579,7 +560,6 @@ function formatMoscowDateTime(v) {
   if (Number.isNaN(d.getTime())) return String(v);
 
   try {
-    // "16.02.2026, 20:32:39" -> "16.02.2026 20:32:39"
     return new Intl.DateTimeFormat('ru-RU', {
       timeZone: MOSCOW_TZ,
       year: 'numeric',
@@ -591,7 +571,6 @@ function formatMoscowDateTime(v) {
       hourCycle: 'h23',
     }).format(d).replace(',', '');
   } catch {
-    // fallback: С„РёРєСЃРёСЂРѕРІР°РЅРЅС‹Р№ UTC+3
     const pad = (n) => String(n).padStart(2, '0');
     const ms = d.getTime() + 3 * 60 * 60 * 1000;
     const u = new Date(ms);
@@ -1009,8 +988,6 @@ function buildDashboardStats(byZone, accessibleDevices, recentEvents) {
     attentionCount: attention,
   };
 }
-
-// --- Seed defaults (zones + devices) -----------------------------------------
 const DEFAULT_ZONES = [
   { id: 'buffer',      name: 'РЎРµРІРµСЂРЅС‹Р№ РІСЉРµР·Рґ',         sort: 10 },
   { id: 'europlan',    name: 'Р­С‚Р°Р¶Рё 2-9',              sort: 20 },
@@ -1044,9 +1021,6 @@ async function ensureDefaultZones() {
 
 function parseDevicesJson(raw) {
   if (!raw) return [];
-  // allowed formats:
-  // 1) { "id1": {...}, "id2": {...} }
-  // 2) [ {...}, {...} ]
   if (Array.isArray(raw)) return raw;
   if (typeof raw === 'object') {
     return Object.entries(raw).map(([id, v]) => ({ id, ...(v || {}) }));
@@ -1055,13 +1029,11 @@ function parseDevicesJson(raw) {
 }
 
 async function seedDevicesFromJson() {
-  // Seed only when DB is empty, so we don't overwrite devices created in Р°РґРјРёРЅРєРµ
   try {
     const c = await dbQuery('SELECT COUNT(*)::int AS c FROM public.devices');
     if ((c.rows?.[0]?.c ?? 0) > 0) return;
   } catch (e) {
     console.error('seedDevicesFromJson: COUNT(*) failed', e?.message || e);
-    // continue, schema may be just created
   }
 
   const candidates = [
@@ -1081,8 +1053,6 @@ async function seedDevicesFromJson() {
       list = [];
     }
   }
-
-  // Reference devices are allowed only for local/demo runs. Production must use real inventory.
   if (!list.length) {
     if (!ALLOW_REFERENCE_DEVICE_SEED) {
       console.warn('devices.json РїСѓСЃС‚РѕР№/РЅРµ РЅР°Р№РґРµРЅ вЂ” СЂРµС„РµСЂРµРЅСЃРЅС‹Рµ СѓСЃС‚СЂРѕР№СЃС‚РІР° РЅРµ СЃРѕР·РґР°СЋС‚СЃСЏ РІ production. Р”РѕР±Р°РІСЊС‚Рµ СЂРµР°Р»СЊРЅС‹Рµ СѓСЃС‚СЂРѕР№СЃС‚РІР° С‡РµСЂРµР· Р°РґРјРёРЅРєСѓ РёР»Рё РёРјРїРѕСЂС‚.');
@@ -1104,8 +1074,6 @@ async function seedDevicesFromJson() {
     const zoneId = String(d.zone_id || d.zone || '').trim() || 'buffer';
     const sort = Number.isFinite(Number(d.sort)) ? Number(d.sort) : 0;
     const enabled = typeof d.enabled === 'boolean' ? d.enabled : true;
-
-    // allow url empty (some devices can be placeholders), but keep it consistent
     await dbQuery(
       `INSERT INTO public.devices (id, name, zone_id, type, method, url, ip, enabled, sort, is_active, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE, NOW())
@@ -1272,8 +1240,6 @@ function isIsAdminRequired(req, res, next) {
   if (!req.session.user.is_is_admin) return res.redirect('/admin/users');
   next();
 }
-
-// --- health ---
 app.get('/health', async (req, res) => {
   try {
     await dbQuery('SELECT 1 AS ok');
@@ -1339,9 +1305,6 @@ registerLogsRoutes({
   ruTransitEvent,
   clearFallbackTransitLog,
 });
-
-
-// --- admin: users/devices/zones/audit ---
 registerAdminUsersRoutes({
   app,
   requirePermission,
@@ -1392,8 +1355,6 @@ registerAdminAuditRoutes({
   parseAuditFilters,
   buildAuditWhere,
 });
-
-// --- bootstrap: create default admin if missing ---
 async function ensureDefaultAdmin() {
   const adminPhone = digitsOnly(process.env.ADMIN_PHONE || '');
   const adminPin = String(process.env.ADMIN_PIN || '');
@@ -1575,17 +1536,11 @@ async function ensureDemoUsers() {
       throw new Error('DATABASE_URL/PG_URL must be set. For local demo use DEV_MEMORY_DB=true.');
     }
     await ensureSchema();
-    // 1) СЃРѕР·РґР°С‘Рј СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ Р·РѕРЅС‹
     await ensureDefaultZones();
-    // 2) Р·Р°РіСЂСѓР¶Р°РµРј СѓСЃС‚СЂРѕР№СЃС‚РІР° РёР· devices.json; reference seed С‚РѕР»СЊРєРѕ РІРЅРµ production РёР»Рё РїСЂРё СЏРІРЅРѕРј СЂР°Р·СЂРµС€РµРЅРёРё
     await seedDevicesFromJson();
-    // 3) РІС‹РЅРѕСЃРёРј СЃРµРєСЂРµС‚С‹ СѓСЃС‚СЂРѕР№СЃС‚РІ РёР· URL РІ РѕС‚РґРµР»СЊРЅС‹Рµ РїРѕР»СЏ
     await ensureExtraSecuritySchema();
-    // 4) СЃРѕР·РґР°С‘Рј Р°РґРјРёРЅР° РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
     await ensureDefaultAdmin();
-    // 5) СЃРѕР·РґР°С‘Рј РґРµРјРѕ-СЂРѕР»Рё С‚РѕР»СЊРєРѕ РґР»СЏ Р»РѕРєР°Р»СЊРЅРѕР№ DEV_MEMORY_DB-РїСЂРѕРІРµСЂРєРё
     await ensureDemoUsers();
-    // 6) РїСЂРѕРіСЂРµРІР°РµРј РєСЌС€
     await loadAll();
   } catch (e) {
     console.error('DB init error:', e);

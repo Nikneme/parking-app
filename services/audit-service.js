@@ -2,22 +2,22 @@
 
 function createAuditService({ dbQuery }) {
   const RU_AUDIT_ACTION = {
-    login: 'Вход',
-    open: 'Открытие устройства',
-    create: 'Создание',
-    update: 'Изменение',
-    reset_pin: 'Сброс PIN',
-    change_pin: 'Смена PIN',
-    login_failed: 'Неудачный вход',
-    login_rate_limited: 'Ограничение входа',
-    clear_transit_log: 'Очистка журнала транзита',
+    login: 'Р’С…РѕРґ',
+    open: 'РћС‚РєСЂС‹С‚РёРµ СѓСЃС‚СЂРѕР№СЃС‚РІР°',
+    create: 'РЎРѕР·РґР°РЅРёРµ',
+    update: 'РР·РјРµРЅРµРЅРёРµ',
+    reset_pin: 'РЎР±СЂРѕСЃ PIN',
+    change_pin: 'РЎРјРµРЅР° PIN',
+    login_failed: 'РќРµСѓРґР°С‡РЅС‹Р№ РІС…РѕРґ',
+    login_rate_limited: 'РћРіСЂР°РЅРёС‡РµРЅРёРµ РІС…РѕРґР°',
+    clear_transit_log: 'РћС‡РёСЃС‚РєР° Р¶СѓСЂРЅР°Р»Р° С‚СЂР°РЅР·РёС‚Р°',
   };
 
   const RU_TARGET_TYPE = {
-    user: 'Учетная запись',
-    device: 'Устройство',
-    zone: 'Участок',
-    transit_events: 'Журнал транзита',
+    user: 'РЈС‡РµС‚РЅР°СЏ Р·Р°РїРёСЃСЊ',
+    device: 'РЈСЃС‚СЂРѕР№СЃС‚РІРѕ',
+    zone: 'РЈС‡Р°СЃС‚РѕРє',
+    transit_events: 'Р–СѓСЂРЅР°Р» С‚СЂР°РЅР·РёС‚Р°',
   };
 
   async function appendAudit(req, action, targetType, targetId, details) {
@@ -41,7 +41,6 @@ function createAuditService({ dbQuery }) {
         ]
       );
     } catch {
-      // ignore audit failures
     }
   }
 

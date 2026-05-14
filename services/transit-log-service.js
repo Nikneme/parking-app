@@ -51,16 +51,15 @@ function createTransitLogService(options = {}) {
       return;
     } catch (error) {
       if (!allowFileTransitFallback) {
-        console.error('⚠️ transit log write failed and file fallback is disabled:', error?.message || error);
+        console.error('вљ пёЏ transit log write failed and file fallback is disabled:', error?.message || error);
         return;
       }
       try {
         fs.mkdirSync(require('path').dirname(fallbackLogPath), { recursive: true });
         fs.appendFileSync(fallbackLogPath, JSON.stringify(entry) + '\n', 'utf-8');
       } catch (_) {
-        // noop
       }
-      console.error('⚠️ transit log write failed:', error?.message || error);
+      console.error('вљ пёЏ transit log write failed:', error?.message || error);
     }
   }
 
@@ -76,7 +75,6 @@ function createTransitLogService(options = {}) {
         try {
           items.push(JSON.parse(line));
         } catch {
-          // skip bad line
         }
       }
       items.sort((a, b) => String(b.datetime || '').localeCompare(String(a.datetime || '')));

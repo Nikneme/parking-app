@@ -30,7 +30,7 @@ function registerDashboardRoutes({
     const supportContact = buildDashboardSupportContact(state.users, dispatcherPhone);
 
     res.render('dashboard', {
-      title: 'Parking GIT',
+      title: 'Моя парковка',
       bodyClass: 'dash-page',
       user,
       byZone,
@@ -84,7 +84,7 @@ function registerDashboardRoutes({
 
     const device = devices[deviceId];
     if (!device || device.is_active === false) {
-      return res.status(404).json({ ok: false, requestId, reason: 'missing', error: 'Устройство не найдено', deviceName: deviceId, zoneName: null });
+      return res.status(404).json({ ok: false, requestId, reason: 'missing', error: 'РЈСЃС‚СЂРѕР№СЃС‚РІРѕ РЅРµ РЅР°Р№РґРµРЅРѕ', deviceName: deviceId, zoneName: null });
     }
 
     const zoneName = zones[device.zoneId]?.name || null;
@@ -99,7 +99,7 @@ function registerDashboardRoutes({
         requestId,
         details: { status: 'disabled', deviceId, zoneId: device.zoneId },
       });
-      return res.status(409).json({ ok: false, requestId, reason: 'disabled', error: 'Устройство отключено', deviceName: device.name || deviceId, zoneName });
+      return res.status(409).json({ ok: false, requestId, reason: 'disabled', error: 'РЈСЃС‚СЂРѕР№СЃС‚РІРѕ РѕС‚РєР»СЋС‡РµРЅРѕ', deviceName: device.name || deviceId, zoneName });
     }
 
     const allowed = (user.role === 'admin') || (Array.isArray(user.zones) && user.zones.includes(device.zoneId));
@@ -114,10 +114,10 @@ function registerDashboardRoutes({
         requestId,
         details: { status: 'denied', deviceId, zoneId: device.zoneId },
       });
-      return res.status(403).json({ ok: false, requestId, reason: 'denied', error: 'Нет доступа', deviceName: device.name || deviceId, zoneName });
+      return res.status(403).json({ ok: false, requestId, reason: 'denied', error: 'РќРµС‚ РґРѕСЃС‚СѓРїР°', deviceName: device.name || deviceId, zoneName });
     }
 
-    const point = zoneName ? `${device.name || deviceId} — ${zoneName}` : (device.name || deviceId);
+    const point = zoneName ? `${device.name || deviceId} вЂ” ${zoneName}` : (device.name || deviceId);
     const command = {
       requestId,
       action: 'open',
@@ -161,7 +161,7 @@ function registerDashboardRoutes({
     await appendAudit(req, 'open', 'device', deviceId, { requestId, zoneId: device.zoneId, command, gw: gatewayResult });
 
     if (!gatewayResult.ok) {
-      return res.status(502).json({ ok: false, requestId, reason: 'gateway', error: 'Шлюз недоступен/ошибка', deviceName: device.name || deviceId, zoneName, ...gatewayResult });
+      return res.status(502).json({ ok: false, requestId, reason: 'gateway', error: 'РЁР»СЋР· РЅРµРґРѕСЃС‚СѓРїРµРЅ/РѕС€РёР±РєР°', deviceName: device.name || deviceId, zoneName, ...gatewayResult });
     }
 
     return res.json({ ok: true, requestId, reason: 'ok', deviceName: device.name || deviceId, zoneName, ...gatewayResult });

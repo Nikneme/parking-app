@@ -68,7 +68,7 @@ const SMTP_SECURE = String(process.env.SMTP_SECURE || 'true').toLowerCase() === 
 const SMTP_USER = String(process.env.SMTP_USER || '');
 const SMTP_PASS = String(process.env.SMTP_PASS || '');
 const MAIL_FROM = String(process.env.MAIL_FROM || SMTP_USER || 'mmoyaparkovka@yandex.ru');
-const MAIL_INCLUDE_PASSWORD = false; // РўР— 4.2: РґРµР№СЃС‚РІСѓСЋС‰РёРµ PIN/РїР°СЂРѕР»Рё РЅРёРєРѕРіРґР° РЅРµ РѕС‚РїСЂР°РІР»СЏСЋС‚СЃСЏ РїРѕ email
+const MAIL_INCLUDE_PASSWORD = false; // Р СћР вЂ” 4.2: Р Т‘Р ВµР в„–РЎРѓРЎвЂљР Р†РЎС“РЎР‹РЎвЂ°Р С‘Р Вµ PIN/Р С—Р В°РЎР‚Р С•Р В»Р С‘ Р Р…Р С‘Р С”Р С•Р С–Р Т‘Р В° Р Р…Р Вµ Р С•РЎвЂљР С—РЎР‚Р В°Р Р†Р В»РЎРЏРЎР‹РЎвЂљРЎРѓРЎРЏ Р С—Р С• email
 const GATEWAY_SEND_DEVICE_SECRETS = String(process.env.GATEWAY_SEND_DEVICE_SECRETS || '').toLowerCase() === 'true';
 const START_PIN_TTL_HOURS = Math.max(1, Number(process.env.START_PIN_TTL_HOURS || 24));
 const PIN_MIN_LENGTH = Math.max(8, Number(process.env.PIN_MIN_LENGTH || 8));
@@ -84,15 +84,15 @@ if (IS_PRODUCTION && GATEWAY_SEND_DEVICE_SECRETS) {
 }
 
 if (String(process.env.MAIL_INCLUDE_PASSWORD || '').toLowerCase() === 'true') {
-  console.warn('вљ пёЏ MAIL_INCLUDE_PASSWORD is ignored: passwords are never sent by email.');
+  console.warn('РІС™В РїС‘РЏ MAIL_INCLUDE_PASSWORD is ignored: passwords are never sent by email.');
 }
 
 if (GATEWAY_SEND_DEVICE_SECRETS) {
-  console.warn('вљ пёЏ GATEWAY_SEND_DEVICE_SECRETS=true: device passwords may be included in gateway payloads.');
+  console.warn('РІС™В РїС‘РЏ GATEWAY_SEND_DEVICE_SECRETS=true: device passwords may be included in gateway payloads.');
 }
 
 if (ALLOW_FILE_TRANSIT_FALLBACK) {
-  console.warn('вљ пёЏ File transit fallback is enabled. When DB fails, part of the transit log may be written to a local file.');
+  console.warn('РІС™В РїС‘РЏ File transit fallback is enabled. When DB fails, part of the transit log may be written to a local file.');
 }
 
 const gatewayService = createGatewayService({
@@ -191,7 +191,7 @@ const scryptAsync = promisify(crypto.scrypt);
 const PIN_HASH_PREFIX = 'pin:v1:scrypt:';
 
 function roleLabelRu(role) {
-  return role === 'admin' ? 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ' : (role === 'dispatcher' ? 'Р”РёСЃРїРµС‚С‡РµСЂ' : 'РђСЂРµРЅРґР°С‚РѕСЂ');
+  return role === 'admin' ? 'Р С’Р Т‘Р СР С‘Р Р…Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂљР С•РЎР‚' : (role === 'dispatcher' ? 'Р вЂќР С‘РЎРѓР С—Р ВµРЎвЂљРЎвЂЎР ВµРЎР‚' : 'Р С’РЎР‚Р ВµР Р…Р Т‘Р В°РЎвЂљР С•РЎР‚');
 }
 
 function pluralRu(n, one, few, many) {
@@ -264,14 +264,14 @@ function pinChangeReason(user) {
 function validateNewPin(pin, user = {}) {
   const value = String(pin || '');
   if (value.length < PIN_MIN_LENGTH) {
-    return `РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РЅРµ РјРµРЅРµРµ ${PIN_MIN_LENGTH} СЃРёРјРІРѕР»РѕРІ.`;
+    return `Р СџР В°РЎР‚Р С•Р В»РЎРЉ Р Т‘Р С•Р В»Р В¶Р ВµР Р… РЎРѓР С•Р Т‘Р ВµРЎР‚Р В¶Р В°РЎвЂљРЎРЉ Р Р…Р Вµ Р СР ВµР Р…Р ВµР Вµ ${PIN_MIN_LENGTH} РЎРѓР С‘Р СР Р†Р С•Р В»Р С•Р Р†.`;
   }
   const digits = digitsOnly(value);
   if (digits && digits === digitsOnly(user.phone || '')) {
-    return 'РџР°СЂРѕР»СЊ РЅРµ РґРѕР»Р¶РµРЅ СЃРѕРІРїР°РґР°С‚СЊ СЃ РЅРѕРјРµСЂРѕРј С‚РµР»РµС„РѕРЅР°.';
+    return 'Р СџР В°РЎР‚Р С•Р В»РЎРЉ Р Р…Р Вµ Р Т‘Р С•Р В»Р В¶Р ВµР Р… РЎРѓР С•Р Р†Р С—Р В°Р Т‘Р В°РЎвЂљРЎРЉ РЎРѓ Р Р…Р С•Р СР ВµРЎР‚Р С•Р С РЎвЂљР ВµР В»Р ВµРЎвЂћР С•Р Р…Р В°.';
   }
   if (/^(.)\1+$/.test(value)) {
-    return 'РџР°СЂРѕР»СЊ РЅРµ РґРѕР»Р¶РµРЅ СЃРѕСЃС‚РѕСЏС‚СЊ РёР· РѕРґРЅРѕРіРѕ РїРѕРІС‚РѕСЂСЏСЋС‰РµРіРѕСЃСЏ СЃРёРјРІРѕР»Р°.';
+    return 'Р СџР В°РЎР‚Р С•Р В»РЎРЉ Р Р…Р Вµ Р Т‘Р С•Р В»Р В¶Р ВµР Р… РЎРѓР С•РЎРѓРЎвЂљР С•РЎРЏРЎвЂљРЎРЉ Р С‘Р В· Р С•Р Т‘Р Р…Р С•Р С–Р С• Р С—Р С•Р Р†РЎвЂљР С•РЎР‚РЎРЏРЎР‹РЎвЂ°Р ВµР С–Р С•РЎРѓРЎРЏ РЎРѓР С‘Р СР Р†Р С•Р В»Р В°.';
   }
   return '';
 }
@@ -317,53 +317,53 @@ async function sendWelcomeEmail({ to, fio, phone, pin, role }) {
   if (!to || !mailTransport) return false;
 
   const siteUrl = APP_BASE_URL || 'https://moyaparkovka.ru';
-  const safeName = String(fio || 'РљРѕР»Р»РµРіР°');
+  const safeName = String(fio || 'Р С™Р С•Р В»Р В»Р ВµР С–Р В°');
   const safeLogin = String(phone || '');
   const safeRole = roleLabelRu(String(role || 'user'));
-  const passwordLineHtml = `<div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">РџР°СЂРѕР»СЊ:</span> РїРѕР»СѓС‡РёС‚Рµ Сѓ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°</div>`;
-  const passwordLineText = 'РџР°СЂРѕР»СЊ: РїРѕР»СѓС‡РёС‚Рµ Сѓ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°';
+  const passwordLineHtml = `<div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">Р СџР В°РЎР‚Р С•Р В»РЎРЉ:</span> Р С—Р С•Р В»РЎС“РЎвЂЎР С‘РЎвЂљР Вµ РЎС“ Р В°Р Т‘Р СР С‘Р Р…Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂљР С•РЎР‚Р В°</div>`;
+  const passwordLineText = 'Р СџР В°РЎР‚Р С•Р В»РЎРЉ: Р С—Р С•Р В»РЎС“РЎвЂЎР С‘РЎвЂљР Вµ РЎС“ Р В°Р Т‘Р СР С‘Р Р…Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂљР С•РЎР‚Р В°';
 
   const html = `
   <div style="margin:0;padding:0;background:#0b1220;font-family:Arial,sans-serif;color:#e5e7eb;">
     <div style="max-width:640px;margin:0 auto;padding:24px 16px;">
       <div style="background:linear-gradient(135deg,#1f3b73 0%,#0f172a 100%);border:1px solid rgba(255,255,255,.08);border-radius:20px;overflow:hidden;">
         <div style="padding:28px 24px;border-bottom:1px solid rgba(255,255,255,.08);">
-          <div style="font-size:24px;font-weight:700;margin-bottom:8px;">РњРѕСЏ РїР°СЂРєРѕРІРєР°</div>
-          <div style="font-size:14px;color:#cbd5e1;">Р”РѕСЃС‚СѓРї РІ СЃРёСЃС‚РµРјСѓ СЃРѕР·РґР°РЅ</div>
+          <div style="font-size:24px;font-weight:700;margin-bottom:8px;">Р СљР С•РЎРЏ Р С—Р В°РЎР‚Р С”Р С•Р Р†Р С”Р В°</div>
+          <div style="font-size:14px;color:#cbd5e1;">Р вЂќР С•РЎРѓРЎвЂљРЎС“Р С— Р Р† РЎРѓР С‘РЎРѓРЎвЂљР ВµР СРЎС“ РЎРѓР С•Р В·Р Т‘Р В°Р Р…</div>
         </div>
         <div style="padding:24px;">
-          <p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;">Р—РґСЂР°РІСЃС‚РІСѓР№С‚Рµ, ${safeName}.</p>
-          <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;">Р’Р°С€ Р°РєРєР°СѓРЅС‚ РІ <b>В«РњРѕСЏ РїР°СЂРєРѕРІРєР°В»</b> РіРѕС‚РѕРІ.</p>
+          <p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;">Р вЂ”Р Т‘РЎР‚Р В°Р Р†РЎРѓРЎвЂљР Р†РЎС“Р в„–РЎвЂљР Вµ, ${safeName}.</p>
+          <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;">Р вЂ™Р В°РЎв‚¬ Р В°Р С”Р С”Р В°РЎС“Р Р…РЎвЂљ Р Р† <b>Р’В«Р СљР С•РЎРЏ Р С—Р В°РЎР‚Р С”Р С•Р Р†Р С”Р В°Р’В»</b> Р С–Р С•РЎвЂљР С•Р Р†.</p>
           <div style="background:#111827;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px 18px;margin:0 0 18px 0;">
-            <div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">РЎР°Р№С‚:</span> <a href="${siteUrl}" style="color:#93c5fd;text-decoration:none;">${siteUrl}</a></div>
-            <div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">Р›РѕРіРёРЅ:</span> <b>${safeLogin}</b></div>
+            <div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">Р РЋР В°Р в„–РЎвЂљ:</span> <a href="${siteUrl}" style="color:#93c5fd;text-decoration:none;">${siteUrl}</a></div>
+            <div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">Р вЂєР С•Р С–Р С‘Р Р…:</span> <b>${safeLogin}</b></div>
             ${passwordLineHtml}
-            <div><span style="color:#94a3b8;">Р РѕР»СЊ:</span> <b>${safeRole}</b></div>
+            <div><span style="color:#94a3b8;">Р В Р С•Р В»РЎРЉ:</span> <b>${safeRole}</b></div>
           </div>
           <div style="margin:0 0 20px 0;">
-            <a href="${siteUrl}" style="display:inline-block;padding:12px 18px;background:#2563eb;color:#fff;text-decoration:none;border-radius:12px;font-weight:700;">РџРµСЂРµР№С‚Рё РЅР° СЃР°Р№С‚</a>
+            <a href="${siteUrl}" style="display:inline-block;padding:12px 18px;background:#2563eb;color:#fff;text-decoration:none;border-radius:12px;font-weight:700;">Р СџР ВµРЎР‚Р ВµР в„–РЎвЂљР С‘ Р Р…Р В° РЎРѓР В°Р в„–РЎвЂљ</a>
           </div>
-          <p style="margin:0;font-size:13px;line-height:1.6;color:#94a3b8;">Р•СЃР»Рё РїРёСЃСЊРјРѕ РїСЂРёС€Р»Рѕ РІР°Рј РїРѕ РѕС€РёР±РєРµ, РїСЂРѕСЃС‚Рѕ РїСЂРѕРёРіРЅРѕСЂРёСЂСѓР№С‚Рµ РµРіРѕ.</p>
+          <p style="margin:0;font-size:13px;line-height:1.6;color:#94a3b8;">Р вЂўРЎРѓР В»Р С‘ Р С—Р С‘РЎРѓРЎРЉР СР С• Р С—РЎР‚Р С‘РЎв‚¬Р В»Р С• Р Р†Р В°Р С Р С—Р С• Р С•РЎв‚¬Р С‘Р В±Р С”Р Вµ, Р С—РЎР‚Р С•РЎРѓРЎвЂљР С• Р С—РЎР‚Р С•Р С‘Р С–Р Р…Р С•РЎР‚Р С‘РЎР‚РЎС“Р в„–РЎвЂљР Вµ Р ВµР С–Р С•.</p>
         </div>
       </div>
     </div>
   </div>`;
 
   const text = [
-    'РњРѕСЏ РїР°СЂРєРѕРІРєР°',
+    'Р СљР С•РЎРЏ Р С—Р В°РЎР‚Р С”Р С•Р Р†Р С”Р В°',
     '',
-    `Р—РґСЂР°РІСЃС‚РІСѓР№С‚Рµ, ${safeName}.`,
-    'Р’Р°С€ Р°РєРєР°СѓРЅС‚ РІ В«РњРѕСЏ РїР°СЂРєРѕРІРєР°В» РіРѕС‚РѕРІ.',
-    `РЎР°Р№С‚: ${siteUrl}`,
-    `Р›РѕРіРёРЅ: ${safeLogin}`,
+    `Р вЂ”Р Т‘РЎР‚Р В°Р Р†РЎРѓРЎвЂљР Р†РЎС“Р в„–РЎвЂљР Вµ, ${safeName}.`,
+    'Р вЂ™Р В°РЎв‚¬ Р В°Р С”Р С”Р В°РЎС“Р Р…РЎвЂљ Р Р† Р’В«Р СљР С•РЎРЏ Р С—Р В°РЎР‚Р С”Р С•Р Р†Р С”Р В°Р’В» Р С–Р С•РЎвЂљР С•Р Р†.',
+    `Р РЋР В°Р в„–РЎвЂљ: ${siteUrl}`,
+    `Р вЂєР С•Р С–Р С‘Р Р…: ${safeLogin}`,
     passwordLineText,
-    `Р РѕР»СЊ: ${safeRole}`,
+    `Р В Р С•Р В»РЎРЉ: ${safeRole}`,
   ].join('\n');
 
   await mailTransport.sendMail({
     from: MAIL_FROM,
     to,
-    subject: 'Р”РѕСЃС‚СѓРї РІ СЃРёСЃС‚РµРјСѓ В«РњРѕСЏ РїР°СЂРєРѕРІРєР°В»',
+    subject: 'Р вЂќР С•РЎРѓРЎвЂљРЎС“Р С— Р Р† РЎРѓР С‘РЎРѓРЎвЂљР ВµР СРЎС“ Р’В«Р СљР С•РЎРЏ Р С—Р В°РЎР‚Р С”Р С•Р Р†Р С”Р В°Р’В»',
     html,
     text,
   });
@@ -454,7 +454,7 @@ const STATIC_OPTIONS = {
 app.use('/public', express.static(path.join(__dirname, 'public'), STATIC_OPTIONS));
 app.use(express.static(path.join(__dirname, 'public'), STATIC_OPTIONS));
 app.use((req, res, next) => {
-  res.locals.title = res.locals.title || 'Parking GIT';
+  res.locals.title = res.locals.title || 'Моя парковка';
   res.locals.bodyClass = res.locals.bodyClass || '';
   res.locals.user = req.session?.user || null;
   next();
@@ -500,7 +500,7 @@ app.use((req, res, next) => {
   if (!user || !userNeedsPinChange(user) || isPinChangeBypassRequest(req)) return next();
 
   if (req.xhr || req.headers.accept?.includes('application/json') || req.path.startsWith('/api/')) {
-    return res.status(428).json({ ok: false, error: 'РўСЂРµР±СѓРµС‚СЃСЏ СЃРјРµРЅРёС‚СЊ РІСЂРµРјРµРЅРЅС‹Р№ РїР°СЂРѕР»СЊ.' });
+    return res.status(428).json({ ok: false, error: 'Р СћРЎР‚Р ВµР В±РЎС“Р ВµРЎвЂљРЎРѓРЎРЏ РЎРѓР СР ВµР Р…Р С‘РЎвЂљРЎРЉ Р Р†РЎР‚Р ВµР СР ВµР Р…Р Р…РЎвЂ№Р в„– Р С—Р В°РЎР‚Р С•Р В»РЎРЉ.' });
   }
 
   return res.redirect(`/change-password?reason=${encodeURIComponent(pinChangeReason(user))}`);
@@ -508,12 +508,12 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const original = req.originalUrl || '';
   const rules = [
-    { from: '/Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ', to: '/admin' },
-    { from: '/РІРѕР№С‚Рё РІ СЃРёСЃС‚РµРјСѓ', to: '/login' },
-    { from: '/РІС…РѕРґ', to: '/login' },
-    { from: '/РІС‹С…РѕРґ', to: '/logout' },
-    { from: '/РІС‹С…РѕРґ РёР· СЃРёСЃС‚РµРјС‹', to: '/logout' },
-    { from: '/Р¶СѓСЂРЅР°Р»', to: '/logs' },
+    { from: '/Р В°Р Т‘Р СР С‘Р Р…Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂљР С•РЎР‚', to: '/admin' },
+    { from: '/Р Р†Р С•Р в„–РЎвЂљР С‘ Р Р† РЎРѓР С‘РЎРѓРЎвЂљР ВµР СРЎС“', to: '/login' },
+    { from: '/Р Р†РЎвЂ¦Р С•Р Т‘', to: '/login' },
+    { from: '/Р Р†РЎвЂ№РЎвЂ¦Р С•Р Т‘', to: '/logout' },
+    { from: '/Р Р†РЎвЂ№РЎвЂ¦Р С•Р Т‘ Р С‘Р В· РЎРѓР С‘РЎРѓРЎвЂљР ВµР СРЎвЂ№', to: '/logout' },
+    { from: '/Р В¶РЎС“РЎР‚Р Р…Р В°Р В»', to: '/logs' },
   ];
 
   for (const r of rules) {
@@ -579,11 +579,11 @@ function formatMoscowDateTime(v) {
 }
 
 const RU_TRANSIT_EVENT = {
-  open: 'РћС‚РєСЂС‹С‚РёРµ',
-  close: 'Р—Р°РєСЂС‹С‚РёРµ',
-  unlock: 'РћС‚РєСЂС‹С‚РёРµ',
-  lock: 'Р—Р°РєСЂС‹С‚РёРµ',
-  error: 'РћС€РёР±РєР°',
+  open: 'Р С›РЎвЂљР С”РЎР‚РЎвЂ№РЎвЂљР С‘Р Вµ',
+  close: 'Р вЂ”Р В°Р С”РЎР‚РЎвЂ№РЎвЂљР С‘Р Вµ',
+  unlock: 'Р С›РЎвЂљР С”РЎР‚РЎвЂ№РЎвЂљР С‘Р Вµ',
+  lock: 'Р вЂ”Р В°Р С”РЎР‚РЎвЂ№РЎвЂљР С‘Р Вµ',
+  error: 'Р С›РЎв‚¬Р С‘Р В±Р С”Р В°',
 };
 
 function ruTransitEvent(ev) {
@@ -748,7 +748,7 @@ async function getGatewayStatus() {
       configured: false,
       ok: false,
       status: 'not_configured',
-      label: 'РЁР»СЋР· РЅРµ РЅР°СЃС‚СЂРѕРµРЅ',
+      label: 'Р РЃР В»РЎР‹Р В· Р Р…Р Вµ Р Р…Р В°РЎРѓРЎвЂљРЎР‚Р С•Р ВµР Р…',
       elapsed_ms: 0,
     };
   }
@@ -766,7 +766,7 @@ async function getGatewayStatus() {
       configured: true,
       ok,
       status: ok ? 'online' : 'error',
-      label: ok ? 'РЁР»СЋР· РѕРЅР»Р°Р№РЅ' : 'РЁР»СЋР· РѕС‚РІРµС‡Р°РµС‚ СЃ РѕС€РёР±РєРѕР№',
+      label: ok ? 'Р РЃР В»РЎР‹Р В· Р С•Р Р…Р В»Р В°Р в„–Р Р…' : 'Р РЃР В»РЎР‹Р В· Р С•РЎвЂљР Р†Р ВµРЎвЂЎР В°Р ВµРЎвЂљ РЎРѓ Р С•РЎв‚¬Р С‘Р В±Р С”Р С•Р в„–',
       http_status: r.status,
       elapsed_ms: Date.now() - started,
       service: r.data?.service || null,
@@ -777,7 +777,7 @@ async function getGatewayStatus() {
       configured: true,
       ok: false,
       status: 'offline',
-      label: 'РЁР»СЋР· РЅРµРґРѕСЃС‚СѓРїРµРЅ',
+      label: 'Р РЃР В»РЎР‹Р В· Р Р…Р ВµР Т‘Р С•РЎРѓРЎвЂљРЎС“Р С—Р ВµР Р…',
       http_status: 0,
       elapsed_ms: Date.now() - started,
       error: e?.message || String(e),
@@ -828,50 +828,50 @@ function eventMatchesZone(event, zoneId, zoneName) {
 
 function describeZoneDevices(devices, zoneName, zoneId) {
   const list = Array.isArray(devices) ? devices : [];
-  if (!list.length) return 'РџРѕРєР° РЅРёС‡РµРіРѕ РЅРµ РїРѕРґРєР»СЋС‡РµРЅРѕ';
+  if (!list.length) return 'Р СџР С•Р С”Р В° Р Р…Р С‘РЎвЂЎР ВµР С–Р С• Р Р…Р Вµ Р С—Р С•Р Т‘Р С”Р В»РЎР‹РЎвЂЎР ВµР Р…Р С•';
 
   const names = list.map((device) => String(device?.name || '').trim()).filter(Boolean);
   const zoneKey = String(zoneId || '').trim().toLowerCase();
   const floorLabels = [...new Set(
     names
       .map((name) => {
-        const match = name.match(/(\d+)\s*(?:СЌС‚|СЌС‚Р°Р¶)/iu);
-        return match ? `${match[1]} СЌС‚.` : null;
+        const match = name.match(/(\d+)\s*(?:РЎРЊРЎвЂљ|РЎРЊРЎвЂљР В°Р В¶)/iu);
+        return match ? `${match[1]} РЎРЊРЎвЂљ.` : null;
       })
       .filter(Boolean)
   )].sort((a, b) => Number.parseInt(a, 10) - Number.parseInt(b, 10));
 
-  if (floorLabels.length) return `Р­С‚Р°Р¶Рё ${floorLabels.join(', ')}`;
+  if (floorLabels.length) return `Р В­РЎвЂљР В°Р В¶Р С‘ ${floorLabels.join(', ')}`;
 
-  const liftCount = names.filter((name) => /Р»РёС„С‚/iu.test(name)).length;
-  const entranceCount = names.filter((name) => /РґРІРµСЂ|РІС…РѕРґ/iu.test(name)).length;
+  const liftCount = names.filter((name) => /Р В»Р С‘РЎвЂћРЎвЂљ/iu.test(name)).length;
+  const entranceCount = names.filter((name) => /Р Т‘Р Р†Р ВµРЎР‚|Р Р†РЎвЂ¦Р С•Р Т‘/iu.test(name)).length;
   if (zoneKey === 'pedestrian' && (liftCount || entranceCount)) {
-    return 'Р’С…РѕРґС‹ СЃ 1 СЌС‚Р°Р¶Р° Рё Р»РёС„С‚С‹';
+    return 'Р вЂ™РЎвЂ¦Р С•Р Т‘РЎвЂ№ РЎРѓ 1 РЎРЊРЎвЂљР В°Р В¶Р В° Р С‘ Р В»Р С‘РЎвЂћРЎвЂљРЎвЂ№';
   }
   if (liftCount || entranceCount) {
     const parts = [];
-    if (liftCount) parts.push(liftCount > 1 ? `${liftCount} Р»РёС„С‚Р°` : 'Р»РёС„С‚');
-    if (entranceCount) parts.push(entranceCount > 1 ? `${entranceCount} РІС…РѕРґРѕРІ` : 'РІС…РѕРґ');
-    return parts.join(' Рё ');
+    if (liftCount) parts.push(liftCount > 1 ? `${liftCount} Р В»Р С‘РЎвЂћРЎвЂљР В°` : 'Р В»Р С‘РЎвЂћРЎвЂљ');
+    if (entranceCount) parts.push(entranceCount > 1 ? `${entranceCount} Р Р†РЎвЂ¦Р С•Р Т‘Р С•Р Р†` : 'Р Р†РЎвЂ¦Р С•Р Т‘');
+    return parts.join(' Р С‘ ');
   }
 
-  const entryCount = names.filter((name) => /РІСЉРµР·Рґ|Р·Р°РµР·Рґ/iu.test(name)).length;
-  const exitCount = names.filter((name) => /РІС‹РµР·Рґ/iu.test(name)).length;
-  if (zoneKey === 'buffer') return 'РЁР»Р°РіР±Р°СѓРјС‹ Сѓ СЃРµРІРµСЂРЅРѕРіРѕ РІСЉРµР·РґР°';
-  if (zoneKey === 'transit') return 'Р Р°РјРїР° Рё С€Р»Р°РіР±Р°СѓРјС‹ РЅР° СЌСЃС‚Р°РєР°РґСѓ';
-  if (zoneKey === 'underground' && (entryCount || exitCount)) return 'Р’СЉРµР·РґС‹ РІ РїРѕРґР·РµРјРЅСѓСЋ С‡Р°СЃС‚СЊ';
-  if (zoneKey === 'overground' && (entryCount || exitCount)) return 'Р’СЉРµР·РґС‹ Рё РІС‹РµР·РґС‹ РЅР° РЅР°Р·РµРјРЅРѕРј СѓСЂРѕРІРЅРµ';
-  if (zoneKey === 'europlan' && (entryCount || exitCount)) return 'Р—Р°РµР·Рґ Рё РІС‹РµР·Рґ РїРѕ СЌС‚Р°Р¶Р°Рј';
+  const entryCount = names.filter((name) => /Р Р†РЎР‰Р ВµР В·Р Т‘|Р В·Р В°Р ВµР В·Р Т‘/iu.test(name)).length;
+  const exitCount = names.filter((name) => /Р Р†РЎвЂ№Р ВµР В·Р Т‘/iu.test(name)).length;
+  if (zoneKey === 'buffer') return 'Р РЃР В»Р В°Р С–Р В±Р В°РЎС“Р СРЎвЂ№ РЎС“ РЎРѓР ВµР Р†Р ВµРЎР‚Р Р…Р С•Р С–Р С• Р Р†РЎР‰Р ВµР В·Р Т‘Р В°';
+  if (zoneKey === 'transit') return 'Р В Р В°Р СР С—Р В° Р С‘ РЎв‚¬Р В»Р В°Р С–Р В±Р В°РЎС“Р СРЎвЂ№ Р Р…Р В° РЎРЊРЎРѓРЎвЂљР В°Р С”Р В°Р Т‘РЎС“';
+  if (zoneKey === 'underground' && (entryCount || exitCount)) return 'Р вЂ™РЎР‰Р ВµР В·Р Т‘РЎвЂ№ Р Р† Р С—Р С•Р Т‘Р В·Р ВµР СР Р…РЎС“РЎР‹ РЎвЂЎР В°РЎРѓРЎвЂљРЎРЉ';
+  if (zoneKey === 'overground' && (entryCount || exitCount)) return 'Р вЂ™РЎР‰Р ВµР В·Р Т‘РЎвЂ№ Р С‘ Р Р†РЎвЂ№Р ВµР В·Р Т‘РЎвЂ№ Р Р…Р В° Р Р…Р В°Р В·Р ВµР СР Р…Р С•Р С РЎС“РЎР‚Р С•Р Р†Р Р…Р Вµ';
+  if (zoneKey === 'europlan' && (entryCount || exitCount)) return 'Р вЂ”Р В°Р ВµР В·Р Т‘ Р С‘ Р Р†РЎвЂ№Р ВµР В·Р Т‘ Р С—Р С• РЎРЊРЎвЂљР В°Р В¶Р В°Р С';
   if (entryCount || exitCount) {
     const parts = [];
-    if (entryCount) parts.push(entryCount > 1 ? `${entryCount} РІСЉРµР·РґР°` : 'РІСЉРµР·Рґ');
-    if (exitCount) parts.push(exitCount > 1 ? `${exitCount} РІС‹РµР·РґР°` : 'РІС‹РµР·Рґ');
-    return parts.join(' Рё ');
+    if (entryCount) parts.push(entryCount > 1 ? `${entryCount} Р Р†РЎР‰Р ВµР В·Р Т‘Р В°` : 'Р Р†РЎР‰Р ВµР В·Р Т‘');
+    if (exitCount) parts.push(exitCount > 1 ? `${exitCount} Р Р†РЎвЂ№Р ВµР В·Р Т‘Р В°` : 'Р Р†РЎвЂ№Р ВµР В·Р Т‘');
+    return parts.join(' Р С‘ ');
   }
 
-  if (/СЃРµРІРµСЂРЅС‹Р№ РІСЉРµР·Рґ|СЂР°РјРїР°|СЌСЃС‚Р°РєР°Рґ/iu.test(String(zoneName || ''))) return 'РЁР»Р°РіР±Р°СѓРјС‹ Рё РїСЂРѕРµР·РґС‹';
+  if (/РЎРѓР ВµР Р†Р ВµРЎР‚Р Р…РЎвЂ№Р в„– Р Р†РЎР‰Р ВµР В·Р Т‘|РЎР‚Р В°Р СР С—Р В°|РЎРЊРЎРѓРЎвЂљР В°Р С”Р В°Р Т‘/iu.test(String(zoneName || ''))) return 'Р РЃР В»Р В°Р С–Р В±Р В°РЎС“Р СРЎвЂ№ Р С‘ Р С—РЎР‚Р С•Р ВµР В·Р Т‘РЎвЂ№';
 
-  return `${list.length} ${pluralRu(list.length, 'РІР°СЂРёР°РЅС‚', 'РІР°СЂРёР°РЅС‚Р°', 'РІР°СЂРёР°РЅС‚РѕРІ')}`;
+  return `${list.length} ${pluralRu(list.length, 'Р Р†Р В°РЎР‚Р С‘Р В°Р Р…РЎвЂљ', 'Р Р†Р В°РЎР‚Р С‘Р В°Р Р…РЎвЂљР В°', 'Р Р†Р В°РЎР‚Р С‘Р В°Р Р…РЎвЂљР С•Р Р†')}`;
 }
 
 function buildZoneSummary(byZone, recentEvents) {
@@ -905,11 +905,11 @@ function isDashboardAttentionEvent(event) {
 
 function dashboardResultLabel(result) {
   const raw = String(result || '').trim();
-  if (!raw) return 'РќРµС‚ СЃС‚Р°С‚СѓСЃР°';
-  if (raw === 'ok') return 'РЈСЃРїРµС€РЅРѕ';
-  if (raw === 'denied') return 'РќРµС‚ РґРѕСЃС‚СѓРїР°';
-  if (raw === 'disabled') return 'РћС‚РєР»СЋС‡РµРЅРѕ';
-  if (raw.startsWith('gw_error:')) return 'РћС€РёР±РєР° С€Р»СЋР·Р°';
+  if (!raw) return 'Р СњР ВµРЎвЂљ РЎРѓРЎвЂљР В°РЎвЂљРЎС“РЎРѓР В°';
+  if (raw === 'ok') return 'Р Р€РЎРѓР С—Р ВµРЎв‚¬Р Р…Р С•';
+  if (raw === 'denied') return 'Р СњР ВµРЎвЂљ Р Т‘Р С•РЎРѓРЎвЂљРЎС“Р С—Р В°';
+  if (raw === 'disabled') return 'Р С›РЎвЂљР С”Р В»РЎР‹РЎвЂЎР ВµР Р…Р С•';
+  if (raw.startsWith('gw_error:')) return 'Р С›РЎв‚¬Р С‘Р В±Р С”Р В° РЎв‚¬Р В»РЎР‹Р В·Р В°';
   return raw;
 }
 
@@ -920,7 +920,7 @@ function buildDashboardTimeline(recentEvents) {
   list.forEach((event) => {
     const dt = event?.datetime ? new Date(event.datetime) : null;
     if (!dt || Number.isNaN(dt.getTime())) return;
-    const label = formatMoscowDateTime(dt).split(' ')[1]?.slice(0, 5) || 'вЂ”';
+    const label = formatMoscowDateTime(dt).split(' ')[1]?.slice(0, 5) || 'РІР‚вЂќ';
     const current = grouped.get(label) || { label, total: 0, attention: 0 };
     current.total += 1;
     if (isDashboardAttentionEvent(event)) current.attention += 1;
@@ -942,7 +942,7 @@ function buildAttentionEvents(recentEvents) {
     .filter(isDashboardAttentionEvent)
     .slice(0, 5)
     .map((event) => ({
-      point: event?.point || 'вЂ”',
+      point: event?.point || 'РІР‚вЂќ',
       datetime: event?.datetime || null,
       datetime_msk: event?.datetime_msk || null,
       result: event?.result || null,
@@ -989,12 +989,12 @@ function buildDashboardStats(byZone, accessibleDevices, recentEvents) {
   };
 }
 const DEFAULT_ZONES = [
-  { id: 'buffer',      name: 'РЎРµРІРµСЂРЅС‹Р№ РІСЉРµР·Рґ',         sort: 10 },
-  { id: 'europlan',    name: 'Р­С‚Р°Р¶Рё 2-9',              sort: 20 },
-  { id: 'overground',  name: 'РќР°Р·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ',       sort: 30 },
-  { id: 'pedestrian',  name: 'Р’С…РѕРґС‹ Рё Р»РёС„С‚С‹',          sort: 40 },
-  { id: 'underground', name: 'РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ',      sort: 50 },
-  { id: 'transit',     name: 'Р Р°РјРїР° РЅР° СЌСЃС‚Р°РєР°РґСѓ',      sort: 60 },
+  { id: 'buffer',      name: 'Р РЋР ВµР Р†Р ВµРЎР‚Р Р…РЎвЂ№Р в„– Р Р†РЎР‰Р ВµР В·Р Т‘',         sort: 10 },
+  { id: 'europlan',    name: 'Р В­РЎвЂљР В°Р В¶Р С‘ 2-9',              sort: 20 },
+  { id: 'overground',  name: 'Р СњР В°Р В·Р ВµР СР Р…РЎвЂ№Р в„– РЎС“РЎР‚Р С•Р Р†Р ВµР Р…РЎРЉ',       sort: 30 },
+  { id: 'pedestrian',  name: 'Р вЂ™РЎвЂ¦Р С•Р Т‘РЎвЂ№ Р С‘ Р В»Р С‘РЎвЂћРЎвЂљРЎвЂ№',          sort: 40 },
+  { id: 'underground', name: 'Р СџР С•Р Т‘Р В·Р ВµР СР Р…РЎвЂ№Р в„– РЎС“РЎР‚Р С•Р Р†Р ВµР Р…РЎРЉ',      sort: 50 },
+  { id: 'transit',     name: 'Р В Р В°Р СР С—Р В° Р Р…Р В° РЎРЊРЎРѓРЎвЂљР В°Р С”Р В°Р Т‘РЎС“',      sort: 60 },
 ];
 
 async function ensureDefaultZones() {
@@ -1055,10 +1055,10 @@ async function seedDevicesFromJson() {
   }
   if (!list.length) {
     if (!ALLOW_REFERENCE_DEVICE_SEED) {
-      console.warn('devices.json РїСѓСЃС‚РѕР№/РЅРµ РЅР°Р№РґРµРЅ вЂ” СЂРµС„РµСЂРµРЅСЃРЅС‹Рµ СѓСЃС‚СЂРѕР№СЃС‚РІР° РЅРµ СЃРѕР·РґР°СЋС‚СЃСЏ РІ production. Р”РѕР±Р°РІСЊС‚Рµ СЂРµР°Р»СЊРЅС‹Рµ СѓСЃС‚СЂРѕР№СЃС‚РІР° С‡РµСЂРµР· Р°РґРјРёРЅРєСѓ РёР»Рё РёРјРїРѕСЂС‚.');
+      console.warn('devices.json Р С—РЎС“РЎРѓРЎвЂљР С•Р в„–/Р Р…Р Вµ Р Р…Р В°Р в„–Р Т‘Р ВµР Р… РІР‚вЂќ РЎР‚Р ВµРЎвЂћР ВµРЎР‚Р ВµР Р…РЎРѓР Р…РЎвЂ№Р Вµ РЎС“РЎРѓРЎвЂљРЎР‚Р С•Р в„–РЎРѓРЎвЂљР Р†Р В° Р Р…Р Вµ РЎРѓР С•Р В·Р Т‘Р В°РЎР‹РЎвЂљРЎРѓРЎРЏ Р Р† production. Р вЂќР С•Р В±Р В°Р Р†РЎРЉРЎвЂљР Вµ РЎР‚Р ВµР В°Р В»РЎРЉР Р…РЎвЂ№Р Вµ РЎС“РЎРѓРЎвЂљРЎР‚Р С•Р в„–РЎРѓРЎвЂљР Р†Р В° РЎвЂЎР ВµРЎР‚Р ВµР В· Р В°Р Т‘Р СР С‘Р Р…Р С”РЎС“ Р С‘Р В»Р С‘ Р С‘Р СР С—Р С•РЎР‚РЎвЂљ.');
       return;
     }
-    console.log('в„№пёЏ devices.json РїСѓСЃС‚РѕР№/РЅРµ РЅР°Р№РґРµРЅ вЂ” СЃРѕР·РґР°СЋ СЂРµС„РµСЂРµРЅСЃРЅС‹Р№ РЅР°Р±РѕСЂ СѓСЃС‚СЂРѕР№СЃС‚РІ РґР»СЏ Р»РѕРєР°Р»СЊРЅРѕР№ РїСЂРѕРІРµСЂРєРё');
+    console.log('РІвЂћв„–РїС‘РЏ devices.json Р С—РЎС“РЎРѓРЎвЂљР С•Р в„–/Р Р…Р Вµ Р Р…Р В°Р в„–Р Т‘Р ВµР Р… РІР‚вЂќ РЎРѓР С•Р В·Р Т‘Р В°РЎР‹ РЎР‚Р ВµРЎвЂћР ВµРЎР‚Р ВµР Р…РЎРѓР Р…РЎвЂ№Р в„– Р Р…Р В°Р В±Р С•РЎР‚ РЎС“РЎРѓРЎвЂљРЎР‚Р С•Р в„–РЎРѓРЎвЂљР Р† Р Т‘Р В»РЎРЏ Р В»Р С•Р С”Р В°Р В»РЎРЉР Р…Р С•Р в„– Р С—РЎР‚Р С•Р Р†Р ВµРЎР‚Р С”Р С‘');
     list = buildReferenceDevices();
   }
 
@@ -1375,7 +1375,7 @@ async function ensureDefaultAdmin() {
   if (exists.rows.length) return;
 
   const id = 'admin';
-  const fio = process.env.ADMIN_FIO || 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ';
+  const fio = process.env.ADMIN_FIO || 'Р С’Р Т‘Р СР С‘Р Р…Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂљР С•РЎР‚';
   await dbQuery(
     `INSERT INTO public.users(id,fio,phone,organization,position,pin,role,is_is_admin,zones,is_active,must_change_pin,pin_created_at,pin_expires_at)
      VALUES ($1,$2,$3,$4,$5,$6,'admin',true,$7,true,true,NOW(),$8)
@@ -1383,7 +1383,7 @@ async function ensureDefaultAdmin() {
     [id, fio, adminPhone, null, null, await hashPin(adminPin), [], getStartPinExpiresAt()]
   );
 
-  console.log('вњ… РЎРѕР·РґР°РЅ Р°РґРјРёРЅ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ:', adminPhone);
+  console.log('РІСљвЂ¦ Р РЋР С•Р В·Р Т‘Р В°Р Р… Р В°Р Т‘Р СР С‘Р Р… Р С—Р С• РЎС“Р СР С•Р В»РЎвЂЎР В°Р Р…Р С‘РЎР‹:', adminPhone);
 }
 
 async function ensureDemoUser(spec = {}) {
@@ -1431,19 +1431,19 @@ async function ensureDemoUsers() {
   const demoUsers = [
     {
       id: 'demo-admin-lite',
-      fio: 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ СЃРјРµРЅС‹',
+      fio: 'Р С’Р Т‘Р СР С‘Р Р…Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂљР С•РЎР‚ РЎРѓР СР ВµР Р…РЎвЂ№',
       phone: '79000000010',
       pin: 'RuntimeAdminLite1234',
       role: 'admin',
       is_is_admin: false,
       zones: ['europlan', 'pedestrian', 'buffer', 'overground'],
       assignable_zones: ['europlan', 'pedestrian', 'buffer', 'overground'],
-      organization: 'РњРѕСЏ РїР°СЂРєРѕРІРєР°',
-      position: 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ',
+      organization: 'Р СљР С•РЎРЏ Р С—Р В°РЎР‚Р С”Р С•Р Р†Р С”Р В°',
+      position: 'Р С’Р Т‘Р СР С‘Р Р…Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂљР С•РЎР‚',
     },
     {
       id: 'demo-dispatcher',
-      fio: 'Р”РёСЃРїРµС‚С‡РµСЂ РїР°СЂРєРѕРІРєРё',
+      fio: 'Р вЂќР С‘РЎРѓР С—Р ВµРЎвЂљРЎвЂЎР ВµРЎР‚ Р С—Р В°РЎР‚Р С”Р С•Р Р†Р С”Р С‘',
       phone: '79000000020',
       pin: 'RuntimeDispatch1234',
       role: 'dispatcher',
@@ -1451,72 +1451,72 @@ async function ensureDemoUsers() {
       zones: ['pedestrian', 'buffer', 'europlan', 'overground', 'underground', 'transit'],
       assignable_zones: null,
       is_tenant_contact: true,
-      organization: 'РњРѕСЏ РїР°СЂРєРѕРІРєР°',
-      position: 'Р”РёСЃРїРµС‚С‡РµСЂ',
+      organization: 'Р СљР С•РЎРЏ Р С—Р В°РЎР‚Р С”Р С•Р Р†Р С”Р В°',
+      position: 'Р вЂќР С‘РЎРѓР С—Р ВµРЎвЂљРЎвЂЎР ВµРЎР‚',
     },
     {
       id: 'demo-tenant-europlan',
-      fio: 'РђСЂРµРЅРґР°С‚РѕСЂ 7 СЌС‚Р°Р¶Р°',
+      fio: 'Р С’РЎР‚Р ВµР Р…Р Т‘Р В°РЎвЂљР С•РЎР‚ 7 РЎРЊРЎвЂљР В°Р В¶Р В°',
       phone: '79000000030',
       pin: 'RuntimeEuro1234',
       role: 'user',
       is_is_admin: false,
       zones: ['europlan'],
       assignable_zones: null,
-      organization: 'РЎРµРєС†РёСЏ 7A',
-      position: 'РђСЂРµРЅРґР°С‚РѕСЂ',
+      organization: 'Р РЋР ВµР С”РЎвЂ Р С‘РЎРЏ 7A',
+      position: 'Р С’РЎР‚Р ВµР Р…Р Т‘Р В°РЎвЂљР С•РЎР‚',
       parking_floors: ['7'],
-      parking_groups: ['РЎРµРєС†РёСЏ 7A'],
+      parking_groups: ['Р РЋР ВµР С”РЎвЂ Р С‘РЎРЏ 7A'],
       parking_spots: ['7-124', '7-125'],
-      preferred_routes: ['7 СЌС‚Р°Р¶', 'РІСЉРµР·Рґ', 'РІС‹РµР·Рґ'],
+      preferred_routes: ['7 РЎРЊРЎвЂљР В°Р В¶', 'Р Р†РЎР‰Р ВµР В·Р Т‘', 'Р Р†РЎвЂ№Р ВµР В·Р Т‘'],
     },
     {
       id: 'demo-tenant-pedestrian',
-      fio: 'РђСЂРµРЅРґР°С‚РѕСЂ РџРµС€РµС…РѕРґРЅС‹Р№ РґРѕСЃС‚СѓРї',
+      fio: 'Р С’РЎР‚Р ВµР Р…Р Т‘Р В°РЎвЂљР С•РЎР‚ Р СџР ВµРЎв‚¬Р ВµРЎвЂ¦Р С•Р Т‘Р Р…РЎвЂ№Р в„– Р Т‘Р С•РЎРѓРЎвЂљРЎС“Р С—',
       phone: '79000000031',
       pin: 'RuntimeWalk1234',
       role: 'user',
       is_is_admin: false,
       zones: ['pedestrian'],
       assignable_zones: null,
-      organization: 'Р‘Р°С€РЅСЏ Рђ',
-      position: 'РђСЂРµРЅРґР°С‚РѕСЂ',
+      organization: 'Р вЂР В°РЎв‚¬Р Р…РЎРЏ Р С’',
+      position: 'Р С’РЎР‚Р ВµР Р…Р Т‘Р В°РЎвЂљР С•РЎР‚',
       parking_floors: ['7'],
-      parking_groups: ['Р›РѕР±Р±Рё Рђ'],
-      parking_spots: ['Р›РёС„С‚ 1'],
-      preferred_routes: ['Р»РёС„С‚С‹', 'РґРІРµСЂРё'],
+      parking_groups: ['Р вЂєР С•Р В±Р В±Р С‘ Р С’'],
+      parking_spots: ['Р вЂєР С‘РЎвЂћРЎвЂљ 1'],
+      preferred_routes: ['Р В»Р С‘РЎвЂћРЎвЂљРЎвЂ№', 'Р Т‘Р Р†Р ВµРЎР‚Р С‘'],
     },
     {
       id: 'demo-tenant-drive',
-      fio: 'РђСЂРµРЅРґР°С‚РѕСЂ РќР°Р·РµРјРЅС‹Р№ РјР°СЂС€СЂСѓС‚',
+      fio: 'Р С’РЎР‚Р ВµР Р…Р Т‘Р В°РЎвЂљР С•РЎР‚ Р СњР В°Р В·Р ВµР СР Р…РЎвЂ№Р в„– Р СР В°РЎР‚РЎв‚¬РЎР‚РЎС“РЎвЂљ',
       phone: '79000000032',
       pin: 'RuntimeDrive1234',
       role: 'user',
       is_is_admin: false,
       zones: ['buffer', 'overground'],
       assignable_zones: null,
-      organization: 'РџР°СЂРєРёРЅРі РЎРµРІРµСЂ',
-      position: 'РђСЂРµРЅРґР°С‚РѕСЂ',
+      organization: 'Р СџР В°РЎР‚Р С”Р С‘Р Р…Р С– Р РЋР ВµР Р†Р ВµРЎР‚',
+      position: 'Р С’РЎР‚Р ВµР Р…Р Т‘Р В°РЎвЂљР С•РЎР‚',
       parking_floors: ['2'],
-      parking_groups: ['РЎРµРєС‚РѕСЂ B2'],
+      parking_groups: ['Р РЋР ВµР С”РЎвЂљР С•РЎР‚ B2'],
       parking_spots: ['B2-07'],
-      preferred_routes: ['РІСЉРµР·РґС‹', 'РІС‹РµР·РґС‹'],
+      preferred_routes: ['Р Р†РЎР‰Р ВµР В·Р Т‘РЎвЂ№', 'Р Р†РЎвЂ№Р ВµР В·Р Т‘РЎвЂ№'],
     },
     {
       id: 'demo-tenant-underground',
-      fio: 'РђСЂРµРЅРґР°С‚РѕСЂ РџРѕРґР·РµРјРЅС‹Р№ РјР°СЂС€СЂСѓС‚',
+      fio: 'Р С’РЎР‚Р ВµР Р…Р Т‘Р В°РЎвЂљР С•РЎР‚ Р СџР С•Р Т‘Р В·Р ВµР СР Р…РЎвЂ№Р в„– Р СР В°РЎР‚РЎв‚¬РЎР‚РЎС“РЎвЂљ',
       phone: '79000000033',
       pin: 'RuntimeUnderground1234',
       role: 'user',
       is_is_admin: false,
       zones: ['underground', 'transit'],
       assignable_zones: null,
-      organization: 'РџР°СЂРєРёРЅРі Р®Рі',
-      position: 'РђСЂРµРЅРґР°С‚РѕСЂ',
+      organization: 'Р СџР В°РЎР‚Р С”Р С‘Р Р…Р С– Р В®Р С–',
+      position: 'Р С’РЎР‚Р ВµР Р…Р Т‘Р В°РЎвЂљР С•РЎР‚',
       parking_floors: ['2'],
-      parking_groups: ['РЎРµРєС‚РѕСЂ P2'],
+      parking_groups: ['Р РЋР ВµР С”РЎвЂљР С•РЎР‚ P2'],
       parking_spots: ['P2-18'],
-      preferred_routes: ['С€Р»Р°РіР±Р°СѓРјС‹', 'РІСЉРµР·РґС‹'],
+      preferred_routes: ['РЎв‚¬Р В»Р В°Р С–Р В±Р В°РЎС“Р СРЎвЂ№', 'Р Р†РЎР‰Р ВµР В·Р Т‘РЎвЂ№'],
     },
   ];
 
@@ -1526,7 +1526,7 @@ async function ensureDemoUsers() {
   }
 
   if (created.length) {
-    console.log('вњ… РЎРѕР·РґР°РЅС‹ РґРµРјРѕ-РїРѕР»СЊР·РѕРІР°С‚РµР»Рё:', created.join(', '));
+    console.log('РІСљвЂ¦ Р РЋР С•Р В·Р Т‘Р В°Р Р…РЎвЂ№ Р Т‘Р ВµР СР С•-Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»Р С‘:', created.join(', '));
   }
 }
 
@@ -1551,6 +1551,6 @@ async function ensureDemoUsers() {
   }
 
   app.listen(PORT, process.env.HOST || '0.0.0.0', () => {
-   console.log(`вњ… РњРѕСЏ РїР°СЂРєРѕРІРєР° Р·Р°РїСѓС‰РµРЅ: http://127.0.0.1:${PORT}`);
+   console.log(`РІСљвЂ¦ Р СљР С•РЎРЏ Р С—Р В°РЎР‚Р С”Р С•Р Р†Р С”Р В° Р В·Р В°Р С—РЎС“РЎвЂ°Р ВµР Р…: http://127.0.0.1:${PORT}`);
   });
 })();

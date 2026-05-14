@@ -2,7 +2,7 @@
 
 function renderLogin(res, error = null) {
   return res.render('login', {
-    title: 'Вход • Parking GIT',
+    title: 'Р’С…РѕРґ вЂў Моя парковка',
     bodyClass: 'auth-page',
     error,
   });
@@ -11,11 +11,11 @@ function renderLogin(res, error = null) {
 function renderChangePassword(res, req, options = {}) {
   const reason = String(options.reason || req.query?.reason || '').trim();
   const title = reason === 'expired'
-    ? 'Срок действия временного пароля истёк'
-    : 'Требуется сменить временный пароль';
+    ? 'РЎСЂРѕРє РґРµР№СЃС‚РІРёСЏ РІСЂРµРјРµРЅРЅРѕРіРѕ РїР°СЂРѕР»СЏ РёСЃС‚С‘Рє'
+    : 'РўСЂРµР±СѓРµС‚СЃСЏ СЃРјРµРЅРёС‚СЊ РІСЂРµРјРµРЅРЅС‹Р№ РїР°СЂРѕР»СЊ';
 
   return res.render('change_password', {
-    title: `${title} • Parking GIT`,
+    title: `${title} вЂў Моя парковка`,
     bodyClass: 'auth-page',
     user: req.session?.user || null,
     error: options.error || null,
@@ -58,9 +58,9 @@ function registerAuthRoutes({
       });
       res.setHeader('Retry-After', String(rate.retryAfterSec));
       return res.status(429).render('login', {
-        title: 'Вход • Parking GIT',
+        title: 'Р’С…РѕРґ вЂў Моя парковка',
         bodyClass: 'auth-page',
-        error: 'Слишком много попыток входа. Повторите позже.',
+        error: 'РЎР»РёС€РєРѕРј РјРЅРѕРіРѕ РїРѕРїС‹С‚РѕРє РІС…РѕРґР°. РџРѕРІС‚РѕСЂРёС‚Рµ РїРѕР·Р¶Рµ.',
       });
     }
 
@@ -74,23 +74,23 @@ function registerAuthRoutes({
       );
 
       const user = result.rows[0];
-      const genericError = 'Неверный телефон или пароль';
+      const genericError = 'РќРµРІРµСЂРЅС‹Р№ С‚РµР»РµС„РѕРЅ РёР»Рё РїР°СЂРѕР»СЊ';
       if (!user) {
         recordLoginFailure(rate);
         await appendAudit(req, 'login_failed', 'auth', phoneIn || 'unknown', { phone: phoneIn, reason: 'not_found' });
-        return res.status(401).render('login', { title: 'Вход • Parking GIT', bodyClass: 'auth-page', error: genericError });
+        return res.status(401).render('login', { title: 'Р’С…РѕРґ вЂў Моя парковка', bodyClass: 'auth-page', error: genericError });
       }
       if (user.is_active === false) {
         recordLoginFailure(rate);
         await appendAudit(req, 'login_failed', 'user', user.id, { phone: user.phone, reason: 'inactive' });
-        return res.status(401).render('login', { title: 'Вход • Parking GIT', bodyClass: 'auth-page', error: genericError });
+        return res.status(401).render('login', { title: 'Р’С…РѕРґ вЂў Моя парковка', bodyClass: 'auth-page', error: genericError });
       }
 
       const pinOk = await verifyPin(pinIn, user.pin);
       if (!pinOk) {
         recordLoginFailure(rate);
         await appendAudit(req, 'login_failed', 'user', user.id, { phone: user.phone, reason: 'bad_pin' });
-        return res.status(401).render('login', { title: 'Вход • Parking GIT', bodyClass: 'auth-page', error: genericError });
+        return res.status(401).render('login', { title: 'Р’С…РѕРґ вЂў Моя парковка', bodyClass: 'auth-page', error: genericError });
       }
       clearLoginFailures(rate);
 
@@ -123,7 +123,7 @@ function registerAuthRoutes({
       });
     } catch (error) {
       console.error('login error:', error?.message || error);
-      return res.status(500).render('login', { title: 'Вход • Parking GIT', bodyClass: 'auth-page', error: 'Ошибка сервера. Повторите позже.' });
+      return res.status(500).render('login', { title: 'Р’С…РѕРґ вЂў Моя парковка', bodyClass: 'auth-page', error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР°. РџРѕРІС‚РѕСЂРёС‚Рµ РїРѕР·Р¶Рµ.' });
     }
   });
 
@@ -141,10 +141,10 @@ function registerAuthRoutes({
 
     if (newPin !== confirmPin) {
       return res.status(400).render('change_password', {
-        title: 'Смена пароля • Parking GIT',
+        title: 'РЎРјРµРЅР° РїР°СЂРѕР»СЏ вЂў Моя парковка',
         bodyClass: 'auth-page',
         user,
-        error: 'Пароль и подтверждение не совпадают.',
+        error: 'РџР°СЂРѕР»СЊ Рё РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РЅРµ СЃРѕРІРїР°РґР°СЋС‚.',
         success: null,
         reason: String(req.query?.reason || ''),
         pinMinLength,
@@ -154,7 +154,7 @@ function registerAuthRoutes({
     const validationError = validateNewPin(newPin, user);
     if (validationError) {
       return res.status(400).render('change_password', {
-        title: 'Смена пароля • Parking GIT',
+        title: 'РЎРјРµРЅР° РїР°СЂРѕР»СЏ вЂў Моя парковка',
         bodyClass: 'auth-page',
         user,
         error: validationError,
@@ -175,10 +175,10 @@ function registerAuthRoutes({
       }
       if (await verifyPin(newPin, current.pin)) {
         return res.status(400).render('change_password', {
-          title: 'Смена пароля • Parking GIT',
+          title: 'РЎРјРµРЅР° РїР°СЂРѕР»СЏ вЂў Моя парковка',
           bodyClass: 'auth-page',
           user,
-          error: 'Новый пароль не должен совпадать с временным.',
+          error: 'РќРѕРІС‹Р№ РїР°СЂРѕР»СЊ РЅРµ РґРѕР»Р¶РµРЅ СЃРѕРІРїР°РґР°С‚СЊ СЃ РІСЂРµРјРµРЅРЅС‹Рј.',
           success: null,
           reason: String(req.query?.reason || ''),
           pinMinLength,
@@ -203,10 +203,10 @@ function registerAuthRoutes({
     } catch (error) {
       console.error('change password error:', error?.message || error);
       return res.status(500).render('change_password', {
-        title: 'Смена пароля • Parking GIT',
+        title: 'РЎРјРµРЅР° РїР°СЂРѕР»СЏ вЂў Моя парковка',
         bodyClass: 'auth-page',
         user,
-        error: 'Ошибка сервера. Повторите позже.',
+        error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР°. РџРѕРІС‚РѕСЂРёС‚Рµ РїРѕР·Р¶Рµ.',
         success: null,
         reason: String(req.query?.reason || ''),
         pinMinLength,

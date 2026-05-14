@@ -1,8 +1,8 @@
-
+﻿
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-<% const pageTitle = (typeof title !== "undefined" && title) ? title : "Журнал проходов и проездов"; %>
+<% const pageTitle = (typeof title !== "undefined" && title) ? title : "Р–СѓСЂРЅР°Р» РїСЂРѕС…РѕРґРѕРІ Рё РїСЂРѕРµР·РґРѕРІ"; %>
 <%- include('partials/header', { title: pageTitle, bodyClass, user, path: '/logs' }) %>
 
 <%
@@ -23,13 +23,13 @@
     }
   })();
 
-  // Локальные подписи для журнала
+  // Р›РѕРєР°Р»СЊРЅС‹Рµ РїРѕРґРїРёСЃРё РґР»СЏ Р¶СѓСЂРЅР°Р»Р°
   const EVENT_LABELS = {
-    open: 'Открытие',
-    close: 'Закрытие',
-    unlock: 'Открытие',
-    lock: 'Закрытие',
-    error: 'Ошибка',
+    open: 'РћС‚РєСЂС‹С‚РёРµ',
+    close: 'Р—Р°РєСЂС‹С‚РёРµ',
+    unlock: 'РћС‚РєСЂС‹С‚РёРµ',
+    lock: 'Р—Р°РєСЂС‹С‚РёРµ',
+    error: 'РћС€РёР±РєР°',
   };
   const eventLabel = (ev) => {
     const k = String(ev || '').trim();
@@ -37,14 +37,14 @@
   };
 
   const RESULT_LABELS = {
-    ok: 'Успешно',
-    denied: 'Нет доступа',
-    disabled: 'Отключено',
+    ok: 'РЈСЃРїРµС€РЅРѕ',
+    denied: 'РќРµС‚ РґРѕСЃС‚СѓРїР°',
+    disabled: 'РћС‚РєР»СЋС‡РµРЅРѕ',
   };
   const resultLabel = (value) => {
     const raw = String(value || '').trim();
-    if (!raw) return '—';
-    if (raw.startsWith('gw_error:')) return 'Ошибка шлюза';
+    if (!raw) return 'вЂ”';
+    if (raw.startsWith('gw_error:')) return 'РћС€РёР±РєР° С€Р»СЋР·Р°';
     return RESULT_LABELS[raw] || raw;
   };
   const resultTone = (value) => {
@@ -74,7 +74,7 @@
     'position'
   ].filter((key) => filters && filters[key]).length;
 
-  // Фолбэк: форматируем время в МСК (если сервер не прислал готовую строку)
+  // Р¤РѕР»Р±СЌРє: С„РѕСЂРјР°С‚РёСЂСѓРµРј РІСЂРµРјСЏ РІ РњРЎРљ (РµСЃР»Рё СЃРµСЂРІРµСЂ РЅРµ РїСЂРёСЃР»Р°Р» РіРѕС‚РѕРІСѓСЋ СЃС‚СЂРѕРєСѓ)
   const formatTs = (v) => {
     if (!v) return '';
     const d = (v instanceof Date) ? v : new Date(v);
@@ -284,92 +284,92 @@
 </style>
 <div class="logs-head mb-3">
   <div class="logs-head-copy">
-    <h1 class="h4 mb-0">Журнал проходов и проездов</h1>
-    <div class="text-muted small">Кто и что открывал: двери, шлагбаумы, ворота, лифты и въезды.</div>
+    <h1 class="h4 mb-0">Р–СѓСЂРЅР°Р» РїСЂРѕС…РѕРґРѕРІ Рё РїСЂРѕРµР·РґРѕРІ</h1>
+    <div class="text-muted small">РљС‚Рѕ Рё С‡С‚Рѕ РѕС‚РєСЂС‹РІР°Р»: РґРІРµСЂРё, С€Р»Р°РіР±Р°СѓРјС‹, РІРѕСЂРѕС‚Р°, Р»РёС„С‚С‹ Рё РІСЉРµР·РґС‹.</div>
   </div>
   <div class="logs-head-actions logs-top-actions">
-    <span class="badge-soft logs-filter-badge <%= __activeFilterCount ? 'is-active' : '' %>"><%= __activeFilterCount %> фильтров</span>
+    <span class="badge-soft logs-filter-badge <%= __activeFilterCount ? 'is-active' : '' %>"><%= __activeFilterCount %> С„РёР»СЊС‚СЂРѕРІ</span>
     <a class="btn btn-soft" href="<%= exportUrlBase || '/logs.csv' %>">CSV</a>
-    <a class="btn btn-soft" href="<%= (__quickLinks && __quickLinks.reset) ? __quickLinks.reset : '/logs' %>">Сбросить</a>
+    <a class="btn btn-soft" href="<%= (__quickLinks && __quickLinks.reset) ? __quickLinks.reset : '/logs' %>">РЎР±СЂРѕСЃРёС‚СЊ</a>
   </div>
 </div>
 
 <div class="logs-summary">
   <div class="logs-summary-card">
-    <span class="logs-summary-label">Событий в выборке</span>
+    <span class="logs-summary-label">РЎРѕР±С‹С‚РёР№ РІ РІС‹Р±РѕСЂРєРµ</span>
     <span class="logs-summary-value"><%= __summary.total || 0 %></span>
-    <span class="logs-summary-sub">до 500 последних строк</span>
+    <span class="logs-summary-sub">РґРѕ 500 РїРѕСЃР»РµРґРЅРёС… СЃС‚СЂРѕРє</span>
   </div>
   <div class="logs-summary-card">
-    <span class="logs-summary-label">Успешно</span>
+    <span class="logs-summary-label">РЈСЃРїРµС€РЅРѕ</span>
     <span class="logs-summary-value"><%= __summary.ok || 0 %></span>
-    <span class="logs-summary-sub">команды со статусом `ok`</span>
+    <span class="logs-summary-sub">РєРѕРјР°РЅРґС‹ СЃРѕ СЃС‚Р°С‚СѓСЃРѕРј `ok`</span>
   </div>
   <div class="logs-summary-card">
-    <span class="logs-summary-label">Требуют внимания</span>
+    <span class="logs-summary-label">РўСЂРµР±СѓСЋС‚ РІРЅРёРјР°РЅРёСЏ</span>
     <span class="logs-summary-value"><%= __summary.attention || 0 %></span>
-    <span class="logs-summary-sub">отказы, отключения, ошибки шлюза</span>
+    <span class="logs-summary-sub">РѕС‚РєР°Р·С‹, РѕС‚РєР»СЋС‡РµРЅРёСЏ, РѕС€РёР±РєРё С€Р»СЋР·Р°</span>
   </div>
   <div class="logs-summary-card">
-    <span class="logs-summary-label">Устройств / людей</span>
+    <span class="logs-summary-label">РЈСЃС‚СЂРѕР№СЃС‚РІ / Р»СЋРґРµР№</span>
     <span class="logs-summary-value"><%= (__summary.uniquePoints || 0) %> / <%= (__summary.uniqueActors || 0) %></span>
-    <span class="logs-summary-sub"><%= __summary.latestAt ? ('последнее событие ' + __summary.latestAt) : 'в текущей выборке' %></span>
+    <span class="logs-summary-sub"><%= __summary.latestAt ? ('РїРѕСЃР»РµРґРЅРµРµ СЃРѕР±С‹С‚РёРµ ' + __summary.latestAt) : 'РІ С‚РµРєСѓС‰РµР№ РІС‹Р±РѕСЂРєРµ' %></span>
   </div>
 </div>
 
 <div class="logs-quick-filters">
-  <a class="logs-quick-link <%= quickActive.all ? 'is-active' : '' %>" href="<%= __quickLinks.all || '/logs' %>">Все</a>
-  <a class="logs-quick-link <%= quickActive.ok ? 'is-active' : '' %>" href="<%= __quickLinks.ok || '/logs?status=ok' %>">Только успешные</a>
-  <a class="logs-quick-link <%= quickActive.attention ? 'is-active' : '' %>" href="<%= __quickLinks.attention || '/logs?status=attention' %>">Требуют внимания</a>
-  <a class="logs-quick-link <%= quickActive.today ? 'is-active' : '' %>" href="<%= __quickLinks.today || '/logs' %>">Сегодня</a>
+  <a class="logs-quick-link <%= quickActive.all ? 'is-active' : '' %>" href="<%= __quickLinks.all || '/logs' %>">Р’СЃРµ</a>
+  <a class="logs-quick-link <%= quickActive.ok ? 'is-active' : '' %>" href="<%= __quickLinks.ok || '/logs?status=ok' %>">РўРѕР»СЊРєРѕ СѓСЃРїРµС€РЅС‹Рµ</a>
+  <a class="logs-quick-link <%= quickActive.attention ? 'is-active' : '' %>" href="<%= __quickLinks.attention || '/logs?status=attention' %>">РўСЂРµР±СѓСЋС‚ РІРЅРёРјР°РЅРёСЏ</a>
+  <a class="logs-quick-link <%= quickActive.today ? 'is-active' : '' %>" href="<%= __quickLinks.today || '/logs' %>">РЎРµРіРѕРґРЅСЏ</a>
 </div>
 
 <div class="card card-glass p-3 mb-3 logs-filter-card" style="max-width:100%;overflow:hidden;">
   <div class="logs-filter-head">
     <div>
-      <div class="logs-filter-title">Выборка и фильтры</div>
-      <div class="logs-filter-sub">Параметры применяются и к таблице, и к экспорту CSV.</div>
+      <div class="logs-filter-title">Р’С‹Р±РѕСЂРєР° Рё С„РёР»СЊС‚СЂС‹</div>
+      <div class="logs-filter-sub">РџР°СЂР°РјРµС‚СЂС‹ РїСЂРёРјРµРЅСЏСЋС‚СЃСЏ Рё Рє С‚Р°Р±Р»РёС†Рµ, Рё Рє СЌРєСЃРїРѕСЂС‚Сѓ CSV.</div>
     </div>
     <div class="logs-filter-meta">
-      <span class="badge-soft"><%= __activeFilterCount %> фильтров</span>
-      <span class="badge-soft"><%= __summary.total || 0 %> строк</span>
+      <span class="badge-soft"><%= __activeFilterCount %> С„РёР»СЊС‚СЂРѕРІ</span>
+      <span class="badge-soft"><%= __summary.total || 0 %> СЃС‚СЂРѕРє</span>
     </div>
   </div>
   <form class="logs-filter" method="get" action="/logs" style="width:100%;max-width:100%;width:100%;max-width:100%;display:flex;flex-direction:column;gap:12px;">
     <div class="logs-filter-grid" style="width:100%;max-width:100%;">
       <div class="lf-field lf-date">
-        <label class="form-label">Дата с</label>
+        <label class="form-label">Р”Р°С‚Р° СЃ</label>
         <input class="form-control" type="date" name="date_from" data-filter="date_from" value="<%= (filters && filters.date_from) ? filters.date_from : '' %>">
       </div>
 
       <div class="lf-field lf-date">
-        <label class="form-label">Дата по</label>
+        <label class="form-label">Р”Р°С‚Р° РїРѕ</label>
         <input class="form-control" type="date" name="date_to" data-filter="date_to" value="<%= (filters && filters.date_to) ? filters.date_to : '' %>">
       </div>
 
       <div class="lf-field lf-time">
-        <label class="form-label">Время с</label>
+        <label class="form-label">Р’СЂРµРјСЏ СЃ</label>
         <input class="form-control" type="time" name="time_from" data-filter="time_from" value="<%= (filters && filters.time_from) ? filters.time_from : '' %>">
       </div>
 
       <div class="lf-field lf-time">
-        <label class="form-label">Время по</label>
+        <label class="form-label">Р’СЂРµРјСЏ РїРѕ</label>
         <input class="form-control" type="time" name="time_to" data-filter="time_to" value="<%= (filters && filters.time_to) ? filters.time_to : '' %>">
       </div>
 
       <div class="lf-field">
-        <label class="form-label">Режим</label>
+        <label class="form-label">Р РµР¶РёРј</label>
         <select class="form-select" name="status" data-filter="status">
-          <option value="">Все события</option>
-          <option value="ok" <%= (filters && filters.status === 'ok') ? 'selected' : '' %>>Только успешные</option>
-          <option value="attention" <%= (filters && filters.status === 'attention') ? 'selected' : '' %>>Требуют внимания</option>
+          <option value="">Р’СЃРµ СЃРѕР±С‹С‚РёСЏ</option>
+          <option value="ok" <%= (filters && filters.status === 'ok') ? 'selected' : '' %>>РўРѕР»СЊРєРѕ СѓСЃРїРµС€РЅС‹Рµ</option>
+          <option value="attention" <%= (filters && filters.status === 'attention') ? 'selected' : '' %>>РўСЂРµР±СѓСЋС‚ РІРЅРёРјР°РЅРёСЏ</option>
         </select>
       </div>
 
       <div class="lf-field">
-        <label class="form-label">Что открывали</label>
+        <label class="form-label">Р§С‚Рѕ РѕС‚РєСЂС‹РІР°Р»Рё</label>
         <select class="form-select" name="point" data-filter="point">
-          <option value="">Все двери, лифты и проезды</option>
+          <option value="">Р’СЃРµ РґРІРµСЂРё, Р»РёС„С‚С‹ Рё РїСЂРѕРµР·РґС‹</option>
           <% ((options && options.points) ? options.points : []).forEach(function(point){ %>
             <option value="<%= point %>" <%= (filters && filters.point === point) ? 'selected' : '' %>><%= point %></option>
           <% }) %>
@@ -377,9 +377,9 @@
       </div>
 
       <div class="lf-field">
-        <label class="form-label">Событие</label>
+        <label class="form-label">РЎРѕР±С‹С‚РёРµ</label>
         <select class="form-select" name="event" data-filter="event">
-          <option value="">Все действия</option>
+          <option value="">Р’СЃРµ РґРµР№СЃС‚РІРёСЏ</option>
           <% ((options && options.events) ? options.events : []).forEach(function(ev){ %>
             <option value="<%= ev %>" <%= (filters && filters.event === ev) ? 'selected' : '' %>><%= eventLabel(ev) %></option>
           <% }) %>
@@ -387,9 +387,9 @@
       </div>
 
       <div class="lf-field">
-        <label class="form-label">Результат</label>
+        <label class="form-label">Р РµР·СѓР»СЊС‚Р°С‚</label>
         <select class="form-select" name="result" data-filter="result">
-          <option value="">Любой результат</option>
+          <option value="">Р›СЋР±РѕР№ СЂРµР·СѓР»СЊС‚Р°С‚</option>
           <% ((options && options.results) ? options.results : []).forEach(function(result){ %>
             <option value="<%= result %>" <%= (filters && filters.result === result) ? 'selected' : '' %>><%= resultLabel(result) %></option>
           <% }) %>
@@ -397,38 +397,35 @@
       </div>
 
       <div class="lf-field">
-        <label class="form-label">Команда</label>
-        <input class="form-control" type="text" name="request_id" data-filter="request_id" placeholder="Например 2ce52abe"
+        <label class="form-label">РљРѕРјР°РЅРґР°</label>
+        <input class="form-control" type="text" name="request_id" data-filter="request_id" placeholder="РќР°РїСЂРёРјРµСЂ 2ce52abe"
                value="<%= (filters && filters.request_id) ? filters.request_id : '' %>">
       </div>
 
       <div class="lf-field lf-org">
-        <label class="form-label">ФИО</label>
-        <input class="form-control" type="text" name="fio" data-filter="fio" placeholder="Поиск по сотруднику"
+        <label class="form-label">Р¤РРћ</label>
+        <input class="form-control" type="text" name="fio" data-filter="fio" placeholder="РџРѕРёСЃРє РїРѕ СЃРѕС‚СЂСѓРґРЅРёРєСѓ"
                value="<%= (filters && filters.fio) ? filters.fio : '' %>">
       </div>
 
       <div class="lf-field lf-org">
-        <label class="form-label">Организация</label>
-        <input class="form-control" type="text" name="organization" data-filter="organization" placeholder="Поиск по организации"
+        <label class="form-label">РћСЂРіР°РЅРёР·Р°С†РёСЏ</label>
+        <input class="form-control" type="text" name="organization" data-filter="organization" placeholder="РџРѕРёСЃРє РїРѕ РѕСЂРіР°РЅРёР·Р°С†РёРё"
                value="<%= (filters && filters.organization) ? filters.organization : '' %>">
       </div>
 
       <div class="lf-field lf-pos">
-        <label class="form-label">Должность</label>
-        <input class="form-control" type="text" name="position" data-filter="position" placeholder="Поиск по должности"
+        <label class="form-label">Р”РѕР»Р¶РЅРѕСЃС‚СЊ</label>
+        <input class="form-control" type="text" name="position" data-filter="position" placeholder="РџРѕРёСЃРє РїРѕ РґРѕР»Р¶РЅРѕСЃС‚Рё"
                value="<%= (filters && filters.position) ? filters.position : '' %>">
       </div>
     </div>
 
     <div class="lf-actions lf-submit">
-      <button class="btn btn-primary w-100" type="submit">Показать</button>
+      <button class="btn btn-primary w-100" type="submit">РџРѕРєР°Р·Р°С‚СЊ</button>
     </div>
   </form>
-
-<!-- LOGS_FORCE_MOBILE_START -->
 <style>
-/* MOBILE default */
 body.page-logs form.logs-filter{ width:100% !important; max-width:100% !important; }
 body.page-logs form.logs-filter .logs-filter-grid{
   display:flex !important;
@@ -469,7 +466,6 @@ body.page-logs form.logs-filter .lf-actions .btn{ width:100% !important; }
   }
 }
 
-/* DESKTOP compact layout */
 @media (hover:hover) and (pointer:fine) and (min-width: 1100px){
   .logs-filter-card{
     width:100% !important;
@@ -537,9 +533,6 @@ body.page-logs form.logs-filter .lf-actions .btn{ width:100% !important; }
 
 
 </style>
-<!-- LOGS_FORCE_MOBILE_END -->
-
-
 </div>
 
 <div class="card card-glass p-0 overflow-hidden">
@@ -547,16 +540,16 @@ body.page-logs form.logs-filter .lf-actions .btn{ width:100% !important; }
     <table class="table table-dark table-hover align-middle m-0">
       <thead>
         <tr>
-          <th class="text-mono">Дата</th>
-          <th class="text-mono">Время</th>
-          <th>Что открывали</th>
-          <th>Действие</th>
-          <th>Кто</th>
-          <th class="d-none d-xl-table-cell">Телефон</th>
-          <th class="d-none d-xl-table-cell">Источник</th>
-          <th class="d-none d-md-table-cell">Результат</th>
-          <th class="d-none d-lg-table-cell">Команда</th>
-          <th class="d-none d-md-table-cell">Сессия</th>
+          <th class="text-mono">Р”Р°С‚Р°</th>
+          <th class="text-mono">Р’СЂРµРјСЏ</th>
+          <th>Р§С‚Рѕ РѕС‚РєСЂС‹РІР°Р»Рё</th>
+          <th>Р”РµР№СЃС‚РІРёРµ</th>
+          <th>РљС‚Рѕ</th>
+          <th class="d-none d-xl-table-cell">РўРµР»РµС„РѕРЅ</th>
+          <th class="d-none d-xl-table-cell">РСЃС‚РѕС‡РЅРёРє</th>
+          <th class="d-none d-md-table-cell">Р РµР·СѓР»СЊС‚Р°С‚</th>
+          <th class="d-none d-lg-table-cell">РљРѕРјР°РЅРґР°</th>
+          <th class="d-none d-md-table-cell">РЎРµСЃСЃРёСЏ</th>
         </tr>
       </thead>
       <tbody>
@@ -573,7 +566,7 @@ body.page-logs form.logs-filter .lf-actions .btn{ width:100% !important; }
       const _phone = (e.actor_phone || e.phone || '').toString();
       const _who = _fio || (e.source || '');
       const _event = eventLabel(e.event || e.direction || e.action || '');
-      const _point = e.point || e.device_name || e.device || '—';
+      const _point = e.point || e.device_name || e.device || 'вЂ”';
       const _result = e.result || '';
       const _session = e.session || '';
       const _requestId = e.request_id || e.requestId || '';
@@ -585,7 +578,7 @@ body.page-logs form.logs-filter .lf-actions .btn{ width:100% !important; }
       <td><span class="badge badge-soft"><%= _point %></span></td>
       <td><%= _event %></td>
       <td>
-        <div style="font-weight:800;"><%= _who || '—' %></div>
+        <div style="font-weight:800;"><%= _who || 'вЂ”' %></div>
         <% if (_orgPos) { %><div class="text-muted small"><%= _orgPos %></div><% } %>
         <% if (_phone) { %><div class="text-muted small text-mono"><%= _phone %></div><% } %>
       </td>
@@ -597,14 +590,12 @@ body.page-logs form.logs-filter .lf-actions .btn{ width:100% !important; }
     </tr>
   <% }) %>
 <% } else { %>
-  <tr><td colspan="12" class="text-muted p-4">Пока пусто</td></tr>
+  <tr><td colspan="12" class="text-muted p-4">РџРѕРєР° РїСѓСЃС‚Рѕ</td></tr>
 <% } %>
       </tbody>
     </table>
   </div>
 </div>
-
-<!-- LOGS_MOBILE_CARDS_FIXED_START -->
 <style>
 body.page-logs .logs-mobile-wrap{ display:none !important; }
 
@@ -697,55 +688,55 @@ body.page-logs .logs-mobile-wrap{ display:none !important; }
       const _org = (e.actor_organization || e.organization || '').toString();
       const _pos = (e.actor_position || e.position || '').toString();
       const _phone = (e.actor_phone || e.phone || '').toString();
-      const _who = _fio || (e.source || '') || '—';
-      const _event = eventLabel(e.event || e.direction || e.action || '') || '—';
-      const _point = e.point || e.device_name || e.device || '—';
-      const _source = e.source || '—';
-      const _result = e.result || '—';
+      const _who = _fio || (e.source || '') || 'вЂ”';
+      const _event = eventLabel(e.event || e.direction || e.action || '') || 'вЂ”';
+      const _point = e.point || e.device_name || e.device || 'вЂ”';
+      const _source = e.source || 'вЂ”';
+      const _result = e.result || 'вЂ”';
       const _session = e.session || '';
       const _requestId = e.request_id || e.requestId || '';
       const _requestShort = _requestId ? String(_requestId).slice(0, 8) : '';
     %>
       <div class="logs-mobile-card">
         <div class="logs-mobile-head">
-          <div class="logs-mobile-dt"><%= _dt || '—' %></div>
+          <div class="logs-mobile-dt"><%= _dt || 'вЂ”' %></div>
           <div class="logs-mobile-badge"><span class="badge badge-soft"><%= _event %></span></div>
         </div>
 
         <div class="logs-mobile-row">
-          <div class="logs-mobile-label">Что открывали</div>
+          <div class="logs-mobile-label">Р§С‚Рѕ РѕС‚РєСЂС‹РІР°Р»Рё</div>
           <div class="logs-mobile-value"><%= _point %></div>
         </div>
 
         <div class="logs-mobile-row">
-          <div class="logs-mobile-label">Кто</div>
+          <div class="logs-mobile-label">РљС‚Рѕ</div>
           <div class="logs-mobile-value">
             <div style="font-weight:800;"><%= _who %></div>
-            <% if (_org || _pos) { %><div><%= [_org, _pos].filter(Boolean).join(' • ') %></div><% } %>
+            <% if (_org || _pos) { %><div><%= [_org, _pos].filter(Boolean).join(' вЂў ') %></div><% } %>
             <% if (_phone) { %><div class="text-mono"><%= _phone %></div><% } %>
           </div>
         </div>
 
         <div class="logs-mobile-row">
-          <div class="logs-mobile-label">Источник</div>
+          <div class="logs-mobile-label">РСЃС‚РѕС‡РЅРёРє</div>
           <div class="logs-mobile-value"><%= _source %></div>
         </div>
 
         <div class="logs-mobile-row">
-          <div class="logs-mobile-label">Результат</div>
+          <div class="logs-mobile-label">Р РµР·СѓР»СЊС‚Р°С‚</div>
           <div class="logs-mobile-value"><span class="log-result-badge <%= resultTone(_result) %>"><%= resultLabel(_result) %></span></div>
         </div>
 
         <% if (_requestShort) { %>
         <div class="logs-mobile-row">
-          <div class="logs-mobile-label">Команда</div>
+          <div class="logs-mobile-label">РљРѕРјР°РЅРґР°</div>
           <div class="logs-mobile-value text-mono"><%= _requestShort %></div>
         </div>
         <% } %>
 
         <% if (_session) { %>
         <div class="logs-mobile-row">
-          <div class="logs-mobile-label">Сессия</div>
+          <div class="logs-mobile-label">РЎРµСЃСЃРёСЏ</div>
           <div class="logs-mobile-value"><%= _session %></div>
         </div>
         <% } %>
@@ -754,28 +745,12 @@ body.page-logs .logs-mobile-wrap{ display:none !important; }
   <% } else { %>
     <div class="logs-mobile-card">
       <div class="logs-mobile-row">
-        <div class="logs-mobile-label">Журнал событий</div>
-        <div class="logs-mobile-value">Пока пусто</div>
+        <div class="logs-mobile-label">Р–СѓСЂРЅР°Р» СЃРѕР±С‹С‚РёР№</div>
+        <div class="logs-mobile-value">РџРѕРєР° РїСѓСЃС‚Рѕ</div>
       </div>
     </div>
   <% } %>
 </div>
-<!-- LOGS_MOBILE_CARDS_FIXED_END -->
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- FILTERS_ROWS_FINAL_START -->
 <style>
 .filters-rows-form{
   min-height:auto !important;
@@ -904,10 +879,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const point = form.querySelector('[name="point"]');
     const event = form.querySelector('[name="event"]');
     const result = form.querySelector('[name="result"]');
-    const requestId = form.querySelector('[name="request_id"]') || createInput('request_id', 'Например 2ce52abe');
-    const org = form.querySelector('[name="organization"]') || createInput('organization', 'Поиск по организации');
-    const fio = form.querySelector('[name="fio"]') || createInput('fio', 'Поиск по ФИО');
-    const pos = form.querySelector('[name="position"]') || createInput('position', 'Поиск по должности');
+    const requestId = form.querySelector('[name="request_id"]') || createInput('request_id', 'РќР°РїСЂРёРјРµСЂ 2ce52abe');
+    const org = form.querySelector('[name="organization"]') || createInput('organization', 'РџРѕРёСЃРє РїРѕ РѕСЂРіР°РЅРёР·Р°С†РёРё');
+    const fio = form.querySelector('[name="fio"]') || createInput('fio', 'РџРѕРёСЃРє РїРѕ Р¤РРћ');
+    const pos = form.querySelector('[name="position"]') || createInput('position', 'РџРѕРёСЃРє РїРѕ РґРѕР»Р¶РЅРѕСЃС‚Рё');
 
     const submitBtn =
       form.querySelector('button[type="submit"]') ||
@@ -922,18 +897,18 @@ document.addEventListener('DOMContentLoaded', function () {
     hidden.forEach(function (h) { move(grid, h); });
 
     [
-      makeField(dateFrom, 'Дата с', 'fr-col-3'),
-      makeField(dateTo, 'Дата по', 'fr-col-3'),
-      makeField(timeFrom, 'Время с', 'fr-col-2'),
-      makeField(timeTo, 'Время по', 'fr-col-2'),
-      makeField(status, 'Режим', 'fr-col-2'),
-      makeField(point, 'Что открывали', 'fr-col-4'),
-      makeField(event, 'Событие', 'fr-col-4'),
-      makeField(result, 'Результат', 'fr-col-4'),
-      makeField(requestId, 'Команда', 'fr-col-4'),
-      makeField(fio, 'ФИО', 'fr-col-4'),
-      makeField(org, 'Организация', 'fr-col-4'),
-      makeField(pos, 'Должность', 'fr-col-4'),
+      makeField(dateFrom, 'Р”Р°С‚Р° СЃ', 'fr-col-3'),
+      makeField(dateTo, 'Р”Р°С‚Р° РїРѕ', 'fr-col-3'),
+      makeField(timeFrom, 'Р’СЂРµРјСЏ СЃ', 'fr-col-2'),
+      makeField(timeTo, 'Р’СЂРµРјСЏ РїРѕ', 'fr-col-2'),
+      makeField(status, 'Р РµР¶РёРј', 'fr-col-2'),
+      makeField(point, 'Р§С‚Рѕ РѕС‚РєСЂС‹РІР°Р»Рё', 'fr-col-4'),
+      makeField(event, 'РЎРѕР±С‹С‚РёРµ', 'fr-col-4'),
+      makeField(result, 'Р РµР·СѓР»СЊС‚Р°С‚', 'fr-col-4'),
+      makeField(requestId, 'РљРѕРјР°РЅРґР°', 'fr-col-4'),
+      makeField(fio, 'Р¤РРћ', 'fr-col-4'),
+      makeField(org, 'РћСЂРіР°РЅРёР·Р°С†РёСЏ', 'fr-col-4'),
+      makeField(pos, 'Р”РѕР»Р¶РЅРѕСЃС‚СЊ', 'fr-col-4'),
     ].forEach(function (field) {
       if (field) grid.appendChild(field);
     });
@@ -984,11 +959,6 @@ document.addEventListener('DOMContentLoaded', function () {
   );
 });
 </script>
-<!-- FILTERS_ROWS_FINAL_END -->
-
-
-
-<!-- MOBILE_FILTER_OVERFLOW_FIX_START -->
 <style>
 @media (max-width: 760px){
   form[action="/admin/audit"],
@@ -1112,12 +1082,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 }
 </style>
-<!-- MOBILE_FILTER_OVERFLOW_FIX_END -->
-
-
 <style>
 @media (min-width: 1100px){
-  /* card width */
   .logs-filter-card,
   .card.card-glass.p-3.mb-3{
     max-width: 1200px !important;
@@ -1126,7 +1092,6 @@ document.addEventListener('DOMContentLoaded', function () {
     padding: 10px 12px !important;
   }
 
-  /* compact grid */
   form.logs-filter{
     width: 100% !important;
     max-width: 100% !important;
@@ -1142,7 +1107,6 @@ document.addEventListener('DOMContentLoaded', function () {
     align-items: end !important;
   }
 
-  /* first 4 items = date/time small rectangles */
   form.logs-filter .logs-filter-grid > .lf-field:nth-child(1),
   form.logs-filter .logs-filter-grid > .lf-field:nth-child(2),
   form.logs-filter .logs-filter-grid > .lf-field:nth-child(3),
@@ -1150,7 +1114,6 @@ document.addEventListener('DOMContentLoaded', function () {
     grid-column: auto !important;
   }
 
-  /* organization + position = second row */
   form.logs-filter .logs-filter-grid > .lf-field:nth-child(5){
     grid-column: 1 / span 2 !important;
   }
@@ -1158,7 +1121,6 @@ document.addEventListener('DOMContentLoaded', function () {
     grid-column: 3 / span 2 !important;
   }
 
-  /* compact labels */
   form.logs-filter .form-label{
     font-size: 11px !important;
     line-height: 1.1 !important;
@@ -1166,7 +1128,6 @@ document.addEventListener('DOMContentLoaded', function () {
     opacity: .85 !important;
   }
 
-  /* compact inputs */
   form.logs-filter .form-control,
   form.logs-filter .form-select{
     height: 32px !important;
@@ -1179,7 +1140,6 @@ document.addEventListener('DOMContentLoaded', function () {
     box-sizing: border-box !important;
   }
 
-  /* compact submit */
   form.logs-filter .lf-actions{
     margin-top: 6px !important;
   }
@@ -1193,12 +1153,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 }
 </style>
-
-
-
-
-
-<!-- MOBILE_PICKER_FIX_START -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -1238,10 +1192,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
-<!-- MOBILE_PICKER_FIX_END -->
-
-
-<!-- ROLE_NAV_VISIBILITY_START -->
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   const role = "<%= user && user.role ? user.role : '' %>";
@@ -1249,9 +1199,9 @@ document.addEventListener('DOMContentLoaded', function(){
   const effectiveRole = (role === 'admin' && isSys) ? 'sysadmin' : role;
 
   const hideMap = {
-    admin: ['Устройства', 'Участки', 'Аудит'],
-    dispatcher: ['Пользователи', 'Устройства', 'Участки', 'Аудит'],
-    user: ['Журнал', 'Пользователи', 'Устройства', 'Участки', 'Аудит']
+    admin: ['РЈСЃС‚СЂРѕР№СЃС‚РІР°', 'РЈС‡Р°СЃС‚РєРё', 'РђСѓРґРёС‚'],
+    dispatcher: ['РџРѕР»СЊР·РѕРІР°С‚РµР»Рё', 'РЈСЃС‚СЂРѕР№СЃС‚РІР°', 'РЈС‡Р°СЃС‚РєРё', 'РђСѓРґРёС‚'],
+    user: ['Р–СѓСЂРЅР°Р»', 'РџРѕР»СЊР·РѕРІР°С‚РµР»Рё', 'РЈСЃС‚СЂРѕР№СЃС‚РІР°', 'РЈС‡Р°СЃС‚РєРё', 'РђСѓРґРёС‚']
   };
 
   (hideMap[effectiveRole] || []).forEach(function(txt){
@@ -1264,6 +1214,4 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 });
 </script>
-<!-- ROLE_NAV_VISIBILITY_END -->
-
 <%- include('partials/footer') %>

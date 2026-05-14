@@ -1,4 +1,4 @@
-<%- include('partials/header', { title, bodyClass, user, path: '/admin/devices' }) %>
+﻿<%- include('partials/header', { title, bodyClass, user, path: '/admin/devices' }) %>
 
 <% const _devices = Array.isArray(devices) ? devices : []; %>
 <% const _activeDevices = _devices.filter(d => d && d.is_active !== false).length; %>
@@ -7,19 +7,19 @@
 <div class="mb-3">
   <div class="d-flex flex-wrap gap-2 align-items-start justify-content-between">
     <div>
-      <h1 class="h4 mb-0">Устройства</h1>
-      <div class="text-muted small">Двери, лифты, ворота и шлагбаумы по участкам.</div>
+      <h1 class="h4 mb-0">РЈСЃС‚СЂРѕР№СЃС‚РІР°</h1>
+      <div class="text-muted small">Р”РІРµСЂРё, Р»РёС„С‚С‹, РІРѕСЂРѕС‚Р° Рё С€Р»Р°РіР±Р°СѓРјС‹ РїРѕ СѓС‡Р°СЃС‚РєР°Рј.</div>
     </div>
     <div class="d-flex flex-wrap gap-2">
-      <span class="badge-soft px-3 py-2">Всего: <%= _devices.length %></span>
-      <span class="badge-soft px-3 py-2">Активны: <%= _activeDevices %></span>
-      <span class="badge-soft px-3 py-2">Отключены: <%= _inactiveDevices %></span>
+      <span class="badge-soft px-3 py-2">Р’СЃРµРіРѕ: <%= _devices.length %></span>
+      <span class="badge-soft px-3 py-2">РђРєС‚РёРІРЅС‹: <%= _activeDevices %></span>
+      <span class="badge-soft px-3 py-2">РћС‚РєР»СЋС‡РµРЅС‹: <%= _inactiveDevices %></span>
     </div>
   </div>
 </div>
 
 <div class="card card-glass p-3 p-md-4 mb-3">
-  <h2 class="h6 mb-3">Добавить устройство</h2>
+  <h2 class="h6 mb-3">Р”РѕР±Р°РІРёС‚СЊ СѓСЃС‚СЂРѕР№СЃС‚РІРѕ</h2>
   <form method="post" action="/admin/devices/create" class="row g-2">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <div class="col-12 col-md-3">
@@ -27,20 +27,20 @@
       <input class="form-control" name="id" placeholder="door_1" />
     </div>
     <div class="col-12 col-md-4">
-      <label class="form-label small text-muted">Название</label>
-      <input class="form-control" name="name" placeholder="Дверь серверная" required />
+      <label class="form-label small text-muted">РќР°Р·РІР°РЅРёРµ</label>
+      <input class="form-control" name="name" placeholder="Р”РІРµСЂСЊ СЃРµСЂРІРµСЂРЅР°СЏ" required />
     </div>
     <div class="col-12 col-md-3">
-      <label class="form-label small text-muted">Участок</label>
+      <label class="form-label small text-muted">РЈС‡Р°СЃС‚РѕРє</label>
       <select class="form-select" name="zoneId">
-        <option value="">—</option>
+        <option value="">вЂ”</option>
         <% (zones || []).forEach(z => { %>
           <option value="<%= z.id %>"><%= z.name %></option>
         <% }) %>
       </select>
     </div>
     <div class="col-12 col-md-2">
-      <label class="form-label small text-muted">Метод</label>
+      <label class="form-label small text-muted">РњРµС‚РѕРґ</label>
       <select class="form-select" name="method">
         <option value="http">http</option>
         <option value="rodos">rodos</option>
@@ -48,18 +48,18 @@
     </div>
     <div class="col-12">
       <label class="form-label small text-muted">URL/IP</label>
-      <input class="form-control" name="url" placeholder="http://... или 192.168.1.10" />
+      <input class="form-control" name="url" placeholder="http://... РёР»Рё 192.168.1.10" />
     </div>
     <div class="col-12">
-      <button class="btn btn-primary w-100 w-md-auto" type="submit">Сохранить</button>
+      <button class="btn btn-primary w-100 w-md-auto" type="submit">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
     </div>
   </form>
 </div>
 
 <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-2">
-  <div class="text-muted small">Всего устройств: <%= (devices || []).length %></div>
+  <div class="text-muted small">Р’СЃРµРіРѕ СѓСЃС‚СЂРѕР№СЃС‚РІ: <%= (devices || []).length %></div>
   <div style="flex: 1 1 280px; max-width: 380px;">
-    <input id="devicesSearch" class="form-control" placeholder="Поиск: Ш1, лифт, 8 этаж, въезд" />
+    <input id="devicesSearch" class="form-control" placeholder="РџРѕРёСЃРє: РЁ1, Р»РёС„С‚, 8 СЌС‚Р°Р¶, РІСЉРµР·Рґ" />
   </div>
 </div>
 
@@ -69,12 +69,12 @@
       <thead>
         <tr>
           <th>ID</th>
-          <th>Название</th>
-          <th>Участок</th>
-          <th>Метод</th>
+          <th>РќР°Р·РІР°РЅРёРµ</th>
+          <th>РЈС‡Р°СЃС‚РѕРє</th>
+          <th>РњРµС‚РѕРґ</th>
           <th>URL/IP</th>
-          <th class="text-center">Активен</th>
-          <th class="text-end sticky-actions">Действия</th>
+          <th class="text-center">РђРєС‚РёРІРµРЅ</th>
+          <th class="text-end sticky-actions">Р”РµР№СЃС‚РІРёСЏ</th>
         </tr>
       </thead>
       <tbody>
@@ -87,7 +87,7 @@
             </td>
             <td style="min-width:220px">
               <select form="devupd-<%= d.id %>" class="form-select form-select-sm" name="zoneId">
-                <option value="">—</option>
+                <option value="">вЂ”</option>
                 <% (zones || []).forEach(z => { %>
                   <option value="<%= z.id %>" <%= (d.zoneId === z.id) ? 'selected' : '' %>><%= z.name %></option>
                 <% }) %>
@@ -113,10 +113,10 @@
             </td>
             <td class="text-end sticky-actions" style="min-width:150px">
               <div class="action-buttons">
-                <button class="btn btn-soft btn-sm" type="submit" form="devupd-<%= d.id %>">Обновить</button>
-                <form method="post" action="/admin/devices/<%= d.id %>/delete" onsubmit="return confirm('Удалить устройство?');">
+                <button class="btn btn-soft btn-sm" type="submit" form="devupd-<%= d.id %>">РћР±РЅРѕРІРёС‚СЊ</button>
+                <form method="post" action="/admin/devices/<%= d.id %>/delete" onsubmit="return confirm('РЈРґР°Р»РёС‚СЊ СѓСЃС‚СЂРѕР№СЃС‚РІРѕ?');">
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                  <button class="btn btn-danger btn-sm" type="submit">Удалить</button>
+                  <button class="btn btn-danger btn-sm" type="submit">РЈРґР°Р»РёС‚СЊ</button>
                 </form>
               </div>
               <form id="devupd-<%= d.id %>" method="post" action="/admin/devices/<%= d.id %>/update"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
@@ -124,18 +124,12 @@
           </tr>
         <% }) %>
         <% if (!devices || !devices.length) { %>
-          <tr><td colspan="7" class="text-muted p-3">Пока ничего не добавлено</td></tr>
+          <tr><td colspan="7" class="text-muted p-3">РџРѕРєР° РЅРёС‡РµРіРѕ РЅРµ РґРѕР±Р°РІР»РµРЅРѕ</td></tr>
         <% } %>
       </tbody>
     </table>
   </div>
 </div>
-
-
-
-
-
-<!-- DEVICES_MOBILE_MANAGE_START -->
 <style>
 .devices-mobile-wrap{ display:none !important; }
 .is-search-hidden{ display:none !important; }
@@ -257,7 +251,7 @@
 <div class="devices-mobile-wrap">
   <% if (devices && devices.length) { %>
     <% devices.forEach(function(d){ 
-      const _name = d.name || d.id || '—';
+      const _name = d.name || d.id || 'вЂ”';
       const _zone = String(d.zone_id || d.zoneId || d.zone || '');
       const _zoneName = (((zones || []).find(z => String(z.id) === String(_zone)) || {}).name) || '';
       const _method = d.method || 'http';
@@ -268,10 +262,10 @@
         <div class="devices-mobile-head">
           <div>
             <div class="devices-mobile-title"><%= _name %></div>
-            <div class="devices-mobile-sub text-mono">ID: <%= d.id || '—' %></div>
+            <div class="devices-mobile-sub text-mono">ID: <%= d.id || 'вЂ”' %></div>
           </div>
           <div class="devices-mobile-badge">
-            <span class="badge-soft"><%= _active ? 'В работе' : 'Отключено' %></span>
+            <span class="badge-soft"><%= _active ? 'Р’ СЂР°Р±РѕС‚Рµ' : 'РћС‚РєР»СЋС‡РµРЅРѕ' %></span>
           </div>
         </div>
 
@@ -279,14 +273,14 @@
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="devices-mobile-grid">
             <div class="devices-mobile-field">
-              <label>Название</label>
+              <label>РќР°Р·РІР°РЅРёРµ</label>
               <input class="form-control" type="text" name="name" value="<%= d.name || '' %>" required>
             </div>
 
             <div class="devices-mobile-field">
-              <label>Участок</label>
+              <label>РЈС‡Р°СЃС‚РѕРє</label>
               <select class="form-select" name="zoneId">
-                <option value="">Без привязки</option>
+                <option value="">Р‘РµР· РїСЂРёРІСЏР·РєРё</option>
                 <% (zones || []).forEach(function(z){ %>
                   <option value="<%= z.id %>" <%= String(z.id) === String(_zone) ? 'selected' : '' %>><%= z.name %></option>
                 <% }) %>
@@ -294,46 +288,42 @@
             </div>
 
             <div class="devices-mobile-field">
-              <label>Метод</label>
+              <label>РњРµС‚РѕРґ</label>
               <input class="form-control" type="text" name="method" value="<%= _method %>">
             </div>
 
             <div class="devices-mobile-field">
-              <label>Адрес / URL</label>
+              <label>РђРґСЂРµСЃ / URL</label>
               <input class="form-control text-mono" type="text" name="url" value="<%= _endpoint %>">
             </div>
 
             <div class="devices-mobile-field">
-              <label>Активен</label>
+              <label>РђРєС‚РёРІРµРЅ</label>
               <div class="devices-mobile-switch">
                 <input class="form-check-input" type="checkbox" name="is_active" value="true" <%= _active ? 'checked' : '' %>>
-                <span class="text-muted small">вкл/выкл</span>
+                <span class="text-muted small">РІРєР»/РІС‹РєР»</span>
               </div>
             </div>
           </div>
 
           <div class="devices-mobile-actions">
-            <button class="btn btn-primary" type="submit">Сохранить</button>
+            <button class="btn btn-primary" type="submit">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
         </form>
 
-            <form method="post" action="/admin/devices/<%= d.id %>/delete" onsubmit="return confirm('Удалить устройство?');">
+            <form method="post" action="/admin/devices/<%= d.id %>/delete" onsubmit="return confirm('РЈРґР°Р»РёС‚СЊ СѓСЃС‚СЂРѕР№СЃС‚РІРѕ?');">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <button class="btn btn-danger" type="submit">Удалить</button>
+              <button class="btn btn-danger" type="submit">РЈРґР°Р»РёС‚СЊ</button>
             </form>
           </div>
       </div>
     <% }) %>
   <% } else { %>
     <div class="devices-mobile-card">
-      <div class="devices-mobile-title">Устройства</div>
-      <div class="devices-mobile-sub">Пока ничего не добавлено</div>
+      <div class="devices-mobile-title">РЈСЃС‚СЂРѕР№СЃС‚РІР°</div>
+      <div class="devices-mobile-sub">РџРѕРєР° РЅРёС‡РµРіРѕ РЅРµ РґРѕР±Р°РІР»РµРЅРѕ</div>
     </div>
   <% } %>
 </div>
-<!-- DEVICES_MOBILE_MANAGE_END -->
-
-
-<!-- DEVICES_MASK_URLS_START -->
 <script>
 (function(){
   function maskUrl(v){
@@ -375,11 +365,6 @@
   });
 })();
 </script>
-<!-- DEVICES_MASK_URLS_END -->
-
-
-
-<!-- DEVICES_SECRET_SPLIT_START -->
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   function maskUrl(v){
@@ -412,18 +397,18 @@ document.addEventListener('DOMContentLoaded', function(){
     const auth = document.createElement('select');
     auth.name = 'auth_type';
     auth.className = 'form-control';
-    auth.innerHTML = '<option value="none">Без авторизации</option><option value="basic">Basic Auth</option>';
+    auth.innerHTML = '<option value="none">Р‘РµР· Р°РІС‚РѕСЂРёР·Р°С†РёРё</option><option value="basic">Basic Auth</option>';
 
     const user = document.createElement('input');
     user.name = 'username';
     user.className = 'form-control';
-    user.placeholder = 'Логин устройства';
+    user.placeholder = 'Р›РѕРіРёРЅ СѓСЃС‚СЂРѕР№СЃС‚РІР°';
 
     const pass = document.createElement('input');
     pass.name = 'password';
     pass.type = 'password';
     pass.className = 'form-control';
-    pass.placeholder = 'Пароль устройства';
+    pass.placeholder = 'РџР°СЂРѕР»СЊ СѓСЃС‚СЂРѕР№СЃС‚РІР°';
 
     wrap.appendChild(auth);
     wrap.appendChild(user);
@@ -453,10 +438,6 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 });
 </script>
-<!-- DEVICES_SECRET_SPLIT_END -->
-
-
-
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   const searchInput = document.getElementById('devicesSearch');
@@ -467,8 +448,8 @@ document.addEventListener('DOMContentLoaded', function(){
     return String(value || '')
       .toLowerCase()
       .replace(/[\u2013\u2014]/g, '-')
-      .replace(/ё/g, 'е')
-      .replace(/[^a-zа-я0-9/#+\-.\s]/gi, ' ')
+      .replace(/С‘/g, 'Рµ')
+      .replace(/[^a-zР°-СЏ0-9/#+\-.\s]/gi, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -500,22 +481,22 @@ document.addEventListener('DOMContentLoaded', function(){
 
   const SEARCH_ALIAS_GROUPS = [
     {
-      label: '-1 этаж',
-      terms: ['-1', '-1 этаж', 'минус 1', 'минус первый', 'п1', 'подземный 1', 'въезд п1'],
-      matchTerms: ['-1 этаж', 'въезд п1', 'п1'],
-      related: ['Подземный уровень', 'въезд п1']
+      label: '-1 СЌС‚Р°Р¶',
+      terms: ['-1', '-1 СЌС‚Р°Р¶', 'РјРёРЅСѓСЃ 1', 'РјРёРЅСѓСЃ РїРµСЂРІС‹Р№', 'Рї1', 'РїРѕРґР·РµРјРЅС‹Р№ 1', 'РІСЉРµР·Рґ Рї1'],
+      matchTerms: ['-1 СЌС‚Р°Р¶', 'РІСЉРµР·Рґ Рї1', 'Рї1'],
+      related: ['РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ', 'РІСЉРµР·Рґ Рї1']
     },
     {
-      label: '-2 этаж',
-      terms: ['-2', '-2 этаж', 'минус 2', 'минус второй', 'п2', 'п2/3', 'подземный 2', 'въезд п2/3'],
-      matchTerms: ['-2 этаж', 'въезд п2/3', 'п2', 'п2/3'],
-      related: ['Подземный уровень', 'въезд п2/3']
+      label: '-2 СЌС‚Р°Р¶',
+      terms: ['-2', '-2 СЌС‚Р°Р¶', 'РјРёРЅСѓСЃ 2', 'РјРёРЅСѓСЃ РІС‚РѕСЂРѕР№', 'Рї2', 'Рї2/3', 'РїРѕРґР·РµРјРЅС‹Р№ 2', 'РІСЉРµР·Рґ Рї2/3'],
+      matchTerms: ['-2 СЌС‚Р°Р¶', 'РІСЉРµР·Рґ Рї2/3', 'Рї2', 'Рї2/3'],
+      related: ['РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ', 'РІСЉРµР·Рґ Рї2/3']
     },
     {
-      label: 'Подземный уровень',
-      terms: ['подземный', 'подземный уровень', 'подземка', 'под землей', 'подземный въезд'],
-      matchTerms: ['Подземный уровень', 'въезд п1', 'въезд п2/3'],
-      related: ['Подземный уровень', 'въезд п1', 'въезд п2/3']
+      label: 'РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ',
+      terms: ['РїРѕРґР·РµРјРЅС‹Р№', 'РїРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ', 'РїРѕРґР·РµРјРєР°', 'РїРѕРґ Р·РµРјР»РµР№', 'РїРѕРґР·РµРјРЅС‹Р№ РІСЉРµР·Рґ'],
+      matchTerms: ['РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ', 'РІСЉРµР·Рґ Рї1', 'РІСЉРµР·Рґ Рї2/3'],
+      related: ['РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ', 'РІСЉРµР·Рґ Рї1', 'РІСЉРµР·Рґ Рї2/3']
     }
   ];
 
@@ -564,14 +545,14 @@ document.addEventListener('DOMContentLoaded', function(){
   function variants(value) {
     const query = normalize(value);
     if (!query) return [];
-    const floor = query.match(/^(\d{1,2})(?:\s*(?:эт|этаж|этажа))?$/);
+    const floor = query.match(/^(\d{1,2})(?:\s*(?:СЌС‚|СЌС‚Р°Р¶|СЌС‚Р°Р¶Р°))?$/);
     const set = floor ? new Set() : new Set([query, query.replace(/\s+/g, '')]);
     if (floor) {
-      set.add(floor[1] + ' этаж');
-      set.add('этаж ' + floor[1]);
-      set.add(floor[1] + 'эт');
-      set.add('въезд ' + floor[1] + 'эт');
-      set.add('выезд ' + floor[1] + 'эт');
+      set.add(floor[1] + ' СЌС‚Р°Р¶');
+      set.add('СЌС‚Р°Р¶ ' + floor[1]);
+      set.add(floor[1] + 'СЌС‚');
+      set.add('РІСЉРµР·Рґ ' + floor[1] + 'СЌС‚');
+      set.add('РІС‹РµР·Рґ ' + floor[1] + 'СЌС‚');
     }
     SEARCH_ALIAS_GROUPS
       .map((group) => ({ group, score: aliasGroupScore(query, group) }))

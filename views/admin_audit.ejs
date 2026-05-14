@@ -1,40 +1,40 @@
-<%- include('partials/header', { title: 'Админ • Аудит изменений', bodyClass, user, path: '/admin/audit' }) %>
+﻿<%- include('partials/header', { title: 'РђРґРјРёРЅ вЂў РђСѓРґРёС‚ РёР·РјРµРЅРµРЅРёР№', bodyClass, user, path: '/admin/audit' }) %>
 
 <%
   const ACTION_LABELS = {
-    login: 'Вход',
-    login_failed: 'Неудачный вход',
-    login_rate_limited: 'Ограничение входа',
-    change_pin: 'Смена пароля',
-    logout: 'Выход',
-    open: 'Открытие устройства',
-    create: 'Создание',
-    update: 'Изменение',
-    reset_pin: 'Сброс пароля',
-    clear_transit_log: 'Очистка журнала транзита',
-    delete: 'Удаление',
+    login: 'Р’С…РѕРґ',
+    login_failed: 'РќРµСѓРґР°С‡РЅС‹Р№ РІС…РѕРґ',
+    login_rate_limited: 'РћРіСЂР°РЅРёС‡РµРЅРёРµ РІС…РѕРґР°',
+    change_pin: 'РЎРјРµРЅР° РїР°СЂРѕР»СЏ',
+    logout: 'Р’С‹С…РѕРґ',
+    open: 'РћС‚РєСЂС‹С‚РёРµ СѓСЃС‚СЂРѕР№СЃС‚РІР°',
+    create: 'РЎРѕР·РґР°РЅРёРµ',
+    update: 'РР·РјРµРЅРµРЅРёРµ',
+    reset_pin: 'РЎР±СЂРѕСЃ РїР°СЂРѕР»СЏ',
+    clear_transit_log: 'РћС‡РёСЃС‚РєР° Р¶СѓСЂРЅР°Р»Р° С‚СЂР°РЅР·РёС‚Р°',
+    delete: 'РЈРґР°Р»РµРЅРёРµ',
   };
 
   const TYPE_LABELS = {
-    user: 'Учетная запись',
-    users: 'Учетные записи',
-    device: 'Устройство',
-    devices: 'Устройства',
-    zone: 'Участок',
-    zones: 'Участки',
-    transit_event: 'Событие транзита',
-    transit_events: 'Журнал транзита',
-    auth: 'Авторизация',
-    session: 'Сессия',
-    audit: 'Аудит',
-    log: 'Журнал',
-    logs: 'Журнал событий',
+    user: 'РЈС‡РµС‚РЅР°СЏ Р·Р°РїРёСЃСЊ',
+    users: 'РЈС‡РµС‚РЅС‹Рµ Р·Р°РїРёСЃРё',
+    device: 'РЈСЃС‚СЂРѕР№СЃС‚РІРѕ',
+    devices: 'РЈСЃС‚СЂРѕР№СЃС‚РІР°',
+    zone: 'РЈС‡Р°СЃС‚РѕРє',
+    zones: 'РЈС‡Р°СЃС‚РєРё',
+    transit_event: 'РЎРѕР±С‹С‚РёРµ С‚СЂР°РЅР·РёС‚Р°',
+    transit_events: 'Р–СѓСЂРЅР°Р» С‚СЂР°РЅР·РёС‚Р°',
+    auth: 'РђРІС‚РѕСЂРёР·Р°С†РёСЏ',
+    session: 'РЎРµСЃСЃРёСЏ',
+    audit: 'РђСѓРґРёС‚',
+    log: 'Р–СѓСЂРЅР°Р»',
+    logs: 'Р–СѓСЂРЅР°Р» СЃРѕР±С‹С‚РёР№',
   };
 
   const ROLE_LABELS = {
-    user: 'Арендатор',
-    admin: 'Администратор',
-    dispatcher: 'Диспетчер',
+    user: 'РђСЂРµРЅРґР°С‚РѕСЂ',
+    admin: 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ',
+    dispatcher: 'Р”РёСЃРїРµС‚С‡РµСЂ',
   };
 
   const METHOD_LABELS = {
@@ -42,44 +42,44 @@
     https: 'HTTPS',
     get: 'GET',
     post: 'POST',
-    none: 'Без авторизации',
-    basic: 'Базовая авторизация',
+    none: 'Р‘РµР· Р°РІС‚РѕСЂРёР·Р°С†РёРё',
+    basic: 'Р‘Р°Р·РѕРІР°СЏ Р°РІС‚РѕСЂРёР·Р°С†РёСЏ',
   };
 
   const REASON_LABELS = {
-    not_found: 'пользователь не найден',
-    inactive: 'учетная запись отключена',
-    bad_pin: 'неверный пароль',
-    first_login_or_reset: 'первый вход или сброс пароля',
-    unknown: 'неизвестная причина',
+    not_found: 'РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ',
+    inactive: 'СѓС‡РµС‚РЅР°СЏ Р·Р°РїРёСЃСЊ РѕС‚РєР»СЋС‡РµРЅР°',
+    bad_pin: 'РЅРµРІРµСЂРЅС‹Р№ РїР°СЂРѕР»СЊ',
+    first_login_or_reset: 'РїРµСЂРІС‹Р№ РІС…РѕРґ РёР»Рё СЃР±СЂРѕСЃ РїР°СЂРѕР»СЏ',
+    unknown: 'РЅРµРёР·РІРµСЃС‚РЅР°СЏ РїСЂРёС‡РёРЅР°',
   };
 
   const SCOPE_LABELS = {
-    ip_phone: 'IP + телефон',
-    ip: 'IP-адрес',
-    phone: 'телефон',
-    unknown: 'неизвестно',
+    ip_phone: 'IP + С‚РµР»РµС„РѕРЅ',
+    ip: 'IP-Р°РґСЂРµСЃ',
+    phone: 'С‚РµР»РµС„РѕРЅ',
+    unknown: 'РЅРµРёР·РІРµСЃС‚РЅРѕ',
   };
 
   const ZONE_LABELS = {
-    'buffer': 'Северный въезд',
-    'europlan': 'Этажи 2-9',
-    'Elevator doors': 'Лифтовые двери',
-    'Above-ground gates': 'Надземные ворота',
-    'Above-ground doors': 'Надземные двери',
-    'Underground gates': 'Подземные ворота',
-    'Underground doors': 'Подземные двери',
-    'overground': 'Наземный уровень',
-    'pedestrian': 'Входы и лифты',
-    'underground': 'Подземный уровень',
-    'transit': 'Рампа на эстакаду',
+    'buffer': 'РЎРµРІРµСЂРЅС‹Р№ РІСЉРµР·Рґ',
+    'europlan': 'Р­С‚Р°Р¶Рё 2-9',
+    'Elevator doors': 'Р›РёС„С‚РѕРІС‹Рµ РґРІРµСЂРё',
+    'Above-ground gates': 'РќР°РґР·РµРјРЅС‹Рµ РІРѕСЂРѕС‚Р°',
+    'Above-ground doors': 'РќР°РґР·РµРјРЅС‹Рµ РґРІРµСЂРё',
+    'Underground gates': 'РџРѕРґР·РµРјРЅС‹Рµ РІРѕСЂРѕС‚Р°',
+    'Underground doors': 'РџРѕРґР·РµРјРЅС‹Рµ РґРІРµСЂРё',
+    'overground': 'РќР°Р·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ',
+    'pedestrian': 'Р’С…РѕРґС‹ Рё Р»РёС„С‚С‹',
+    'underground': 'РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ',
+    'transit': 'Р Р°РјРїР° РЅР° СЌСЃС‚Р°РєР°РґСѓ',
   };
 
-  const boolRu = (v) => (v ? 'да' : 'нет');
+  const boolRu = (v) => (v ? 'РґР°' : 'РЅРµС‚');
   const zoneLabel = (z) => ZONE_LABELS[String(z || '').trim()] || String(z || '');
   const DEVICE_LABELS = {
-    lift1: 'Лифт 1',
-    p2: 'Въезд П2/3',
+    lift1: 'Р›РёС„С‚ 1',
+    p2: 'Р’СЉРµР·Рґ Рџ2/3',
   };
   const deviceLabel = (d) => DEVICE_LABELS[String(d || '').trim()] || String(d || '');
 
@@ -95,7 +95,7 @@
     const obj = parseAuditDetails(e && e.details);
 
     if (type === 'zone' || type === 'zones') {
-      return zoneLabel(id) || '—';
+      return zoneLabel(id) || 'вЂ”';
     }
 
     if (type === 'device' || type === 'devices') {
@@ -103,14 +103,14 @@
         (obj && obj.gw && obj.gw.data && Array.isArray(obj.gw.data.results) && obj.gw.data.results[0] && obj.gw.data.results[0].name) ||
         (obj && obj.name) ||
         deviceLabel(id);
-      return gwName || id || '—';
+      return gwName || id || 'вЂ”';
     }
 
     if (type === 'user' || type === 'users') {
-      return (obj && obj.fio) || id || '—';
+      return (obj && obj.fio) || id || 'вЂ”';
     }
 
-    return id || '—';
+    return id || 'вЂ”';
   };
   const actionLabel = (a) => ACTION_LABELS[String(a || '').trim()] || String(a || '');
   const typeLabel = (t) => TYPE_LABELS[String(t || '').trim()] || String(t || '');
@@ -129,15 +129,15 @@
     }
 
     if (type === 'zone' || type === 'zones') {
-      return zoneLabel(id || (details && (details.zoneId || details.zone)) || '') || '—';
+      return zoneLabel(id || (details && (details.zoneId || details.zone)) || '') || 'вЂ”';
     }
 
     if (type === 'user' || type === 'users') {
       if (details && details.fio) return details.fio;
-      if (id === 'admin') return 'Администратор';
-      if (id === 'user') return 'Арендатор';
-      if (id === 'dispatcher') return 'Диспетчер';
-      return id || 'Учетная запись';
+      if (id === 'admin') return 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ';
+      if (id === 'user') return 'РђСЂРµРЅРґР°С‚РѕСЂ';
+      if (id === 'dispatcher') return 'Р”РёСЃРїРµС‚С‡РµСЂ';
+      return id || 'РЈС‡РµС‚РЅР°СЏ Р·Р°РїРёСЃСЊ';
     }
 
     if (type === 'device' || type === 'devices') {
@@ -148,10 +148,10 @@
         details.gw.data.results[0].name
           ? details.gw.data.results[0].name
           : '';
-      return gwName || id || '—';
+      return gwName || id || 'вЂ”';
     }
 
-    return id || '—';
+    return id || 'вЂ”';
   };
 
   const actionClass = (a) => {
@@ -163,7 +163,7 @@
   };
 
   const summarizeDetails = (d) => {
-    if (!d) return '—';
+    if (!d) return 'вЂ”';
 
     let obj = d;
     if (typeof d === 'string') {
@@ -171,41 +171,41 @@
         obj = JSON.parse(d);
       } catch {
         return String(d)
-          .replace(/\busers\b/gi, 'Учетные записи')
-          .replace(/\buser\b/gi, 'Учетная запись')
-          .replace(/\bdevices\b/gi, 'Устройства')
-          .replace(/\bdevice\b/gi, 'Устройство')
-          .replace(/\bzones\b/gi, 'Участки')
-          .replace(/\bzone\b/gi, 'Участок')
-          .replace(/\btransit_event\b/gi, 'Событие транзита')
-          .replace(/\btransit_events\b/gi, 'Журнал транзита')
-          .replace(/Elevator doors/g, 'Лифтовые двери')
-          .replace(/Above-ground gates/g, 'Надземные ворота')
-          .replace(/Above-ground doors/g, 'Надземные двери')
-          .replace(/Underground gates/g, 'Подземные ворота')
-          .replace(/Underground doors/g, 'Подземные двери')
-          .replace(/\bbuffer\b/g, 'Северный въезд')
-          .replace(/\beuroplan\b/g, 'Этажи 2-9')
-          .replace(/\boverground\b/g, 'Наземный уровень')
-          .replace(/\bpedestrian\b/g, 'Входы и лифты')
-          .replace(/\bunderground\b/g, 'Подземный уровень')
-          .replace(/\btransit\b/g, 'Рампа на эстакаду')
-          .replace(/Elevator doors/g, 'Лифтовые двери')
-          .replace(/Above-ground gates/g, 'Надземные ворота')
-          .replace(/Above-ground doors/g, 'Надземные двери')
-          .replace(/Underground gates/g, 'Подземные ворота')
-          .replace(/Underground doors/g, 'Подземные двери')
-          .replace(/\bbuffer\b/g, 'Северный въезд')
-          .replace(/\beuroplan\b/g, 'Этажи 2-9')
-          .replace(/\boverground\b/g, 'Наземный уровень')
-          .replace(/\bpedestrian\b/g, 'Входы и лифты')
-          .replace(/\bunderground\b/g, 'Подземный уровень')
-          .replace(/\btransit\b/g, 'Рампа на эстакаду')
-          .replace(/\badmin\b/g, 'Администратор')
-          .replace(/\bdispatcher\b/g, 'Диспетчер')
+          .replace(/\busers\b/gi, 'РЈС‡РµС‚РЅС‹Рµ Р·Р°РїРёСЃРё')
+          .replace(/\buser\b/gi, 'РЈС‡РµС‚РЅР°СЏ Р·Р°РїРёСЃСЊ')
+          .replace(/\bdevices\b/gi, 'РЈСЃС‚СЂРѕР№СЃС‚РІР°')
+          .replace(/\bdevice\b/gi, 'РЈСЃС‚СЂРѕР№СЃС‚РІРѕ')
+          .replace(/\bzones\b/gi, 'РЈС‡Р°СЃС‚РєРё')
+          .replace(/\bzone\b/gi, 'РЈС‡Р°СЃС‚РѕРє')
+          .replace(/\btransit_event\b/gi, 'РЎРѕР±С‹С‚РёРµ С‚СЂР°РЅР·РёС‚Р°')
+          .replace(/\btransit_events\b/gi, 'Р–СѓСЂРЅР°Р» С‚СЂР°РЅР·РёС‚Р°')
+          .replace(/Elevator doors/g, 'Р›РёС„С‚РѕРІС‹Рµ РґРІРµСЂРё')
+          .replace(/Above-ground gates/g, 'РќР°РґР·РµРјРЅС‹Рµ РІРѕСЂРѕС‚Р°')
+          .replace(/Above-ground doors/g, 'РќР°РґР·РµРјРЅС‹Рµ РґРІРµСЂРё')
+          .replace(/Underground gates/g, 'РџРѕРґР·РµРјРЅС‹Рµ РІРѕСЂРѕС‚Р°')
+          .replace(/Underground doors/g, 'РџРѕРґР·РµРјРЅС‹Рµ РґРІРµСЂРё')
+          .replace(/\bbuffer\b/g, 'РЎРµРІРµСЂРЅС‹Р№ РІСЉРµР·Рґ')
+          .replace(/\beuroplan\b/g, 'Р­С‚Р°Р¶Рё 2-9')
+          .replace(/\boverground\b/g, 'РќР°Р·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ')
+          .replace(/\bpedestrian\b/g, 'Р’С…РѕРґС‹ Рё Р»РёС„С‚С‹')
+          .replace(/\bunderground\b/g, 'РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ')
+          .replace(/\btransit\b/g, 'Р Р°РјРїР° РЅР° СЌСЃС‚Р°РєР°РґСѓ')
+          .replace(/Elevator doors/g, 'Р›РёС„С‚РѕРІС‹Рµ РґРІРµСЂРё')
+          .replace(/Above-ground gates/g, 'РќР°РґР·РµРјРЅС‹Рµ РІРѕСЂРѕС‚Р°')
+          .replace(/Above-ground doors/g, 'РќР°РґР·РµРјРЅС‹Рµ РґРІРµСЂРё')
+          .replace(/Underground gates/g, 'РџРѕРґР·РµРјРЅС‹Рµ РІРѕСЂРѕС‚Р°')
+          .replace(/Underground doors/g, 'РџРѕРґР·РµРјРЅС‹Рµ РґРІРµСЂРё')
+          .replace(/\bbuffer\b/g, 'РЎРµРІРµСЂРЅС‹Р№ РІСЉРµР·Рґ')
+          .replace(/\beuroplan\b/g, 'Р­С‚Р°Р¶Рё 2-9')
+          .replace(/\boverground\b/g, 'РќР°Р·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ')
+          .replace(/\bpedestrian\b/g, 'Р’С…РѕРґС‹ Рё Р»РёС„С‚С‹')
+          .replace(/\bunderground\b/g, 'РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ')
+          .replace(/\btransit\b/g, 'Р Р°РјРїР° РЅР° СЌСЃС‚Р°РєР°РґСѓ')
+          .replace(/\badmin\b/g, 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ')
+          .replace(/\bdispatcher\b/g, 'Р”РёСЃРїРµС‚С‡РµСЂ')
           .replace(/\bhttp\b/gi, 'HTTP')
-          .replace(/\bnone\b/gi, 'Без авторизации')
-          .replace(/\bbasic\b/gi, 'Базовая авторизация')
+          .replace(/\bnone\b/gi, 'Р‘РµР· Р°РІС‚РѕСЂРёР·Р°С†РёРё')
+          .replace(/\bbasic\b/gi, 'Р‘Р°Р·РѕРІР°СЏ Р°РІС‚РѕСЂРёР·Р°С†РёСЏ')
           .slice(0, 160);
       }
     }
@@ -214,33 +214,33 @@
 
     const out = [];
 
-    if (obj.fio) out.push('ФИО: ' + obj.fio);
-    if (obj.phone) out.push('Телефон: ' + obj.phone);
+    if (obj.fio) out.push('Р¤РРћ: ' + obj.fio);
+    if (obj.phone) out.push('РўРµР»РµС„РѕРЅ: ' + obj.phone);
     if (obj.email) out.push('Email: ' + obj.email);
-    if (obj.role) out.push('Роль: ' + roleLabel(obj.role));
-    if (obj.reason) out.push('Причина: ' + reasonLabel(obj.reason));
-    if (obj.scope) out.push('Лимит: ' + scopeLabel(obj.scope));
-    if (obj.retry_after_sec !== undefined) out.push('Повтор через: ' + obj.retry_after_sec + ' сек.');
+    if (obj.role) out.push('Р РѕР»СЊ: ' + roleLabel(obj.role));
+    if (obj.reason) out.push('РџСЂРёС‡РёРЅР°: ' + reasonLabel(obj.reason));
+    if (obj.scope) out.push('Р›РёРјРёС‚: ' + scopeLabel(obj.scope));
+    if (obj.retry_after_sec !== undefined) out.push('РџРѕРІС‚РѕСЂ С‡РµСЂРµР·: ' + obj.retry_after_sec + ' СЃРµРє.');
     if (obj.zoneId) {
-      out.push('Участок: ' + zoneLabel(obj.zoneId));
+      out.push('РЈС‡Р°СЃС‚РѕРє: ' + zoneLabel(obj.zoneId));
     }
-    if (obj.zone) out.push('Участок: ' + zoneLabel(obj.zone));
-    if (obj.name) out.push('Название: ' + obj.name);
-    if (obj.method) out.push('Метод: ' + methodLabel(obj.method));
-    if (obj.url) out.push('Адрес: ' + obj.url);
+    if (obj.zone) out.push('РЈС‡Р°СЃС‚РѕРє: ' + zoneLabel(obj.zone));
+    if (obj.name) out.push('РќР°Р·РІР°РЅРёРµ: ' + obj.name);
+    if (obj.method) out.push('РњРµС‚РѕРґ: ' + methodLabel(obj.method));
+    if (obj.url) out.push('РђРґСЂРµСЃ: ' + obj.url);
     if (obj.ip) out.push('IP: ' + obj.ip);
-    if (obj.auth_type) out.push('Авторизация: ' + methodLabel(obj.auth_type));
-    if (obj.isActive !== undefined) out.push('Активен: ' + boolRu(obj.isActive));
-    if (obj.is_active !== undefined) out.push('Активен: ' + boolRu(obj.is_active));
-    if (obj.pin_changed) out.push('Пароль изменён');
-    if (obj.pin_generated) out.push('Пароль сгенерирован');
-    if (obj.pin_set) out.push('Пароль задан вручную');
-    if (obj.must_change_pin) out.push('Требуется смена пароля при входе');
-    if (obj.pin_expires_at) out.push('Срок действия пароля: ' + obj.pin_expires_at);
-    if (obj.http_status) out.push('HTTP статус: ' + obj.http_status);
-    if (obj.gw && obj.gw.http_status) out.push('Шлюз: HTTP ' + obj.gw.http_status);
+    if (obj.auth_type) out.push('РђРІС‚РѕСЂРёР·Р°С†РёСЏ: ' + methodLabel(obj.auth_type));
+    if (obj.isActive !== undefined) out.push('РђРєС‚РёРІРµРЅ: ' + boolRu(obj.isActive));
+    if (obj.is_active !== undefined) out.push('РђРєС‚РёРІРµРЅ: ' + boolRu(obj.is_active));
+    if (obj.pin_changed) out.push('РџР°СЂРѕР»СЊ РёР·РјРµРЅС‘РЅ');
+    if (obj.pin_generated) out.push('РџР°СЂРѕР»СЊ СЃРіРµРЅРµСЂРёСЂРѕРІР°РЅ');
+    if (obj.pin_set) out.push('РџР°СЂРѕР»СЊ Р·Р°РґР°РЅ РІСЂСѓС‡РЅСѓСЋ');
+    if (obj.must_change_pin) out.push('РўСЂРµР±СѓРµС‚СЃСЏ СЃРјРµРЅР° РїР°СЂРѕР»СЏ РїСЂРё РІС…РѕРґРµ');
+    if (obj.pin_expires_at) out.push('РЎСЂРѕРє РґРµР№СЃС‚РІРёСЏ РїР°СЂРѕР»СЏ: ' + obj.pin_expires_at);
+    if (obj.http_status) out.push('HTTP СЃС‚Р°С‚СѓСЃ: ' + obj.http_status);
+    if (obj.gw && obj.gw.http_status) out.push('РЁР»СЋР·: HTTP ' + obj.gw.http_status);
 
-    return out.length ? out.join(' • ') : '—';
+    return out.length ? out.join(' вЂў ') : 'вЂ”';
   };
 %>
 
@@ -559,7 +559,6 @@ html, body{
 
 
 <style>
-/* AUDIT_COMPACT_IOS_FIX_START */
 body.page-audit form[action="/admin/audit"].audit-filter-card{
   padding:12px !important;
 }
@@ -615,7 +614,6 @@ body.page-audit form[action="/admin/audit"] .audit-filter-actions a.btn{
   white-space:nowrap !important;
 }
 
-/* убираем кривой safari-рендер date/time */
 body.page-audit form[action="/admin/audit"] input[type="date"]::-webkit-datetime-edit,
 body.page-audit form[action="/admin/audit"] input[type="date"]::-webkit-datetime-edit-fields-wrapper,
 body.page-audit form[action="/admin/audit"] input[type="date"]::-webkit-datetime-edit-text,
@@ -656,13 +654,11 @@ body.page-audit form[action="/admin/audit"] input[type="time"]::-webkit-datetime
     border-radius:14px !important;
   }
 }
-/* AUDIT_COMPACT_IOS_FIX_END */
 </style>
 
 
 
 <style>
-/* AUDIT_COMPACT_SEARCH_BLOCK_START */
 body.page-audit .audit-filter-card{
   padding:10px !important;
   border-radius:16px !important;
@@ -772,15 +768,14 @@ body.page-audit .audit-filter-actions .btn-secondary{
     font-size:14px !important;
   }
 }
-/* AUDIT_COMPACT_SEARCH_BLOCK_END */
 </style>
 
 
 <div class="audit-page">
   <div class="audit-head">
     <div>
-      <h1 class="h4 mb-0">Аудит</h1>
-      <div class="text-muted small">Кто и что менял.</div>
+      <h1 class="h4 mb-0">РђСѓРґРёС‚</h1>
+      <div class="text-muted small">РљС‚Рѕ Рё С‡С‚Рѕ РјРµРЅСЏР».</div>
     </div>
   </div>
 
@@ -788,48 +783,46 @@ body.page-audit .audit-filter-actions .btn-secondary{
   <form method="get" action="/admin/audit" class="card card-glass p-3 mb-3 audit-filter-card audit-filter-card-logsclone" style="max-width:100%;overflow:hidden;">
   <div class="audit-logsclone-grid" style="width:100%;max-width:100%;">
     <div class="alc-field alc-date">
-      <label class="form-label">Дата с</label>
+      <label class="form-label">Р”Р°С‚Р° СЃ</label>
       <input class="form-control" type="date" name="date_from" value="<%= (filters && filters.date_from) ? filters.date_from : '' %>">
     </div>
 
     <div class="alc-field alc-date">
-      <label class="form-label">Дата по</label>
+      <label class="form-label">Р”Р°С‚Р° РїРѕ</label>
       <input class="form-control" type="date" name="date_to" value="<%= (filters && filters.date_to) ? filters.date_to : '' %>">
     </div>
 
     <div class="alc-field alc-time">
-      <label class="form-label">Время с</label>
+      <label class="form-label">Р’СЂРµРјСЏ СЃ</label>
       <input class="form-control" type="time" name="time_from" value="<%= (filters && filters.time_from) ? filters.time_from : '' %>">
     </div>
 
     <div class="alc-field alc-time">
-      <label class="form-label">Время по</label>
+      <label class="form-label">Р’СЂРµРјСЏ РїРѕ</label>
       <input class="form-control" type="time" name="time_to" value="<%= (filters && filters.time_to) ? filters.time_to : '' %>">
     </div>
 
     <div class="alc-field alc-org">
-      <label class="form-label">Организация</label>
-      <input class="form-control" type="text" name="organization" placeholder="Поиск по организации" value="<%= (filters && filters.organization) ? filters.organization : '' %>">
+      <label class="form-label">РћСЂРіР°РЅРёР·Р°С†РёСЏ</label>
+      <input class="form-control" type="text" name="organization" placeholder="РџРѕРёСЃРє РїРѕ РѕСЂРіР°РЅРёР·Р°С†РёРё" value="<%= (filters && filters.organization) ? filters.organization : '' %>">
     </div>
 
     <div class="alc-field alc-fio">
-      <label class="form-label">ФИО</label>
-      <input class="form-control" type="text" name="fio" placeholder="Поиск по ФИО" value="<%= (filters && filters.fio) ? filters.fio : '' %>">
+      <label class="form-label">Р¤РРћ</label>
+      <input class="form-control" type="text" name="fio" placeholder="РџРѕРёСЃРє РїРѕ Р¤РРћ" value="<%= (filters && filters.fio) ? filters.fio : '' %>">
     </div>
 
     <div class="alc-field alc-pos">
-      <label class="form-label">Должность</label>
-      <input class="form-control" type="text" name="position" placeholder="Поиск по должности" value="<%= (filters && filters.position) ? filters.position : '' %>">
+      <label class="form-label">Р”РѕР»Р¶РЅРѕСЃС‚СЊ</label>
+      <input class="form-control" type="text" name="position" placeholder="РџРѕРёСЃРє РїРѕ РґРѕР»Р¶РЅРѕСЃС‚Рё" value="<%= (filters && filters.position) ? filters.position : '' %>">
     </div>
 
     <div class="alc-actions">
-      <button class="btn btn-primary w-100" type="submit">Применить</button>
+      <button class="btn btn-primary w-100" type="submit">РџСЂРёРјРµРЅРёС‚СЊ</button>
       <a class="btn btn-secondary" href="<%= typeof csvUrl !== 'undefined' ? csvUrl : '/admin/audit.csv' %>">CSV</a>
     </div>
   </div>
 </form>
-
-<!-- AUDIT_LOGSCLONE_FINAL_START -->
 <style>
 body.page-audit .audit-filter-card-logsclone{
   width:100% !important;
@@ -968,19 +961,16 @@ body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
   }
 }
 </style>
-<!-- AUDIT_LOGSCLONE_FINAL_END -->
-
-
-  <div class="card card-glass p-2 p-md-3 audit-table-shell">
+<div class="card card-glass p-2 p-md-3 audit-table-shell">
     <div class="table-responsive audit-table-wrap">
       <table class="table table-dark table-hover align-middle mb-0 audit-table">
         <thead>
           <tr>
-            <th class="audit-col-time">Время (МСК)</th>
-            <th class="audit-col-who">Кто</th>
-            <th class="audit-col-action">Действие</th>
-            <th class="audit-col-target">Что меняли</th>
-            <th class="audit-col-details">Детали</th>
+            <th class="audit-col-time">Р’СЂРµРјСЏ (РњРЎРљ)</th>
+            <th class="audit-col-who">РљС‚Рѕ</th>
+            <th class="audit-col-action">Р”РµР№СЃС‚РІРёРµ</th>
+            <th class="audit-col-target">Р§С‚Рѕ РјРµРЅСЏР»Рё</th>
+            <th class="audit-col-details">Р”РµС‚Р°Р»Рё</th>
           </tr>
         </thead>
         <tbody>
@@ -988,8 +978,8 @@ body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
           <tr>
             <td class="small text-muted"><%= fmt %></td>
             <td>
-              <div class="fw-semibold"><%= e.actorFio || '—' %></div>
-              <div class="small text-muted"><%= [e.actorOrganization, e.actorPosition].filter(Boolean).join(' • ') %></div>
+              <div class="fw-semibold"><%= e.actorFio || 'вЂ”' %></div>
+              <div class="small text-muted"><%= [e.actorOrganization, e.actorPosition].filter(Boolean).join(' вЂў ') %></div>
               <div class="small text-muted"><%= e.actorPhone || '' %></div>
             </td>
             <td>
@@ -1015,16 +1005,16 @@ body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
           </div>
 
           <div class="audit-card-row">
-            <div class="audit-card-label">Кто</div>
+            <div class="audit-card-label">РљС‚Рѕ</div>
             <div class="audit-card-value">
-              <div><strong><%= e.actorFio || '—' %></strong></div>
-              <div><%= [e.actorOrganization, e.actorPosition].filter(Boolean).join(' • ') %></div>
+              <div><strong><%= e.actorFio || 'вЂ”' %></strong></div>
+              <div><%= [e.actorOrganization, e.actorPosition].filter(Boolean).join(' вЂў ') %></div>
               <div><%= e.actorPhone || '' %></div>
             </div>
           </div>
 
           <div class="audit-card-row">
-            <div class="audit-card-label">Что меняли</div>
+            <div class="audit-card-label">Р§С‚Рѕ РјРµРЅСЏР»Рё</div>
             <div class="audit-card-value">
               <div><%= typeLabel(e.targetType) %></div>
               <div><strong><%= safeTargetText(e) %></strong></div>
@@ -1032,7 +1022,7 @@ body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
           </div>
 
           <div class="audit-card-row">
-            <div class="audit-card-label">Детали</div>
+            <div class="audit-card-label">Р”РµС‚Р°Р»Рё</div>
             <div class="audit-card-value"><%= summarizeDetails(e.details) %></div>
           </div>
         </div>
@@ -1040,45 +1030,6 @@ body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
     </div>
   </div>
 </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- AUDIT_TABLE_PC_FIX_START -->
 <style>
 @media (min-width: 901px){
   body.page-audit .audit-table-wrap{
@@ -1118,7 +1069,6 @@ body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
     padding-bottom:12px !important;
   }
 
-  /* ширины колонок */
   body.page-audit .audit-col-time{ width:15% !important; }
   body.page-audit .audit-col-who{ width:24% !important; }
   body.page-audit .audit-col-action{ width:15% !important; }
@@ -1172,11 +1122,6 @@ body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
   }
 }
 </style>
-<!-- AUDIT_TABLE_PC_FIX_START -->
-
-
-
-<!-- AUDIT_TABLE_PC_FIX_START -->
 <style>
 @media (min-width: 901px){
   body.page-audit .audit-table-wrap{
@@ -1216,7 +1161,6 @@ body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
     padding-bottom:12px !important;
   }
 
-  /* ширины колонок */
   body.page-audit .audit-col-time{ width:15% !important; }
   body.page-audit .audit-col-who{ width:24% !important; }
   body.page-audit .audit-col-action{ width:15% !important; }
@@ -1270,39 +1214,6 @@ body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
   }
 }
 </style>
-<!-- AUDIT_TABLE_PC_FIX_START -->
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- AUDIT_NATIVE_PICKERS_FIX_START -->
 <style>
 @media (max-width: 760px){
   body.page-audit .audit-filter-card-logsclone,
@@ -1330,7 +1241,6 @@ body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
     margin:0 !important;
   }
 
-  /* Нативные pickers: календарь и прокрутка времени */
   body.page-audit .audit-filter-card-logsclone input[type="date"],
   body.page-audit .audit-filter-card-logsclone input[type="time"]{
     -webkit-appearance:auto !important;
@@ -1343,7 +1253,6 @@ body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
     padding-right:14px !important;
   }
 
-  /* Safari/iPhone любит внутренние поля делать уже/шире */
   body.page-audit .audit-filter-card-logsclone input[type="date"]::-webkit-date-and-time-value,
   body.page-audit .audit-filter-card-logsclone input[type="time"]::-webkit-date-and-time-value{
     text-align:left !important;
@@ -1361,11 +1270,6 @@ body.page-audit .audit-filter-card-logsclone .alc-actions .btn{
   }
 }
 </style>
-<!-- AUDIT_NATIVE_PICKERS_FIX_END -->
-
-
-
-<!-- AUDIT_MOBILE_NATIVE_WRAP_FIX_START -->
 <style>
 @media (max-width: 760px){
   body.page-audit .audit-filter-card-logsclone{
@@ -1448,12 +1352,12 @@ document.addEventListener('DOMContentLoaded', function () {
   if (form.dataset.auditNativeWrapReady === '1') return;
 
   function prettyDate(v) {
-    if (!v) return 'Выберите дату';
+    if (!v) return 'Р’С‹Р±РµСЂРёС‚Рµ РґР°С‚Сѓ';
     return v;
   }
 
   function prettyTime(v) {
-    if (!v) return 'Выберите время';
+    if (!v) return 'Р’С‹Р±РµСЂРёС‚Рµ РІСЂРµРјСЏ';
     return v;
   }
 
@@ -1484,15 +1388,12 @@ document.addEventListener('DOMContentLoaded', function () {
     sync();
   }
 
-  wrapInput('date_from', 'Выберите дату', prettyDate);
-  wrapInput('date_to', 'Выберите дату', prettyDate);
-  wrapInput('time_from', 'Выберите время', prettyTime);
-  wrapInput('time_to', 'Выберите время', prettyTime);
+  wrapInput('date_from', 'Р’С‹Р±РµСЂРёС‚Рµ РґР°С‚Сѓ', prettyDate);
+  wrapInput('date_to', 'Р’С‹Р±РµСЂРёС‚Рµ РґР°С‚Сѓ', prettyDate);
+  wrapInput('time_from', 'Р’С‹Р±РµСЂРёС‚Рµ РІСЂРµРјСЏ', prettyTime);
+  wrapInput('time_to', 'Р’С‹Р±РµСЂРёС‚Рµ РІСЂРµРјСЏ', prettyTime);
 
   form.dataset.auditNativeWrapReady = '1';
 });
 </script>
-<!-- AUDIT_MOBILE_NATIVE_WRAP_FIX_END -->
-
-
 <%- include('partials/footer') %>

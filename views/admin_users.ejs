@@ -1,6 +1,6 @@
-<%- include('partials/header', { title, bodyClass, user, path: '/admin/users' }) %>
+﻿<%- include('partials/header', { title, bodyClass, user, path: '/admin/users' }) %>
 
-<% const roleRu = (r) => (r==='admin' ? 'Администратор' : (r==='dispatcher' ? 'Диспетчер' : (r==='user' ? 'Арендатор' : r))); %>
+<% const roleRu = (r) => (r==='admin' ? 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ' : (r==='dispatcher' ? 'Р”РёСЃРїРµС‚С‡РµСЂ' : (r==='user' ? 'РђСЂРµРЅРґР°С‚РѕСЂ' : r))); %>
 <% const pluralRu = (n, one, few, many) => { const mod10 = n % 10; const mod100 = n % 100; if (mod10 === 1 && mod100 !== 11) return one; if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few; return many; }; %>
 <% const _allZones = Array.isArray(allZones) ? allZones : (Array.isArray(zones) ? zones : []); %>
 <% const _isISAdmin = !!(user && user.is_is_admin); %>
@@ -12,14 +12,14 @@
 <div class="mb-3">
   <div class="d-flex flex-wrap gap-2 align-items-start justify-content-between">
     <div style="min-width:240px;">
-      <h1 class="h4 mb-0">Люди</h1>
-      <div class="text-muted small">Добавляйте арендаторов, диспетчеров и администраторов.</div>
+      <h1 class="h4 mb-0">Р›СЋРґРё</h1>
+      <div class="text-muted small">Р”РѕР±Р°РІР»СЏР№С‚Рµ Р°СЂРµРЅРґР°С‚РѕСЂРѕРІ, РґРёСЃРїРµС‚С‡РµСЂРѕРІ Рё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРІ.</div>
     </div>
     <div class="d-flex flex-wrap gap-2">
-      <span class="badge-soft px-3 py-2">Всего: <%= _users.length %></span>
-      <span class="badge-soft px-3 py-2">Арендаторы: <%= _tenantCount %></span>
-      <span class="badge-soft px-3 py-2">Диспетчеры: <%= _dispatcherCount %></span>
-      <span class="badge-soft px-3 py-2">Админы: <%= _adminCount %></span>
+      <span class="badge-soft px-3 py-2">Р’СЃРµРіРѕ: <%= _users.length %></span>
+      <span class="badge-soft px-3 py-2">РђСЂРµРЅРґР°С‚РѕСЂС‹: <%= _tenantCount %></span>
+      <span class="badge-soft px-3 py-2">Р”РёСЃРїРµС‚С‡РµСЂС‹: <%= _dispatcherCount %></span>
+      <span class="badge-soft px-3 py-2">РђРґРјРёРЅС‹: <%= _adminCount %></span>
     </div>
   </div>
 </div>
@@ -142,11 +142,11 @@
 
 <div class="user-delete-toast-backdrop" id="userDeleteToastBackdrop">
   <div class="user-delete-toast-card" role="alertdialog" aria-modal="true" aria-labelledby="userDeleteToastTitle">
-    <button type="button" class="user-delete-toast-close" id="userDeleteToastClose" aria-label="Закрыть">×</button>
-    <div class="user-delete-toast-title" id="userDeleteToastTitle">Доступ ограничен</div>
+    <button type="button" class="user-delete-toast-close" id="userDeleteToastClose" aria-label="Р—Р°РєСЂС‹С‚СЊ">Г—</button>
+    <div class="user-delete-toast-title" id="userDeleteToastTitle">Р”РѕСЃС‚СѓРї РѕРіСЂР°РЅРёС‡РµРЅ</div>
     <div class="user-delete-toast-text"><%= errorToast %></div>
     <div class="user-delete-toast-actions">
-      <button type="button" class="btn btn-primary" id="userDeleteToastOk">Понятно</button>
+      <button type="button" class="btn btn-primary" id="userDeleteToastOk">РџРѕРЅСЏС‚РЅРѕ</button>
     </div>
   </div>
 </div>
@@ -201,21 +201,21 @@ document.addEventListener('DOMContentLoaded', function () {
 }
 </style>
 <div class="generated-pin-notice mb-3" role="status">
-  <div class="generated-pin-notice-title">Пароль создан</div>
+  <div class="generated-pin-notice-title">РџР°СЂРѕР»СЊ СЃРѕР·РґР°РЅ</div>
   <div class="small text-muted mb-2">
-    Передайте этот временный пароль пользователю отдельно. Он показан только один раз и потребует смены при первом входе.
+    РџРµСЂРµРґР°Р№С‚Рµ СЌС‚РѕС‚ РІСЂРµРјРµРЅРЅС‹Р№ РїР°СЂРѕР»СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ РѕС‚РґРµР»СЊРЅРѕ. РћРЅ РїРѕРєР°Р·Р°РЅ С‚РѕР»СЊРєРѕ РѕРґРёРЅ СЂР°Р· Рё РїРѕС‚СЂРµР±СѓРµС‚ СЃРјРµРЅС‹ РїСЂРё РїРµСЂРІРѕРј РІС…РѕРґРµ.
     <% if (generatedPinNotice.email && !generatedPinNotice.mail_includes_password) { %>
-      Письмо отправляется без пароля: пользователь увидит, что пароль нужно получить у администратора.
+      РџРёСЃСЊРјРѕ РѕС‚РїСЂР°РІР»СЏРµС‚СЃСЏ Р±РµР· РїР°СЂРѕР»СЏ: РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ СѓРІРёРґРёС‚, С‡С‚Рѕ РїР°СЂРѕР»СЊ РЅСѓР¶РЅРѕ РїРѕР»СѓС‡РёС‚СЊ Сѓ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°.
     <% } %>
   </div>
   <div class="d-flex flex-wrap gap-2 align-items-center">
     <span class="generated-pin-notice-code text-mono"><%= generatedPinNotice.pin %></span>
     <% if (generatedPinNotice.expires_at || generatedPinNotice.ttl_hours) { %>
-      <span class="small text-muted">Действует: <%= generatedPinNotice.ttl_hours ? (generatedPinNotice.ttl_hours + " ч.") : "ограничено" %></span>
+      <span class="small text-muted">Р”РµР№СЃС‚РІСѓРµС‚: <%= generatedPinNotice.ttl_hours ? (generatedPinNotice.ttl_hours + " С‡.") : "РѕРіСЂР°РЅРёС‡РµРЅРѕ" %></span>
     <% } %>
     <% if (generatedPinNotice.fio || generatedPinNotice.phone || generatedPinNotice.user_id) { %>
       <span class="small text-muted">
-        <%= [generatedPinNotice.fio, generatedPinNotice.phone, generatedPinNotice.user_id].filter(Boolean).join(' • ') %>
+        <%= [generatedPinNotice.fio, generatedPinNotice.phone, generatedPinNotice.user_id].filter(Boolean).join(' вЂў ') %>
       </span>
     <% } %>
   </div>
@@ -224,45 +224,45 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 <div class="card card-glass p-3 mb-3">
-  <h2 class="h6 mb-2">Добавить человека</h2>
+  <h2 class="h6 mb-2">Р”РѕР±Р°РІРёС‚СЊ С‡РµР»РѕРІРµРєР°</h2>
   <form method="post" action="/admin/users/create" class="row g-2">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <div class="col-12 col-md-3">
-      <input name="fio" class="form-control" placeholder="ФИО" required />
+      <input name="fio" class="form-control" placeholder="Р¤РРћ" required />
     </div>
     <div class="col-12 col-md-3">
-      <input name="organization" class="form-control" placeholder="Организация (опц.)" />
+      <input name="organization" class="form-control" placeholder="РћСЂРіР°РЅРёР·Р°С†РёСЏ (РѕРїС†.)" />
     </div>
     <div class="col-12 col-md-2">
-      <input name="position" class="form-control" placeholder="Должность (опц.)" />
+      <input name="position" class="form-control" placeholder="Р”РѕР»Р¶РЅРѕСЃС‚СЊ (РѕРїС†.)" />
     </div>
     <div class="col-12 col-md-2">
-      <input name="phone" class="form-control" placeholder="Телефон (цифры)" required />
+      <input name="phone" class="form-control" placeholder="РўРµР»РµС„РѕРЅ (С†РёС„СЂС‹)" required />
     </div>
     <div class="col-12 col-md-3">
-      <input name="email" type="email" class="form-control" placeholder="Email (опц.)" />
+      <input name="email" type="email" class="form-control" placeholder="Email (РѕРїС†.)" />
     </div>
     <div class="col-12 col-md-1">
-      <input name="pin" type="password" class="form-control" placeholder="Пароль" autocomplete="new-password" autocapitalize="none" spellcheck="false" />
+      <input name="pin" type="password" class="form-control" placeholder="РџР°СЂРѕР»СЊ" autocomplete="new-password" autocapitalize="none" spellcheck="false" />
     </div>
     <div class="col-12 col-md-1">
       <select name="role" class="form-select" id="createRole">
-        <option value="user">Арендатор</option>
-        <option value="admin">Администратор</option>
-        <option value="dispatcher">Диспетчер</option>
+        <option value="user">РђСЂРµРЅРґР°С‚РѕСЂ</option>
+        <option value="admin">РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ</option>
+        <option value="dispatcher">Р”РёСЃРїРµС‚С‡РµСЂ</option>
       </select>
     </div>
     <div class="col-12 col-md-3 d-flex align-items-center" id="createTenantContactWrap">
       <label class="form-check mb-0">
         <input class="form-check-input me-1" type="checkbox" name="is_tenant_contact" value="true" id="createTenantContact">
-        <span class="form-check-label">Контакт для арендаторов</span>
+        <span class="form-check-label">РљРѕРЅС‚Р°РєС‚ РґР»СЏ Р°СЂРµРЅРґР°С‚РѕСЂРѕРІ</span>
       </label>
     </div>
     <% if (user && user.is_is_admin) { %>
     <div class="col-12 col-md-2 d-flex align-items-center" id="createSysAdminWrap">
       <label class="form-check mb-0">
         <input class="form-check-input me-1" type="checkbox" name="is_is_admin" value="true" id="createSysAdmin">
-        <span class="form-check-label">Системный админ</span>
+        <span class="form-check-label">РЎРёСЃС‚РµРјРЅС‹Р№ Р°РґРјРёРЅ</span>
       </label>
     </div>
     <% } %>
@@ -284,36 +284,36 @@ document.addEventListener('DOMContentLoaded', function () {
     <div class="col-12 p-0" id="createTenantProfileFields">
       <div class="row g-2" style="margin:0;">
         <div class="col-12">
-          <div class="small text-muted">Для арендатора: этаж, секция, места и привычный маршрут.</div>
+          <div class="small text-muted">Р”Р»СЏ Р°СЂРµРЅРґР°С‚РѕСЂР°: СЌС‚Р°Р¶, СЃРµРєС†РёСЏ, РјРµСЃС‚Р° Рё РїСЂРёРІС‹С‡РЅС‹Р№ РјР°СЂС€СЂСѓС‚.</div>
         </div>
         <div class="col-12 col-md-2">
-          <input name="parking_floors" class="form-control" placeholder="Этажи: 7, 8" data-tenant-profile-field />
+          <input name="parking_floors" class="form-control" placeholder="Р­С‚Р°Р¶Рё: 7, 8" data-tenant-profile-field />
         </div>
         <div class="col-12 col-md-3">
-          <input name="parking_groups" class="form-control" placeholder="Секции: 7A, 7B" data-tenant-profile-field />
+          <input name="parking_groups" class="form-control" placeholder="РЎРµРєС†РёРё: 7A, 7B" data-tenant-profile-field />
         </div>
         <div class="col-12 col-md-3">
-          <input name="parking_spots" class="form-control" placeholder="Места: 7-124, 7-125" data-tenant-profile-field />
+          <input name="parking_spots" class="form-control" placeholder="РњРµСЃС‚Р°: 7-124, 7-125" data-tenant-profile-field />
         </div>
         <div class="col-12 col-md-4">
-          <input name="preferred_routes" class="form-control" placeholder="Маршрут: 7 этаж, въезд, выезд" data-tenant-profile-field />
+          <input name="preferred_routes" class="form-control" placeholder="РњР°СЂС€СЂСѓС‚: 7 СЌС‚Р°Р¶, РІСЉРµР·Рґ, РІС‹РµР·Рґ" data-tenant-profile-field />
         </div>
       </div>
     </div>
 
     <div class="col-12">
-      <button class="btn btn-gold w-100" type="submit">Добавить</button>
+      <button class="btn btn-gold w-100" type="submit">Р”РѕР±Р°РІРёС‚СЊ</button>
     </div>
     <div class="col-12">
-      <div class="small text-muted text-wrap">Разделы паркинга можно настроить сразу после создания.</div>
+      <div class="small text-muted text-wrap">Р Р°Р·РґРµР»С‹ РїР°СЂРєРёРЅРіР° РјРѕР¶РЅРѕ РЅР°СЃС‚СЂРѕРёС‚СЊ СЃСЂР°Р·Сѓ РїРѕСЃР»Рµ СЃРѕР·РґР°РЅРёСЏ.</div>
     </div>
   </form>
 </div>
 
 <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-2">
-  <div class="text-muted small">Всего: <%= (users || []).length %></div>
+  <div class="text-muted small">Р’СЃРµРіРѕ: <%= (users || []).length %></div>
   <div style="flex: 1 1 280px; max-width: 380px;">
-    <input id="userSearch" class="form-control" placeholder="Поиск: ФИО / должность / организация / телефон / email" />
+    <input id="userSearch" class="form-control" placeholder="РџРѕРёСЃРє: Р¤РРћ / РґРѕР»Р¶РЅРѕСЃС‚СЊ / РѕСЂРіР°РЅРёР·Р°С†РёСЏ / С‚РµР»РµС„РѕРЅ / email" />
   </div>
 </div>
 
@@ -322,15 +322,15 @@ document.addEventListener('DOMContentLoaded', function () {
     <div class="user-card" data-user-id="<%= u.id %>">
       <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
         <div style="min-width:220px; flex:1 1 220px;">
-          <div class="user-name"><%= u.fio || '—' %></div>
+          <div class="user-name"><%= u.fio || 'вЂ”' %></div>
           <div class="user-sub text-mono"><%= (u.phone || '').replace(/\D/g,'') %></div>
           <% if (u.email) { %><div class="text-muted small"><%= u.email %></div><% } %>
           <div class="text-muted small" style="line-height:1.2;">
-            <%= [u.organization, u.position].filter(Boolean).join(' • ') || '' %>
+            <%= [u.organization, u.position].filter(Boolean).join(' вЂў ') || '' %>
           </div>
           <% if (u.tenant_profile_summary) { %>
             <div class="text-muted small" style="line-height:1.35; margin-top:4px;">
-              Профиль арендатора: <%= u.tenant_profile_summary %>
+              РџСЂРѕС„РёР»СЊ Р°СЂРµРЅРґР°С‚РѕСЂР°: <%= u.tenant_profile_summary %>
             </div>
           <% } %>
           <% if (u.email) { %>
@@ -341,14 +341,14 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
         <div class="d-flex gap-1 flex-wrap align-items-center" style="justify-content:flex-end;">
           <span class="badge-soft"><%= roleRu(u.role) %></span>
-          <% if (u.is_tenant_contact) { %><span class="badge-soft">Контакт арендаторов</span><% } %>
-          <span class="badge-soft"><%= (u.is_active !== false) ? 'В работе' : 'Отключён' %></span>
+          <% if (u.is_tenant_contact) { %><span class="badge-soft">РљРѕРЅС‚Р°РєС‚ Р°СЂРµРЅРґР°С‚РѕСЂРѕРІ</span><% } %>
+          <span class="badge-soft"><%= (u.is_active !== false) ? 'Р’ СЂР°Р±РѕС‚Рµ' : 'РћС‚РєР»СЋС‡С‘РЅ' %></span>
           <% const zoneCount = Array.isArray(u.zones) ? u.zones.length : 0; %>
-          <span class="badge-soft"><%= zoneCount %> <%= pluralRu(zoneCount, 'участок', 'участка', 'участков') %></span>
+          <span class="badge-soft"><%= zoneCount %> <%= pluralRu(zoneCount, 'СѓС‡Р°СЃС‚РѕРє', 'СѓС‡Р°СЃС‚РєР°', 'СѓС‡Р°СЃС‚РєРѕРІ') %></span>
         </div>
       </div>
       <div class="user-actions">
-        <button class="btn btn-soft btn-sm" type="button" data-edit-user="<%= u.id %>">Настроить</button>
+        <button class="btn btn-soft btn-sm" type="button" data-edit-user="<%= u.id %>">РќР°СЃС‚СЂРѕРёС‚СЊ</button>
         <span class="muted small">id: <span class="text-mono"><%= u.id %></span></span>
       </div>
     </div>
@@ -356,21 +356,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
   <% if (!users || !users.length) { %>
     <div class="card">
-      <div class="muted">Пока никого нет</div>
+      <div class="muted">РџРѕРєР° РЅРёРєРѕРіРѕ РЅРµС‚</div>
     </div>
   <% } %>
 </div>
-
-<!-- Modal: compact user editor -->
 <div class="modal-backdrop" id="userModal" aria-hidden="true">
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Редактирование профиля">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ РїСЂРѕС„РёР»СЏ">
     <div class="modal-header">
       <div style="min-width:0;">
-        <div class="modal-title" id="mTitle">Профиль</div>
+        <div class="modal-title" id="mTitle">РџСЂРѕС„РёР»СЊ</div>
         <div class="text-muted small" id="mSub"></div>
         
       </div>
-      <button type="button" class="btn btn-ghost btn-sm" id="mClose">✕</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="mClose">вњ•</button>
     </div>
 
     <div class="modal-body mobile-scroll">
@@ -378,94 +376,94 @@ document.addEventListener('DOMContentLoaded', function () {
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="modal-grid">
           <div>
-            <label class="form-label">ФИО</label>
+            <label class="form-label">Р¤РРћ</label>
             <input name="fio" class="form-control" id="mFio" required />
           </div>
 
           <div>
-            <label class="form-label">Телефон</label>
+            <label class="form-label">РўРµР»РµС„РѕРЅ</label>
             <input name="phone" class="form-control" id="mPhone" required />
           </div>
 
           <div>
             <label class="form-label">Email</label>
-            <input name="email" type="email" class="form-control" id="mEmail" placeholder="(опционально)" />
+            <input name="email" type="email" class="form-control" id="mEmail" placeholder="(РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)" />
           </div>
 
           <div>
-            <label class="form-label">Организация</label>
-            <input name="organization" class="form-control" id="mOrg" placeholder="(опционально)" />
+            <label class="form-label">РћСЂРіР°РЅРёР·Р°С†РёСЏ</label>
+            <input name="organization" class="form-control" id="mOrg" placeholder="(РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)" />
           </div>
 
           <div>
-            <label class="form-label">Должность</label>
-            <input name="position" class="form-control" id="mPos" placeholder="(опционально)" />
+            <label class="form-label">Р”РѕР»Р¶РЅРѕСЃС‚СЊ</label>
+            <input name="position" class="form-control" id="mPos" placeholder="(РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)" />
           </div>
 
           <div id="mTenantProfileSection" style="grid-column: 1 / -1;">
-            <div class="small text-muted" style="margin-bottom:8px;">Для арендатора: этаж, секция, места и привычный маршрут.</div>
+            <div class="small text-muted" style="margin-bottom:8px;">Р”Р»СЏ Р°СЂРµРЅРґР°С‚РѕСЂР°: СЌС‚Р°Р¶, СЃРµРєС†РёСЏ, РјРµСЃС‚Р° Рё РїСЂРёРІС‹С‡РЅС‹Р№ РјР°СЂС€СЂСѓС‚.</div>
             <div class="modal-grid">
               <div>
-                <label class="form-label">Этажи</label>
+                <label class="form-label">Р­С‚Р°Р¶Рё</label>
                 <input name="parking_floors" class="form-control" id="mParkingFloors" placeholder="7, 8" data-tenant-profile-field />
               </div>
 
               <div>
-                <label class="form-label">Группы мест</label>
+                <label class="form-label">Р“СЂСѓРїРїС‹ РјРµСЃС‚</label>
                 <input name="parking_groups" class="form-control" id="mParkingGroups" placeholder="A7, B2" data-tenant-profile-field />
               </div>
 
               <div>
-                <label class="form-label">Места</label>
+                <label class="form-label">РњРµСЃС‚Р°</label>
                 <input name="parking_spots" class="form-control" id="mParkingSpots" placeholder="7-124, 7-125" data-tenant-profile-field />
               </div>
 
               <div>
-                <label class="form-label">Маршруты</label>
-                <input name="preferred_routes" class="form-control" id="mPreferredRoutes" placeholder="7 этаж, лифты, въезды" data-tenant-profile-field />
+                <label class="form-label">РњР°СЂС€СЂСѓС‚С‹</label>
+                <input name="preferred_routes" class="form-control" id="mPreferredRoutes" placeholder="7 СЌС‚Р°Р¶, Р»РёС„С‚С‹, РІСЉРµР·РґС‹" data-tenant-profile-field />
               </div>
             </div>
           </div>
 
           <div>
-            <label class="form-label">Роль</label>
+            <label class="form-label">Р РѕР»СЊ</label>
             <select name="role" class="form-select" id="mRole">
-              <option value="user">Арендатор</option>
-              <option value="admin">Администратор</option>
-              <option value="dispatcher">Диспетчер</option>
+              <option value="user">РђСЂРµРЅРґР°С‚РѕСЂ</option>
+              <option value="admin">РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ</option>
+              <option value="dispatcher">Р”РёСЃРїРµС‚С‡РµСЂ</option>
             </select>
           </div>
 
           <div id="mTenantContactSection">
-            <label class="form-label">Связь</label>
+            <label class="form-label">РЎРІСЏР·СЊ</label>
             <div class="form-check form-switch" style="align-items:center;">
               <input type="hidden" name="is_tenant_contact" value="false"><input class="form-check-input" type="checkbox" id="mTenantContact" name="is_tenant_contact" value="true">
-              <span class="text-muted small">использовать как контакт для арендаторов</span>
+              <span class="text-muted small">РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РєР°Рє РєРѕРЅС‚Р°РєС‚ РґР»СЏ Р°СЂРµРЅРґР°С‚РѕСЂРѕРІ</span>
             </div>
           </div>
 
           <div>
-            <label class="form-label">Активен</label>
+            <label class="form-label">РђРєС‚РёРІРµРЅ</label>
             <div class="form-check form-switch" style="align-items:center;">
               <input type="hidden" name="is_active" value="false"><input class="form-check-input" type="checkbox" id="mActive" name="is_active" value="true">
-              <span class="text-muted small">вкл/выкл</span>
+              <span class="text-muted small">РІРєР»/РІС‹РєР»</span>
             </div>
           </div>
 
           <div style="grid-column: 1 / -1;">
-            <label class="form-label">Пароль</label>
+            <label class="form-label">РџР°СЂРѕР»СЊ</label>
             <div class="d-flex flex-wrap gap-2 align-items-center">
-              <span class="badge-soft text-mono" id="mCurPin">Пароль: задан</span>
+              <span class="badge-soft text-mono" id="mCurPin">РџР°СЂРѕР»СЊ: Р·Р°РґР°РЅ</span>
               <div style="flex: 1 1 260px; min-width: 220px;">
-                <input name="pin" class="form-control" id="mNewPin" type="password" placeholder="Новый пароль" autocomplete="new-password" autocapitalize="none" spellcheck="false" />
-                <div class="text-muted small">Оставьте пустым — пароль не изменится.</div>
-                <div class="text-muted small">Кнопка «Сохранить и отправить на Email» без нового пароля создаст временный пароль, покажет его администратору один раз и отправит пользователю письмо без пароля.</div>
+                <input name="pin" class="form-control" id="mNewPin" type="password" placeholder="РќРѕРІС‹Р№ РїР°СЂРѕР»СЊ" autocomplete="new-password" autocapitalize="none" spellcheck="false" />
+                <div class="text-muted small">РћСЃС‚Р°РІСЊС‚Рµ РїСѓСЃС‚С‹Рј вЂ” РїР°СЂРѕР»СЊ РЅРµ РёР·РјРµРЅРёС‚СЃСЏ.</div>
+                <div class="text-muted small">РљРЅРѕРїРєР° В«РЎРѕС…СЂР°РЅРёС‚СЊ Рё РѕС‚РїСЂР°РІРёС‚СЊ РЅР° EmailВ» Р±РµР· РЅРѕРІРѕРіРѕ РїР°СЂРѕР»СЏ СЃРѕР·РґР°СЃС‚ РІСЂРµРјРµРЅРЅС‹Р№ РїР°СЂРѕР»СЊ, РїРѕРєР°Р¶РµС‚ РµРіРѕ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂСѓ РѕРґРёРЅ СЂР°Р· Рё РѕС‚РїСЂР°РІРёС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ РїРёСЃСЊРјРѕ Р±РµР· РїР°СЂРѕР»СЏ.</div>
               </div>
             </div>
           </div>
 
           <div style="grid-column: 1 / -1;">
-            <label class="form-label">Разделы паркинга</label>
+            <label class="form-label">Р Р°Р·РґРµР»С‹ РїР°СЂРєРёРЅРіР°</label>
             <div class="d-flex flex-wrap gap-1" id="mZones">
               <% (zones || []).forEach(z => { %>
                 <label class="zone-chip">
@@ -487,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </label>
               <% }) %>
             </div>
-            <div class="small text-muted">Для системного администратора не применяется.</div>
+            <div class="small text-muted">Р”Р»СЏ СЃРёСЃС‚РµРјРЅРѕРіРѕ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР° РЅРµ РїСЂРёРјРµРЅСЏРµС‚СЃСЏ.</div>
           </div>
           <% } %>
         </div>
@@ -498,16 +496,14 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 
     <div class="modal-footer">
-      <button class="btn btn-soft" type="button" id="mCancel">Отмена</button>
+      <button class="btn btn-soft" type="button" id="mCancel">РћС‚РјРµРЅР°</button>
       
-      <button class="btn btn-danger" type="submit" form="userDeleteForm" id="mDelete">Удалить</button>
-      <button class="btn btn-soft" type="submit" form="userUpdateForm" name="send_email" value="1">Сохранить и отправить на Email</button>
-      <button class="btn btn-primary" type="submit" form="userUpdateForm">Сохранить</button>
+      <button class="btn btn-danger" type="submit" form="userDeleteForm" id="mDelete">РЈРґР°Р»РёС‚СЊ</button>
+      <button class="btn btn-soft" type="submit" form="userUpdateForm" name="send_email" value="1">РЎРѕС…СЂР°РЅРёС‚СЊ Рё РѕС‚РїСЂР°РІРёС‚СЊ РЅР° Email</button>
+      <button class="btn btn-primary" type="submit" form="userUpdateForm">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
     </div>
   </div>
 </div>
-
-<!-- USER_MODAL_RECOVERY_START -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const USERS = <%- JSON.stringify(users || []).replace(/[<>&\u2028\u2029]/g, function (c) { return { '<': '\\u003C', '>': '\\u003E', '&': '\\u0026', '\u2028': '\\u2028', '\u2029': '\\u2029' }[c]; }) %>;
@@ -564,7 +560,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderCurrentPassword() {
     if (!curPin) return;
-    curPin.textContent = curPin.dataset.pinSet === '1' ? 'Пароль: задан' : 'Пароль: не задан';
+    curPin.textContent = curPin.dataset.pinSet === '1' ? 'РџР°СЂРѕР»СЊ: Р·Р°РґР°РЅ' : 'РџР°СЂРѕР»СЊ: РЅРµ Р·Р°РґР°РЅ';
   }
 
   function setChecks(wrap, values) {
@@ -621,9 +617,9 @@ document.addEventListener('DOMContentLoaded', function () {
   function openUser(u) {
     if (!u) return;
 
-    if (titleEl) titleEl.textContent = u.fio || 'Профиль';
+    if (titleEl) titleEl.textContent = u.fio || 'РџСЂРѕС„РёР»СЊ';
 
-    const sub = [u.phone, u.email, u.organization, u.position].filter(Boolean).join(' • ');
+    const sub = [u.phone, u.email, u.organization, u.position].filter(Boolean).join(' вЂў ');
     if (subEl) subEl.textContent = sub;
 
     if (fio) fio.value = u.fio || '';
@@ -685,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (deleteForm) {
     deleteForm.addEventListener('submit', function (e) {
-      if (!confirm('Удалить учетную запись? Действие необратимо.')) e.preventDefault();
+      if (!confirm('РЈРґР°Р»РёС‚СЊ СѓС‡РµС‚РЅСѓСЋ Р·Р°РїРёСЃСЊ? Р”РµР№СЃС‚РІРёРµ РЅРµРѕР±СЂР°С‚РёРјРѕ.')) e.preventDefault();
     });
   }
 
@@ -694,11 +690,6 @@ document.addEventListener('DOMContentLoaded', function () {
   setVisible(false);
 });
 </script>
-<!-- USER_MODAL_RECOVERY_END -->
-
-
-
-<!-- USERS_SEARCH_HARDFIX_START -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const searchInput = document.getElementById('userSearch');
@@ -714,15 +705,15 @@ document.addEventListener('DOMContentLoaded', function () {
     emptyState.id = 'usersSearchEmptyState';
     emptyState.className = 'card';
     emptyState.style.display = 'none';
-    emptyState.innerHTML = '<div class="muted">Ничего не найдено</div>';
+    emptyState.innerHTML = '<div class="muted">РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ</div>';
     grid.appendChild(emptyState);
   }
 
   function normalize(s) {
     return String(s || '')
       .toLowerCase()
-      .replace(/ё/g, 'е')
-      .replace(/[^a-zа-я0-9@.+\s-]/gi, ' ')
+      .replace(/С‘/g, 'Рµ')
+      .replace(/[^a-zР°-СЏ0-9@.+\s-]/gi, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -755,11 +746,6 @@ document.addEventListener('DOMContentLoaded', function () {
   applySearch();
 });
 </script>
-<!-- USERS_SEARCH_HARDFIX_END -->
-
-
-
-<!-- SYSADMIN_ACTIVE_LOCK_START -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const currentUserIsSysAdmin = <%- JSON.stringify(!!(user && user.is_is_admin)) %>;
@@ -777,7 +763,7 @@ document.addEventListener('DOMContentLoaded', function () {
     note.className = 'text-muted small';
     note.style.display = 'none';
     note.style.marginTop = '8px';
-    note.textContent = 'Обычный админ не может отключать СИС-админа.';
+    note.textContent = 'РћР±С‹С‡РЅС‹Р№ Р°РґРјРёРЅ РЅРµ РјРѕР¶РµС‚ РѕС‚РєР»СЋС‡Р°С‚СЊ РЎРРЎ-Р°РґРјРёРЅР°.';
     if (wrap && wrap.parentNode) {
       wrap.parentNode.appendChild(note);
     }
@@ -819,7 +805,4 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 </script>
-<!-- SYSADMIN_ACTIVE_LOCK_END -->
-
-
 <%- include('partials/footer') %>

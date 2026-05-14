@@ -1,5 +1,4 @@
-/* Parking GIT — luxury theme (dark glass, readable, mobile-first) */
-:root{
+﻿:root{
   --bg0:#0b0f17;
   --bg1:#0a1324;
   --card:rgba(255,255,255,.06);
@@ -136,7 +135,6 @@ code, .mono{ color:#f7f0c8; font-family: ui-monospace, SFMono-Regular, Menlo, Mo
 }
 .btn-action{ min-width: 120px; }
 
-/* Zones (admin users) */
 .zone-grid{
   display:flex;flex-wrap:wrap;gap:10px;
 }
@@ -155,7 +153,6 @@ code, .mono{ color:#f7f0c8; font-family: ui-monospace, SFMono-Regular, Menlo, Mo
   background: rgba(201,162,77,.08);
 }
 
-/* Mobile journal cards */
 .lux-card{
   background: var(--card2);
   border: 1px solid rgba(255,255,255,.12);
@@ -199,7 +196,6 @@ code, .mono{ color:#f7f0c8; font-family: ui-monospace, SFMono-Regular, Menlo, Mo
   border:1px solid rgba(255,255,255,.12);
 }
 
-/* tighter on very small screens */
 @media (max-width: 380px){
   .btn-action{ min-width: 100px; }
   .navbar .btn{ padding: 6px 10px; }

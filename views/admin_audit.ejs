@@ -3,10 +3,14 @@
 <%
   const ACTION_LABELS = {
     login: 'Вход',
+    login_failed: 'Неудачный вход',
+    login_rate_limited: 'Ограничение входа',
+    change_pin: 'Смена пароля',
+    logout: 'Выход',
     open: 'Открытие устройства',
     create: 'Создание',
     update: 'Изменение',
-    reset_pin: 'Сброс PIN',
+    reset_pin: 'Сброс пароля',
     clear_transit_log: 'Очистка журнала транзита',
     delete: 'Удаление',
   };
@@ -20,6 +24,8 @@
     zones: 'Участки',
     transit_event: 'Событие транзита',
     transit_events: 'Журнал транзита',
+    auth: 'Авторизация',
+    session: 'Сессия',
     audit: 'Аудит',
     log: 'Журнал',
     logs: 'Журнал событий',
@@ -38,6 +44,21 @@
     post: 'POST',
     none: 'Без авторизации',
     basic: 'Базовая авторизация',
+  };
+
+  const REASON_LABELS = {
+    not_found: 'пользователь не найден',
+    inactive: 'учетная запись отключена',
+    bad_pin: 'неверный пароль',
+    first_login_or_reset: 'первый вход или сброс пароля',
+    unknown: 'неизвестная причина',
+  };
+
+  const SCOPE_LABELS = {
+    ip_phone: 'IP + телефон',
+    ip: 'IP-адрес',
+    phone: 'телефон',
+    unknown: 'неизвестно',
   };
 
   const ZONE_LABELS = {
@@ -95,6 +116,8 @@
   const typeLabel = (t) => TYPE_LABELS[String(t || '').trim()] || String(t || '');
   const roleLabel = (r) => ROLE_LABELS[String(r || '').trim()] || String(r || '');
   const methodLabel = (m) => METHOD_LABELS[String(m || '').trim().toLowerCase()] || String(m || '');
+  const reasonLabel = (r) => REASON_LABELS[String(r || '').trim()] || String(r || '');
+  const scopeLabel = (r) => SCOPE_LABELS[String(r || '').trim()] || String(r || '');
 
   const safeTargetText = (e) => {
     const type = String((e && (e.targetType || e.target_type)) || '').trim();
@@ -133,9 +156,9 @@
 
   const actionClass = (a) => {
     const k = String(a || '').trim();
-    if (k === 'open' || k === 'login') return 'audit-badge-success';
-    if (k === 'update' || k === 'reset_pin') return 'audit-badge-warn';
-    if (k === 'delete') return 'audit-badge-danger';
+    if (k === 'open' || k === 'login' || k === 'change_pin') return 'audit-badge-success';
+    if (k === 'update' || k === 'reset_pin' || k === 'login_rate_limited') return 'audit-badge-warn';
+    if (k === 'delete' || k === 'login_failed') return 'audit-badge-danger';
     return 'audit-badge-info';
   };
 
@@ -195,6 +218,9 @@
     if (obj.phone) out.push('Телефон: ' + obj.phone);
     if (obj.email) out.push('Email: ' + obj.email);
     if (obj.role) out.push('Роль: ' + roleLabel(obj.role));
+    if (obj.reason) out.push('Причина: ' + reasonLabel(obj.reason));
+    if (obj.scope) out.push('Лимит: ' + scopeLabel(obj.scope));
+    if (obj.retry_after_sec !== undefined) out.push('Повтор через: ' + obj.retry_after_sec + ' сек.');
     if (obj.zoneId) {
       out.push('Участок: ' + zoneLabel(obj.zoneId));
     }
@@ -209,6 +235,8 @@
     if (obj.pin_changed) out.push('Пароль изменён');
     if (obj.pin_generated) out.push('Пароль сгенерирован');
     if (obj.pin_set) out.push('Пароль задан вручную');
+    if (obj.must_change_pin) out.push('Требуется смена пароля при входе');
+    if (obj.pin_expires_at) out.push('Срок действия пароля: ' + obj.pin_expires_at);
     if (obj.http_status) out.push('HTTP статус: ' + obj.http_status);
     if (obj.gw && obj.gw.http_status) out.push('Шлюз: HTTP ' + obj.gw.http_status);
 

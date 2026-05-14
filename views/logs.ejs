@@ -22,8 +22,6 @@
       return '';
     }
   })();
-
-  // Р›РѕРєР°Р»СЊРЅС‹Рµ РїРѕРґРїРёСЃРё РґР»СЏ Р¶СѓСЂРЅР°Р»Р°
   const EVENT_LABELS = {
     open: 'РћС‚РєСЂС‹С‚РёРµ',
     close: 'Р—Р°РєСЂС‹С‚РёРµ',
@@ -73,8 +71,6 @@
     'organization',
     'position'
   ].filter((key) => filters && filters[key]).length;
-
-  // Р¤РѕР»Р±СЌРє: С„РѕСЂРјР°С‚РёСЂСѓРµРј РІСЂРµРјСЏ РІ РњРЎРљ (РµСЃР»Рё СЃРµСЂРІРµСЂ РЅРµ РїСЂРёСЃР»Р°Р» РіРѕС‚РѕРІСѓСЋ СЃС‚СЂРѕРєСѓ)
   const formatTs = (v) => {
     if (!v) return '';
     const d = (v instanceof Date) ? v : new Date(v);

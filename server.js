@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 require('dotenv').config();
 
@@ -47,7 +47,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 
-// --- базовые настройки ---
+// --- Р±Р°Р·РѕРІС‹Рµ РЅР°СЃС‚СЂРѕР№РєРё ---
 const PORT = Number(process.env.PORT || 8080);
 const SESSION_SECRET = String(process.env.SESSION_SECRET || '').trim();
 if (!SESSION_SECRET || SESSION_SECRET === 'change-me-in-railway') {
@@ -55,7 +55,6 @@ if (!SESSION_SECRET || SESSION_SECRET === 'change-me-in-railway') {
 }
 
 // --- object gateway (local devices) ---
-// Пример: https://xxxx.trycloudflare.com   (БЕЗ слеша в конце)
 const GATEWAY_BASE_URL = String(process.env.GATEWAY_BASE_URL || '').replace(/\/+$/g, '');
 const GATEWAY_KEY = String(process.env.GATEWAY_KEY || '');
 const GATEWAY_TIMEOUT_MS = Number(process.env.GATEWAY_TIMEOUT_MS || 7000);
@@ -76,7 +75,7 @@ const SMTP_SECURE = String(process.env.SMTP_SECURE || 'true').toLowerCase() === 
 const SMTP_USER = String(process.env.SMTP_USER || '');
 const SMTP_PASS = String(process.env.SMTP_PASS || '');
 const MAIL_FROM = String(process.env.MAIL_FROM || SMTP_USER || 'mmoyaparkovka@yandex.ru');
-const MAIL_INCLUDE_PASSWORD = false; // ТЗ 4.2: действующие PIN/пароли никогда не отправляются по email
+const MAIL_INCLUDE_PASSWORD = false; // РўР— 4.2: РґРµР№СЃС‚РІСѓСЋС‰РёРµ PIN/РїР°СЂРѕР»Рё РЅРёРєРѕРіРґР° РЅРµ РѕС‚РїСЂР°РІР»СЏСЋС‚СЃСЏ РїРѕ email
 const GATEWAY_SEND_DEVICE_SECRETS = String(process.env.GATEWAY_SEND_DEVICE_SECRETS || '').toLowerCase() === 'true';
 const START_PIN_TTL_HOURS = Math.max(1, Number(process.env.START_PIN_TTL_HOURS || 24));
 const PIN_MIN_LENGTH = Math.max(8, Number(process.env.PIN_MIN_LENGTH || 8));
@@ -92,15 +91,15 @@ if (IS_PRODUCTION && GATEWAY_SEND_DEVICE_SECRETS) {
 }
 
 if (String(process.env.MAIL_INCLUDE_PASSWORD || '').toLowerCase() === 'true') {
-  console.warn('⚠️ MAIL_INCLUDE_PASSWORD is ignored: passwords are never sent by email.');
+  console.warn('вљ пёЏ MAIL_INCLUDE_PASSWORD is ignored: passwords are never sent by email.');
 }
 
 if (GATEWAY_SEND_DEVICE_SECRETS) {
-  console.warn('⚠️ GATEWAY_SEND_DEVICE_SECRETS=true: device passwords may be included in gateway payloads.');
+  console.warn('вљ пёЏ GATEWAY_SEND_DEVICE_SECRETS=true: device passwords may be included in gateway payloads.');
 }
 
 if (ALLOW_FILE_TRANSIT_FALLBACK) {
-  console.warn('⚠️ File transit fallback is enabled. When DB fails, part of the transit log may be written to a local file.');
+  console.warn('вљ пёЏ File transit fallback is enabled. When DB fails, part of the transit log may be written to a local file.');
 }
 
 const gatewayService = createGatewayService({
@@ -199,7 +198,7 @@ const scryptAsync = promisify(crypto.scrypt);
 const PIN_HASH_PREFIX = 'pin:v1:scrypt:';
 
 function roleLabelRu(role) {
-  return role === 'admin' ? 'Администратор' : (role === 'dispatcher' ? 'Диспетчер' : 'Арендатор');
+  return role === 'admin' ? 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ' : (role === 'dispatcher' ? 'Р”РёСЃРїРµС‚С‡РµСЂ' : 'РђСЂРµРЅРґР°С‚РѕСЂ');
 }
 
 function pluralRu(n, one, few, many) {
@@ -272,14 +271,14 @@ function pinChangeReason(user) {
 function validateNewPin(pin, user = {}) {
   const value = String(pin || '');
   if (value.length < PIN_MIN_LENGTH) {
-    return `Пароль должен содержать не менее ${PIN_MIN_LENGTH} символов.`;
+    return `РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РЅРµ РјРµРЅРµРµ ${PIN_MIN_LENGTH} СЃРёРјРІРѕР»РѕРІ.`;
   }
   const digits = digitsOnly(value);
   if (digits && digits === digitsOnly(user.phone || '')) {
-    return 'Пароль не должен совпадать с номером телефона.';
+    return 'РџР°СЂРѕР»СЊ РЅРµ РґРѕР»Р¶РµРЅ СЃРѕРІРїР°РґР°С‚СЊ СЃ РЅРѕРјРµСЂРѕРј С‚РµР»РµС„РѕРЅР°.';
   }
   if (/^(.)\1+$/.test(value)) {
-    return 'Пароль не должен состоять из одного повторяющегося символа.';
+    return 'РџР°СЂРѕР»СЊ РЅРµ РґРѕР»Р¶РµРЅ СЃРѕСЃС‚РѕСЏС‚СЊ РёР· РѕРґРЅРѕРіРѕ РїРѕРІС‚РѕСЂСЏСЋС‰РµРіРѕСЃСЏ СЃРёРјРІРѕР»Р°.';
   }
   return '';
 }
@@ -325,53 +324,53 @@ async function sendWelcomeEmail({ to, fio, phone, pin, role }) {
   if (!to || !mailTransport) return false;
 
   const siteUrl = APP_BASE_URL || 'https://moyaparkovka.ru';
-  const safeName = String(fio || 'Коллега');
+  const safeName = String(fio || 'РљРѕР»Р»РµРіР°');
   const safeLogin = String(phone || '');
   const safeRole = roleLabelRu(String(role || 'user'));
-  const passwordLineHtml = `<div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">Пароль:</span> получите у администратора</div>`;
-  const passwordLineText = 'Пароль: получите у администратора';
+  const passwordLineHtml = `<div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">РџР°СЂРѕР»СЊ:</span> РїРѕР»СѓС‡РёС‚Рµ Сѓ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°</div>`;
+  const passwordLineText = 'РџР°СЂРѕР»СЊ: РїРѕР»СѓС‡РёС‚Рµ Сѓ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°';
 
   const html = `
   <div style="margin:0;padding:0;background:#0b1220;font-family:Arial,sans-serif;color:#e5e7eb;">
     <div style="max-width:640px;margin:0 auto;padding:24px 16px;">
       <div style="background:linear-gradient(135deg,#1f3b73 0%,#0f172a 100%);border:1px solid rgba(255,255,255,.08);border-radius:20px;overflow:hidden;">
         <div style="padding:28px 24px;border-bottom:1px solid rgba(255,255,255,.08);">
-          <div style="font-size:24px;font-weight:700;margin-bottom:8px;">Моя парковка</div>
-          <div style="font-size:14px;color:#cbd5e1;">Доступ в систему создан</div>
+          <div style="font-size:24px;font-weight:700;margin-bottom:8px;">РњРѕСЏ РїР°СЂРєРѕРІРєР°</div>
+          <div style="font-size:14px;color:#cbd5e1;">Р”РѕСЃС‚СѓРї РІ СЃРёСЃС‚РµРјСѓ СЃРѕР·РґР°РЅ</div>
         </div>
         <div style="padding:24px;">
-          <p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;">Здравствуйте, ${safeName}.</p>
-          <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;">Ваш аккаунт в <b>«Моя парковка»</b> готов.</p>
+          <p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;">Р—РґСЂР°РІСЃС‚РІСѓР№С‚Рµ, ${safeName}.</p>
+          <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;">Р’Р°С€ Р°РєРєР°СѓРЅС‚ РІ <b>В«РњРѕСЏ РїР°СЂРєРѕРІРєР°В»</b> РіРѕС‚РѕРІ.</p>
           <div style="background:#111827;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px 18px;margin:0 0 18px 0;">
-            <div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">Сайт:</span> <a href="${siteUrl}" style="color:#93c5fd;text-decoration:none;">${siteUrl}</a></div>
-            <div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">Логин:</span> <b>${safeLogin}</b></div>
+            <div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">РЎР°Р№С‚:</span> <a href="${siteUrl}" style="color:#93c5fd;text-decoration:none;">${siteUrl}</a></div>
+            <div style="margin:0 0 8px 0;"><span style="color:#94a3b8;">Р›РѕРіРёРЅ:</span> <b>${safeLogin}</b></div>
             ${passwordLineHtml}
-            <div><span style="color:#94a3b8;">Роль:</span> <b>${safeRole}</b></div>
+            <div><span style="color:#94a3b8;">Р РѕР»СЊ:</span> <b>${safeRole}</b></div>
           </div>
           <div style="margin:0 0 20px 0;">
-            <a href="${siteUrl}" style="display:inline-block;padding:12px 18px;background:#2563eb;color:#fff;text-decoration:none;border-radius:12px;font-weight:700;">Перейти на сайт</a>
+            <a href="${siteUrl}" style="display:inline-block;padding:12px 18px;background:#2563eb;color:#fff;text-decoration:none;border-radius:12px;font-weight:700;">РџРµСЂРµР№С‚Рё РЅР° СЃР°Р№С‚</a>
           </div>
-          <p style="margin:0;font-size:13px;line-height:1.6;color:#94a3b8;">Если письмо пришло вам по ошибке, просто проигнорируйте его.</p>
+          <p style="margin:0;font-size:13px;line-height:1.6;color:#94a3b8;">Р•СЃР»Рё РїРёСЃСЊРјРѕ РїСЂРёС€Р»Рѕ РІР°Рј РїРѕ РѕС€РёР±РєРµ, РїСЂРѕСЃС‚Рѕ РїСЂРѕРёРіРЅРѕСЂРёСЂСѓР№С‚Рµ РµРіРѕ.</p>
         </div>
       </div>
     </div>
   </div>`;
 
   const text = [
-    'Моя парковка',
+    'РњРѕСЏ РїР°СЂРєРѕРІРєР°',
     '',
-    `Здравствуйте, ${safeName}.`,
-    'Ваш аккаунт в «Моя парковка» готов.',
-    `Сайт: ${siteUrl}`,
-    `Логин: ${safeLogin}`,
+    `Р—РґСЂР°РІСЃС‚РІСѓР№С‚Рµ, ${safeName}.`,
+    'Р’Р°С€ Р°РєРєР°СѓРЅС‚ РІ В«РњРѕСЏ РїР°СЂРєРѕРІРєР°В» РіРѕС‚РѕРІ.',
+    `РЎР°Р№С‚: ${siteUrl}`,
+    `Р›РѕРіРёРЅ: ${safeLogin}`,
     passwordLineText,
-    `Роль: ${safeRole}`,
+    `Р РѕР»СЊ: ${safeRole}`,
   ].join('\n');
 
   await mailTransport.sendMail({
     from: MAIL_FROM,
     to,
-    subject: 'Доступ в систему «Моя парковка»',
+    subject: 'Р”РѕСЃС‚СѓРї РІ СЃРёСЃС‚РµРјСѓ В«РњРѕСЏ РїР°СЂРєРѕРІРєР°В»',
     html,
     text,
   });
@@ -515,23 +514,23 @@ app.use((req, res, next) => {
   if (!user || !userNeedsPinChange(user) || isPinChangeBypassRequest(req)) return next();
 
   if (req.xhr || req.headers.accept?.includes('application/json') || req.path.startsWith('/api/')) {
-    return res.status(428).json({ ok: false, error: 'Требуется сменить временный пароль.' });
+    return res.status(428).json({ ok: false, error: 'РўСЂРµР±СѓРµС‚СЃСЏ СЃРјРµРЅРёС‚СЊ РІСЂРµРјРµРЅРЅС‹Р№ РїР°СЂРѕР»СЊ.' });
   }
 
   return res.redirect(`/change-password?reason=${encodeURIComponent(pinChangeReason(user))}`);
 });
 
 // If browser auto-translation rewrites URLs into Russian, keep the app working.
-// (e.g. "/администратор/устройства" -> "/admin/devices")
+// (e.g. "/Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ/СѓСЃС‚СЂРѕР№СЃС‚РІР°" -> "/admin/devices")
 app.use((req, res, next) => {
   const original = req.originalUrl || '';
   const rules = [
-    { from: '/администратор', to: '/admin' },
-    { from: '/войти в систему', to: '/login' },
-    { from: '/вход', to: '/login' },
-    { from: '/выход', to: '/logout' },
-    { from: '/выход из системы', to: '/logout' },
-    { from: '/журнал', to: '/logs' },
+    { from: '/Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ', to: '/admin' },
+    { from: '/РІРѕР№С‚Рё РІ СЃРёСЃС‚РµРјСѓ', to: '/login' },
+    { from: '/РІС…РѕРґ', to: '/login' },
+    { from: '/РІС‹С…РѕРґ', to: '/logout' },
+    { from: '/РІС‹С…РѕРґ РёР· СЃРёСЃС‚РµРјС‹', to: '/logout' },
+    { from: '/Р¶СѓСЂРЅР°Р»', to: '/logs' },
   ];
 
   for (const r of rules) {
@@ -552,8 +551,6 @@ app.use((req, res, next) => {
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.engine('ejs', require('ejs').__express);
-
-// статика (если есть)
 
 function genPassword(len = 10) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
@@ -576,8 +573,6 @@ function clearFallbackTransitLog() {
     if (fs.existsSync(FALLBACK_TRANSIT_LOG)) fs.writeFileSync(FALLBACK_TRANSIT_LOG, '', 'utf-8');
   } catch {}
 }
-
-// Форматирование времени строго в МСК, независимо от таймзоны сервера
 function formatMoscowDateTime(v) {
   if (!v) return '';
   const d = (v instanceof Date) ? v : new Date(v);
@@ -596,7 +591,7 @@ function formatMoscowDateTime(v) {
       hourCycle: 'h23',
     }).format(d).replace(',', '');
   } catch {
-    // fallback: фиксированный UTC+3
+    // fallback: С„РёРєСЃРёСЂРѕРІР°РЅРЅС‹Р№ UTC+3
     const pad = (n) => String(n).padStart(2, '0');
     const ms = d.getTime() + 3 * 60 * 60 * 1000;
     const u = new Date(ms);
@@ -605,11 +600,11 @@ function formatMoscowDateTime(v) {
 }
 
 const RU_TRANSIT_EVENT = {
-  open: 'Открытие',
-  close: 'Закрытие',
-  unlock: 'Открытие',
-  lock: 'Закрытие',
-  error: 'Ошибка',
+  open: 'РћС‚РєСЂС‹С‚РёРµ',
+  close: 'Р—Р°РєСЂС‹С‚РёРµ',
+  unlock: 'РћС‚РєСЂС‹С‚РёРµ',
+  lock: 'Р—Р°РєСЂС‹С‚РёРµ',
+  error: 'РћС€РёР±РєР°',
 };
 
 function ruTransitEvent(ev) {
@@ -774,7 +769,7 @@ async function getGatewayStatus() {
       configured: false,
       ok: false,
       status: 'not_configured',
-      label: 'Шлюз не настроен',
+      label: 'РЁР»СЋР· РЅРµ РЅР°СЃС‚СЂРѕРµРЅ',
       elapsed_ms: 0,
     };
   }
@@ -792,7 +787,7 @@ async function getGatewayStatus() {
       configured: true,
       ok,
       status: ok ? 'online' : 'error',
-      label: ok ? 'Шлюз онлайн' : 'Шлюз отвечает с ошибкой',
+      label: ok ? 'РЁР»СЋР· РѕРЅР»Р°Р№РЅ' : 'РЁР»СЋР· РѕС‚РІРµС‡Р°РµС‚ СЃ РѕС€РёР±РєРѕР№',
       http_status: r.status,
       elapsed_ms: Date.now() - started,
       service: r.data?.service || null,
@@ -803,7 +798,7 @@ async function getGatewayStatus() {
       configured: true,
       ok: false,
       status: 'offline',
-      label: 'Шлюз недоступен',
+      label: 'РЁР»СЋР· РЅРµРґРѕСЃС‚СѓРїРµРЅ',
       http_status: 0,
       elapsed_ms: Date.now() - started,
       error: e?.message || String(e),
@@ -854,50 +849,50 @@ function eventMatchesZone(event, zoneId, zoneName) {
 
 function describeZoneDevices(devices, zoneName, zoneId) {
   const list = Array.isArray(devices) ? devices : [];
-  if (!list.length) return 'Пока ничего не подключено';
+  if (!list.length) return 'РџРѕРєР° РЅРёС‡РµРіРѕ РЅРµ РїРѕРґРєР»СЋС‡РµРЅРѕ';
 
   const names = list.map((device) => String(device?.name || '').trim()).filter(Boolean);
   const zoneKey = String(zoneId || '').trim().toLowerCase();
   const floorLabels = [...new Set(
     names
       .map((name) => {
-        const match = name.match(/(\d+)\s*(?:эт|этаж)/iu);
-        return match ? `${match[1]} эт.` : null;
+        const match = name.match(/(\d+)\s*(?:СЌС‚|СЌС‚Р°Р¶)/iu);
+        return match ? `${match[1]} СЌС‚.` : null;
       })
       .filter(Boolean)
   )].sort((a, b) => Number.parseInt(a, 10) - Number.parseInt(b, 10));
 
-  if (floorLabels.length) return `Этажи ${floorLabels.join(', ')}`;
+  if (floorLabels.length) return `Р­С‚Р°Р¶Рё ${floorLabels.join(', ')}`;
 
-  const liftCount = names.filter((name) => /лифт/iu.test(name)).length;
-  const entranceCount = names.filter((name) => /двер|вход/iu.test(name)).length;
+  const liftCount = names.filter((name) => /Р»РёС„С‚/iu.test(name)).length;
+  const entranceCount = names.filter((name) => /РґРІРµСЂ|РІС…РѕРґ/iu.test(name)).length;
   if (zoneKey === 'pedestrian' && (liftCount || entranceCount)) {
-    return 'Входы с 1 этажа и лифты';
+    return 'Р’С…РѕРґС‹ СЃ 1 СЌС‚Р°Р¶Р° Рё Р»РёС„С‚С‹';
   }
   if (liftCount || entranceCount) {
     const parts = [];
-    if (liftCount) parts.push(liftCount > 1 ? `${liftCount} лифта` : 'лифт');
-    if (entranceCount) parts.push(entranceCount > 1 ? `${entranceCount} входов` : 'вход');
-    return parts.join(' и ');
+    if (liftCount) parts.push(liftCount > 1 ? `${liftCount} Р»РёС„С‚Р°` : 'Р»РёС„С‚');
+    if (entranceCount) parts.push(entranceCount > 1 ? `${entranceCount} РІС…РѕРґРѕРІ` : 'РІС…РѕРґ');
+    return parts.join(' Рё ');
   }
 
-  const entryCount = names.filter((name) => /въезд|заезд/iu.test(name)).length;
-  const exitCount = names.filter((name) => /выезд/iu.test(name)).length;
-  if (zoneKey === 'buffer') return 'Шлагбаумы у северного въезда';
-  if (zoneKey === 'transit') return 'Рампа и шлагбаумы на эстакаду';
-  if (zoneKey === 'underground' && (entryCount || exitCount)) return 'Въезды в подземную часть';
-  if (zoneKey === 'overground' && (entryCount || exitCount)) return 'Въезды и выезды на наземном уровне';
-  if (zoneKey === 'europlan' && (entryCount || exitCount)) return 'Заезд и выезд по этажам';
+  const entryCount = names.filter((name) => /РІСЉРµР·Рґ|Р·Р°РµР·Рґ/iu.test(name)).length;
+  const exitCount = names.filter((name) => /РІС‹РµР·Рґ/iu.test(name)).length;
+  if (zoneKey === 'buffer') return 'РЁР»Р°РіР±Р°СѓРјС‹ Сѓ СЃРµРІРµСЂРЅРѕРіРѕ РІСЉРµР·РґР°';
+  if (zoneKey === 'transit') return 'Р Р°РјРїР° Рё С€Р»Р°РіР±Р°СѓРјС‹ РЅР° СЌСЃС‚Р°РєР°РґСѓ';
+  if (zoneKey === 'underground' && (entryCount || exitCount)) return 'Р’СЉРµР·РґС‹ РІ РїРѕРґР·РµРјРЅСѓСЋ С‡Р°СЃС‚СЊ';
+  if (zoneKey === 'overground' && (entryCount || exitCount)) return 'Р’СЉРµР·РґС‹ Рё РІС‹РµР·РґС‹ РЅР° РЅР°Р·РµРјРЅРѕРј СѓСЂРѕРІРЅРµ';
+  if (zoneKey === 'europlan' && (entryCount || exitCount)) return 'Р—Р°РµР·Рґ Рё РІС‹РµР·Рґ РїРѕ СЌС‚Р°Р¶Р°Рј';
   if (entryCount || exitCount) {
     const parts = [];
-    if (entryCount) parts.push(entryCount > 1 ? `${entryCount} въезда` : 'въезд');
-    if (exitCount) parts.push(exitCount > 1 ? `${exitCount} выезда` : 'выезд');
-    return parts.join(' и ');
+    if (entryCount) parts.push(entryCount > 1 ? `${entryCount} РІСЉРµР·РґР°` : 'РІСЉРµР·Рґ');
+    if (exitCount) parts.push(exitCount > 1 ? `${exitCount} РІС‹РµР·РґР°` : 'РІС‹РµР·Рґ');
+    return parts.join(' Рё ');
   }
 
-  if (/северный въезд|рампа|эстакад/iu.test(String(zoneName || ''))) return 'Шлагбаумы и проезды';
+  if (/СЃРµРІРµСЂРЅС‹Р№ РІСЉРµР·Рґ|СЂР°РјРїР°|СЌСЃС‚Р°РєР°Рґ/iu.test(String(zoneName || ''))) return 'РЁР»Р°РіР±Р°СѓРјС‹ Рё РїСЂРѕРµР·РґС‹';
 
-  return `${list.length} ${pluralRu(list.length, 'вариант', 'варианта', 'вариантов')}`;
+  return `${list.length} ${pluralRu(list.length, 'РІР°СЂРёР°РЅС‚', 'РІР°СЂРёР°РЅС‚Р°', 'РІР°СЂРёР°РЅС‚РѕРІ')}`;
 }
 
 function buildZoneSummary(byZone, recentEvents) {
@@ -931,11 +926,11 @@ function isDashboardAttentionEvent(event) {
 
 function dashboardResultLabel(result) {
   const raw = String(result || '').trim();
-  if (!raw) return 'Нет статуса';
-  if (raw === 'ok') return 'Успешно';
-  if (raw === 'denied') return 'Нет доступа';
-  if (raw === 'disabled') return 'Отключено';
-  if (raw.startsWith('gw_error:')) return 'Ошибка шлюза';
+  if (!raw) return 'РќРµС‚ СЃС‚Р°С‚СѓСЃР°';
+  if (raw === 'ok') return 'РЈСЃРїРµС€РЅРѕ';
+  if (raw === 'denied') return 'РќРµС‚ РґРѕСЃС‚СѓРїР°';
+  if (raw === 'disabled') return 'РћС‚РєР»СЋС‡РµРЅРѕ';
+  if (raw.startsWith('gw_error:')) return 'РћС€РёР±РєР° С€Р»СЋР·Р°';
   return raw;
 }
 
@@ -946,7 +941,7 @@ function buildDashboardTimeline(recentEvents) {
   list.forEach((event) => {
     const dt = event?.datetime ? new Date(event.datetime) : null;
     if (!dt || Number.isNaN(dt.getTime())) return;
-    const label = formatMoscowDateTime(dt).split(' ')[1]?.slice(0, 5) || '—';
+    const label = formatMoscowDateTime(dt).split(' ')[1]?.slice(0, 5) || 'вЂ”';
     const current = grouped.get(label) || { label, total: 0, attention: 0 };
     current.total += 1;
     if (isDashboardAttentionEvent(event)) current.attention += 1;
@@ -968,7 +963,7 @@ function buildAttentionEvents(recentEvents) {
     .filter(isDashboardAttentionEvent)
     .slice(0, 5)
     .map((event) => ({
-      point: event?.point || '—',
+      point: event?.point || 'вЂ”',
       datetime: event?.datetime || null,
       datetime_msk: event?.datetime_msk || null,
       result: event?.result || null,
@@ -1017,12 +1012,12 @@ function buildDashboardStats(byZone, accessibleDevices, recentEvents) {
 
 // --- Seed defaults (zones + devices) -----------------------------------------
 const DEFAULT_ZONES = [
-  { id: 'buffer',      name: 'Северный въезд',         sort: 10 },
-  { id: 'europlan',    name: 'Этажи 2-9',              sort: 20 },
-  { id: 'overground',  name: 'Наземный уровень',       sort: 30 },
-  { id: 'pedestrian',  name: 'Входы и лифты',          sort: 40 },
-  { id: 'underground', name: 'Подземный уровень',      sort: 50 },
-  { id: 'transit',     name: 'Рампа на эстакаду',      sort: 60 },
+  { id: 'buffer',      name: 'РЎРµРІРµСЂРЅС‹Р№ РІСЉРµР·Рґ',         sort: 10 },
+  { id: 'europlan',    name: 'Р­С‚Р°Р¶Рё 2-9',              sort: 20 },
+  { id: 'overground',  name: 'РќР°Р·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ',       sort: 30 },
+  { id: 'pedestrian',  name: 'Р’С…РѕРґС‹ Рё Р»РёС„С‚С‹',          sort: 40 },
+  { id: 'underground', name: 'РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ',      sort: 50 },
+  { id: 'transit',     name: 'Р Р°РјРїР° РЅР° СЌСЃС‚Р°РєР°РґСѓ',      sort: 60 },
 ];
 
 async function ensureDefaultZones() {
@@ -1060,7 +1055,7 @@ function parseDevicesJson(raw) {
 }
 
 async function seedDevicesFromJson() {
-  // Seed only when DB is empty, so we don't overwrite devices created in админке
+  // Seed only when DB is empty, so we don't overwrite devices created in Р°РґРјРёРЅРєРµ
   try {
     const c = await dbQuery('SELECT COUNT(*)::int AS c FROM public.devices');
     if ((c.rows?.[0]?.c ?? 0) > 0) return;
@@ -1090,10 +1085,10 @@ async function seedDevicesFromJson() {
   // Reference devices are allowed only for local/demo runs. Production must use real inventory.
   if (!list.length) {
     if (!ALLOW_REFERENCE_DEVICE_SEED) {
-      console.warn('devices.json пустой/не найден — референсные устройства не создаются в production. Добавьте реальные устройства через админку или импорт.');
+      console.warn('devices.json РїСѓСЃС‚РѕР№/РЅРµ РЅР°Р№РґРµРЅ вЂ” СЂРµС„РµСЂРµРЅСЃРЅС‹Рµ СѓСЃС‚СЂРѕР№СЃС‚РІР° РЅРµ СЃРѕР·РґР°СЋС‚СЃСЏ РІ production. Р”РѕР±Р°РІСЊС‚Рµ СЂРµР°Р»СЊРЅС‹Рµ СѓСЃС‚СЂРѕР№СЃС‚РІР° С‡РµСЂРµР· Р°РґРјРёРЅРєСѓ РёР»Рё РёРјРїРѕСЂС‚.');
       return;
     }
-    console.log('ℹ️ devices.json пустой/не найден — создаю референсный набор устройств для локальной проверки');
+    console.log('в„№пёЏ devices.json РїСѓСЃС‚РѕР№/РЅРµ РЅР°Р№РґРµРЅ вЂ” СЃРѕР·РґР°СЋ СЂРµС„РµСЂРµРЅСЃРЅС‹Р№ РЅР°Р±РѕСЂ СѓСЃС‚СЂРѕР№СЃС‚РІ РґР»СЏ Р»РѕРєР°Р»СЊРЅРѕР№ РїСЂРѕРІРµСЂРєРё');
     list = buildReferenceDevices();
   }
 
@@ -1137,8 +1132,6 @@ function authRequired(req, res, next) {
 
 function adminRequired(req, res, next) {
   if (!req.session?.user) return res.redirect('/login');
-  // Для обычных пользователей закрываем всё, кроме Дашборда.
-  // Вместо 403 делаем редирект на главную, чтобы UI выглядел как приложение, а не как ошибка.
   if (req.session.user.role !== 'admin') return res.redirect('/');
   next();
 }
@@ -1421,8 +1414,7 @@ async function ensureDefaultAdmin() {
   if (exists.rows.length) return;
 
   const id = 'admin';
-  const fio = process.env.ADMIN_FIO || 'Администратор';
-  // если зон ещё нет — оставляем пусто, можно назначить в админке
+  const fio = process.env.ADMIN_FIO || 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ';
   await dbQuery(
     `INSERT INTO public.users(id,fio,phone,organization,position,pin,role,is_is_admin,zones,is_active,must_change_pin,pin_created_at,pin_expires_at)
      VALUES ($1,$2,$3,$4,$5,$6,'admin',true,$7,true,true,NOW(),$8)
@@ -1430,7 +1422,7 @@ async function ensureDefaultAdmin() {
     [id, fio, adminPhone, null, null, await hashPin(adminPin), [], getStartPinExpiresAt()]
   );
 
-  console.log('✅ Создан админ по умолчанию:', adminPhone);
+  console.log('вњ… РЎРѕР·РґР°РЅ Р°РґРјРёРЅ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ:', adminPhone);
 }
 
 async function ensureDemoUser(spec = {}) {
@@ -1478,19 +1470,19 @@ async function ensureDemoUsers() {
   const demoUsers = [
     {
       id: 'demo-admin-lite',
-      fio: 'Администратор смены',
+      fio: 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ СЃРјРµРЅС‹',
       phone: '79000000010',
       pin: 'RuntimeAdminLite1234',
       role: 'admin',
       is_is_admin: false,
       zones: ['europlan', 'pedestrian', 'buffer', 'overground'],
       assignable_zones: ['europlan', 'pedestrian', 'buffer', 'overground'],
-      organization: 'Моя парковка',
-      position: 'Администратор',
+      organization: 'РњРѕСЏ РїР°СЂРєРѕРІРєР°',
+      position: 'РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ',
     },
     {
       id: 'demo-dispatcher',
-      fio: 'Диспетчер парковки',
+      fio: 'Р”РёСЃРїРµС‚С‡РµСЂ РїР°СЂРєРѕРІРєРё',
       phone: '79000000020',
       pin: 'RuntimeDispatch1234',
       role: 'dispatcher',
@@ -1498,72 +1490,72 @@ async function ensureDemoUsers() {
       zones: ['pedestrian', 'buffer', 'europlan', 'overground', 'underground', 'transit'],
       assignable_zones: null,
       is_tenant_contact: true,
-      organization: 'Моя парковка',
-      position: 'Диспетчер',
+      organization: 'РњРѕСЏ РїР°СЂРєРѕРІРєР°',
+      position: 'Р”РёСЃРїРµС‚С‡РµСЂ',
     },
     {
       id: 'demo-tenant-europlan',
-      fio: 'Арендатор 7 этажа',
+      fio: 'РђСЂРµРЅРґР°С‚РѕСЂ 7 СЌС‚Р°Р¶Р°',
       phone: '79000000030',
       pin: 'RuntimeEuro1234',
       role: 'user',
       is_is_admin: false,
       zones: ['europlan'],
       assignable_zones: null,
-      organization: 'Секция 7A',
-      position: 'Арендатор',
+      organization: 'РЎРµРєС†РёСЏ 7A',
+      position: 'РђСЂРµРЅРґР°С‚РѕСЂ',
       parking_floors: ['7'],
-      parking_groups: ['Секция 7A'],
+      parking_groups: ['РЎРµРєС†РёСЏ 7A'],
       parking_spots: ['7-124', '7-125'],
-      preferred_routes: ['7 этаж', 'въезд', 'выезд'],
+      preferred_routes: ['7 СЌС‚Р°Р¶', 'РІСЉРµР·Рґ', 'РІС‹РµР·Рґ'],
     },
     {
       id: 'demo-tenant-pedestrian',
-      fio: 'Арендатор Пешеходный доступ',
+      fio: 'РђСЂРµРЅРґР°С‚РѕСЂ РџРµС€РµС…РѕРґРЅС‹Р№ РґРѕСЃС‚СѓРї',
       phone: '79000000031',
       pin: 'RuntimeWalk1234',
       role: 'user',
       is_is_admin: false,
       zones: ['pedestrian'],
       assignable_zones: null,
-      organization: 'Башня А',
-      position: 'Арендатор',
+      organization: 'Р‘Р°С€РЅСЏ Рђ',
+      position: 'РђСЂРµРЅРґР°С‚РѕСЂ',
       parking_floors: ['7'],
-      parking_groups: ['Лобби А'],
-      parking_spots: ['Лифт 1'],
-      preferred_routes: ['лифты', 'двери'],
+      parking_groups: ['Р›РѕР±Р±Рё Рђ'],
+      parking_spots: ['Р›РёС„С‚ 1'],
+      preferred_routes: ['Р»РёС„С‚С‹', 'РґРІРµСЂРё'],
     },
     {
       id: 'demo-tenant-drive',
-      fio: 'Арендатор Наземный маршрут',
+      fio: 'РђСЂРµРЅРґР°С‚РѕСЂ РќР°Р·РµРјРЅС‹Р№ РјР°СЂС€СЂСѓС‚',
       phone: '79000000032',
       pin: 'RuntimeDrive1234',
       role: 'user',
       is_is_admin: false,
       zones: ['buffer', 'overground'],
       assignable_zones: null,
-      organization: 'Паркинг Север',
-      position: 'Арендатор',
+      organization: 'РџР°СЂРєРёРЅРі РЎРµРІРµСЂ',
+      position: 'РђСЂРµРЅРґР°С‚РѕСЂ',
       parking_floors: ['2'],
-      parking_groups: ['Сектор B2'],
+      parking_groups: ['РЎРµРєС‚РѕСЂ B2'],
       parking_spots: ['B2-07'],
-      preferred_routes: ['въезды', 'выезды'],
+      preferred_routes: ['РІСЉРµР·РґС‹', 'РІС‹РµР·РґС‹'],
     },
     {
       id: 'demo-tenant-underground',
-      fio: 'Арендатор Подземный маршрут',
+      fio: 'РђСЂРµРЅРґР°С‚РѕСЂ РџРѕРґР·РµРјРЅС‹Р№ РјР°СЂС€СЂСѓС‚',
       phone: '79000000033',
       pin: 'RuntimeUnderground1234',
       role: 'user',
       is_is_admin: false,
       zones: ['underground', 'transit'],
       assignable_zones: null,
-      organization: 'Паркинг Юг',
-      position: 'Арендатор',
+      organization: 'РџР°СЂРєРёРЅРі Р®Рі',
+      position: 'РђСЂРµРЅРґР°С‚РѕСЂ',
       parking_floors: ['2'],
-      parking_groups: ['Сектор P2'],
+      parking_groups: ['РЎРµРєС‚РѕСЂ P2'],
       parking_spots: ['P2-18'],
-      preferred_routes: ['шлагбаумы', 'въезды'],
+      preferred_routes: ['С€Р»Р°РіР±Р°СѓРјС‹', 'РІСЉРµР·РґС‹'],
     },
   ];
 
@@ -1573,7 +1565,7 @@ async function ensureDemoUsers() {
   }
 
   if (created.length) {
-    console.log('✅ Созданы демо-пользователи:', created.join(', '));
+    console.log('вњ… РЎРѕР·РґР°РЅС‹ РґРµРјРѕ-РїРѕР»СЊР·РѕРІР°С‚РµР»Рё:', created.join(', '));
   }
 }
 
@@ -1583,17 +1575,17 @@ async function ensureDemoUsers() {
       throw new Error('DATABASE_URL/PG_URL must be set. For local demo use DEV_MEMORY_DB=true.');
     }
     await ensureSchema();
-    // 1) создаём стандартные зоны
+    // 1) СЃРѕР·РґР°С‘Рј СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ Р·РѕРЅС‹
     await ensureDefaultZones();
-    // 2) загружаем устройства из devices.json; reference seed только вне production или при явном разрешении
+    // 2) Р·Р°РіСЂСѓР¶Р°РµРј СѓСЃС‚СЂРѕР№СЃС‚РІР° РёР· devices.json; reference seed С‚РѕР»СЊРєРѕ РІРЅРµ production РёР»Рё РїСЂРё СЏРІРЅРѕРј СЂР°Р·СЂРµС€РµРЅРёРё
     await seedDevicesFromJson();
-    // 3) выносим секреты устройств из URL в отдельные поля
+    // 3) РІС‹РЅРѕСЃРёРј СЃРµРєСЂРµС‚С‹ СѓСЃС‚СЂРѕР№СЃС‚РІ РёР· URL РІ РѕС‚РґРµР»СЊРЅС‹Рµ РїРѕР»СЏ
     await ensureExtraSecuritySchema();
-    // 4) создаём админа по умолчанию
+    // 4) СЃРѕР·РґР°С‘Рј Р°РґРјРёРЅР° РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
     await ensureDefaultAdmin();
-    // 5) создаём демо-роли только для локальной DEV_MEMORY_DB-проверки
+    // 5) СЃРѕР·РґР°С‘Рј РґРµРјРѕ-СЂРѕР»Рё С‚РѕР»СЊРєРѕ РґР»СЏ Р»РѕРєР°Р»СЊРЅРѕР№ DEV_MEMORY_DB-РїСЂРѕРІРµСЂРєРё
     await ensureDemoUsers();
-    // 6) прогреваем кэш
+    // 6) РїСЂРѕРіСЂРµРІР°РµРј РєСЌС€
     await loadAll();
   } catch (e) {
     console.error('DB init error:', e);
@@ -1604,6 +1596,6 @@ async function ensureDemoUsers() {
   }
 
   app.listen(PORT, process.env.HOST || '0.0.0.0', () => {
-   console.log(`✅ Моя парковка запущен: http://127.0.0.1:${PORT}`);
+   console.log(`вњ… РњРѕСЏ РїР°СЂРєРѕРІРєР° Р·Р°РїСѓС‰РµРЅ: http://127.0.0.1:${PORT}`);
   });
 })();

@@ -1,4 +1,4 @@
-const DATABASE_URL = process.env.DATABASE_URL || process.env.PG_URL || '';
+﻿const DATABASE_URL = process.env.DATABASE_URL || process.env.PG_URL || '';
 const USE_DEV_DB = String(process.env.DEV_MEMORY_DB || '').toLowerCase() === 'true';
 const DATABASE_URL_CONFIGURED = !!DATABASE_URL;
 
@@ -11,8 +11,7 @@ if (USE_DEV_DB) {
 } else {
   const { Pool } = require('pg');
 
-  // Railway/Render/Heroku часто требуют SSL.
-  // Чтобы не ловить ошибки сертификата — используем rejectUnauthorized:false.
+  // Railway/Render/Heroku С‡Р°СЃС‚Рѕ С‚СЂРµР±СѓСЋС‚ SSL.
   const useSSL =
     String(process.env.PGSSL || '').toLowerCase() === 'true' ||
     /sslmode=require/i.test(DATABASE_URL);
@@ -27,7 +26,7 @@ if (USE_DEV_DB) {
   };
 
   ensureSchema = async function ensureSchema() {
-  // 1) Создаём таблицы, если их ещё нет
+  // 1) РЎРѕР·РґР°С‘Рј С‚Р°Р±Р»РёС†С‹, РµСЃР»Рё РёС… РµС‰С‘ РЅРµС‚
   await dbQuery(`
     CREATE TABLE IF NOT EXISTS public.users (
       id TEXT PRIMARY KEY,
@@ -108,7 +107,7 @@ if (USE_DEV_DB) {
     );
   `);
 
-  // Transit journal (UI: "Журнал транзита")
+  // Transit journal (UI: "Р–СѓСЂРЅР°Р» С‚СЂР°РЅР·РёС‚Р°")
   // Used by /logs, /logs.csv and /logs/clear
   await dbQuery(`
     CREATE TABLE IF NOT EXISTS public.transit_events (
@@ -137,7 +136,7 @@ if (USE_DEV_DB) {
       action TEXT,
       target_type TEXT,
       target_id TEXT,
-      -- старые поля (если проект раньше так назывался)
+      -- СЃС‚Р°СЂС‹Рµ РїРѕР»СЏ (РµСЃР»Рё РїСЂРѕРµРєС‚ СЂР°РЅСЊС€Рµ С‚Р°Рє РЅР°Р·С‹РІР°Р»СЃСЏ)
       object_type TEXT,
       object_id TEXT,
       details JSONB,
@@ -154,7 +153,7 @@ if (USE_DEV_DB) {
     );
   `);
 
-  // 2) МИГРАЦИИ: добавляем недостающие колонки в существующих таблицах
+  // 2) РњРР“Р РђР¦РР: РґРѕР±Р°РІР»СЏРµРј РЅРµРґРѕСЃС‚Р°СЋС‰РёРµ РєРѕР»РѕРЅРєРё РІ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… С‚Р°Р±Р»РёС†Р°С…
   // users
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS fio TEXT;`);
   await dbQuery(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone TEXT;`);
@@ -208,7 +207,7 @@ if (USE_DEV_DB) {
       }
     }
   } catch (e) {
-    console.warn('⚠️ zones type check/migrate failed:', e?.message || e);
+    console.warn('вљ пёЏ zones type check/migrate failed:', e?.message || e);
   }
 
   try {
@@ -239,7 +238,7 @@ if (USE_DEV_DB) {
       }
     }
   } catch (e) {
-    console.warn('⚠️ assignable_zones type check/migrate failed:', e?.message || e);
+    console.warn('вљ пёЏ assignable_zones type check/migrate failed:', e?.message || e);
   }
 
   await dbQuery(`ALTER TABLE public.users ALTER COLUMN role SET DEFAULT 'user';`);
@@ -314,7 +313,6 @@ if (USE_DEV_DB) {
   await dbQuery(`UPDATE public.devices SET is_active = COALESCE(is_active, TRUE) WHERE is_active IS NULL;`);
   await dbQuery(`UPDATE public.devices SET created_at = COALESCE(created_at, NOW()) WHERE created_at IS NULL;`);
   await dbQuery(`UPDATE public.devices SET updated_at = COALESCE(updated_at, NOW()) WHERE updated_at IS NULL;`);
-  // Совместимость: если раньше была колонка zone (текст), заполняем zone_id
   await dbQuery(
     `UPDATE public.devices SET zone_id = COALESCE(zone_id, zone) WHERE zone_id IS NULL AND zone IS NOT NULL;`
   );
@@ -349,7 +347,6 @@ if (USE_DEV_DB) {
   await dbQuery(`ALTER TABLE public.transit_events ADD COLUMN IF NOT EXISTS session TEXT;`);
   await dbQuery(`ALTER TABLE public.transit_events ADD COLUMN IF NOT EXISTS request_id TEXT;`);
   await dbQuery(`ALTER TABLE public.transit_events ADD COLUMN IF NOT EXISTS details JSONB;`);
-  // Кто сделал действие (для UI "Журнал транзита")
   await dbQuery(`ALTER TABLE public.transit_events ADD COLUMN IF NOT EXISTS actor_id TEXT;`);
   await dbQuery(`ALTER TABLE public.transit_events ADD COLUMN IF NOT EXISTS actor_phone TEXT;`);
   await dbQuery(`ALTER TABLE public.transit_events ADD COLUMN IF NOT EXISTS actor_fio TEXT;`);
@@ -359,8 +356,6 @@ if (USE_DEV_DB) {
   await dbQuery(`UPDATE public.transit_events SET datetime = COALESCE(datetime, NOW()) WHERE datetime IS NULL;`);
   await dbQuery(`CREATE INDEX IF NOT EXISTS idx_transit_events_session ON public.transit_events (session);`);
   await dbQuery(`CREATE INDEX IF NOT EXISTS idx_transit_events_request_id ON public.transit_events (request_id);`);
-
-  // Подтянуть старые записи (если раньше писали только source)
   await dbQuery(
     `UPDATE public.transit_events
      SET actor_phone = COALESCE(actor_phone, source)
@@ -393,13 +388,10 @@ if (USE_DEV_DB) {
   await dbQuery(`ALTER TABLE public.audit ADD COLUMN IF NOT EXISTS ua TEXT;`);
   await dbQuery(`ALTER TABLE public.audit ALTER COLUMN ts SET DEFAULT NOW();`);
   await dbQuery(`UPDATE public.audit SET ts = COALESCE(ts, NOW()) WHERE ts IS NULL;`);
-  // Совместимость: если раньше писали в object_type/object_id
   await dbQuery(
     `UPDATE public.audit SET target_type = COALESCE(target_type, object_type), target_id = COALESCE(target_id, object_id)
      WHERE target_type IS NULL OR target_id IS NULL;`
   );
-
-  // Индексы (безопасно: IF NOT EXISTS)
   await dbQuery(
     `CREATE INDEX IF NOT EXISTS users_phone_digits_idx
      ON public.users (regexp_replace(coalesce(phone,''), '[^0-9]', '', 'g'));`

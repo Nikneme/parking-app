@@ -1,8 +1,7 @@
-<%- include('partials/header', { title, bodyClass, user, path: '/' }) %>
+﻿<%- include('partials/header', { title, bodyClass, user, path: '/' }) %>
 
 <%
-  // DASHBOARD_DEVICE_NATURAL_SORT_START
-  const __dashboardTrailingNum = (d) => {
+const __dashboardTrailingNum = (d) => {
     const label = String((d && (d.name || d.id)) || '').trim();
     const m = label.match(/(\d+)(?!.*\d)/);
     return m ? Number(m[1]) : Number.POSITIVE_INFINITY;
@@ -48,7 +47,7 @@
   };
 
   const __dashboardFloor = (device) => {
-    const match = __dashText(device && device.name).match(/(\d+)\s*(?:эт|этаж)/iu);
+    const match = __dashText(device && device.name).match(/(\d+)\s*(?:СЌС‚|СЌС‚Р°Р¶)/iu);
     return match ? Number(match[1]) : null;
   };
 
@@ -58,28 +57,28 @@
     if (Number.isFinite(floor)) {
       return {
         key: `floor:${floor}`,
-        title: `${floor} этаж`,
-        subtitle: 'Прямой проезд на нужный этаж',
+        title: `${floor} СЌС‚Р°Р¶`,
+        subtitle: 'РџСЂСЏРјРѕР№ РїСЂРѕРµР·Рґ РЅР° РЅСѓР¶РЅС‹Р№ СЌС‚Р°Р¶',
         rank: 10 + floor,
         floor,
       };
     }
-    if (name.includes('лифт')) {
-      return { key: 'lift', title: 'Лифты', subtitle: 'Подъём на нужный этаж', rank: 200, floor: null };
+    if (name.includes('Р»РёС„С‚')) {
+      return { key: 'lift', title: 'Р›РёС„С‚С‹', subtitle: 'РџРѕРґСЉС‘Рј РЅР° РЅСѓР¶РЅС‹Р№ СЌС‚Р°Р¶', rank: 200, floor: null };
     }
-    if (/двер|вход/iu.test(name)) {
-      return { key: 'door', title: 'Входы', subtitle: 'Пеший вход с 1 этажа', rank: 210, floor: null };
+    if (/РґРІРµСЂ|РІС…РѕРґ/iu.test(name)) {
+      return { key: 'door', title: 'Р’С…РѕРґС‹', subtitle: 'РџРµС€РёР№ РІС…РѕРґ СЃ 1 СЌС‚Р°Р¶Р°', rank: 210, floor: null };
     }
-    if (/въезд|заезд/iu.test(name)) {
-      return { key: 'entry', title: 'Въезды', subtitle: 'Заезд к своим местам', rank: 220, floor: null };
+    if (/РІСЉРµР·Рґ|Р·Р°РµР·Рґ/iu.test(name)) {
+      return { key: 'entry', title: 'Р’СЉРµР·РґС‹', subtitle: 'Р—Р°РµР·Рґ Рє СЃРІРѕРёРј РјРµСЃС‚Р°Рј', rank: 220, floor: null };
     }
-    if (name.includes('выезд')) {
-      return { key: 'exit', title: 'Выезды', subtitle: 'Выезд с парковки', rank: 230, floor: null };
+    if (name.includes('РІС‹РµР·Рґ')) {
+      return { key: 'exit', title: 'Р’С‹РµР·РґС‹', subtitle: 'Р’С‹РµР·Рґ СЃ РїР°СЂРєРѕРІРєРё', rank: 230, floor: null };
     }
-    if (/шлаг|проезд|рамп/iu.test(name) || /северный въезд|эстакад/iu.test(__dashText(zoneName).toLowerCase())) {
-      return { key: 'gate', title: 'Шлагбаумы', subtitle: 'Проезд по маршруту', rank: 240, floor: null };
+    if (/С€Р»Р°Рі|РїСЂРѕРµР·Рґ|СЂР°РјРї/iu.test(name) || /СЃРµРІРµСЂРЅС‹Р№ РІСЉРµР·Рґ|СЌСЃС‚Р°РєР°Рґ/iu.test(__dashText(zoneName).toLowerCase())) {
+      return { key: 'gate', title: 'РЁР»Р°РіР±Р°СѓРјС‹', subtitle: 'РџСЂРѕРµР·Рґ РїРѕ РјР°СЂС€СЂСѓС‚Сѓ', rank: 240, floor: null };
     }
-    return { key: 'other', title: 'Что открыть', subtitle: 'Доступно в этом разделе', rank: 250, floor: null };
+    return { key: 'other', title: 'Р§С‚Рѕ РѕС‚РєСЂС‹С‚СЊ', subtitle: 'Р”РѕСЃС‚СѓРїРЅРѕ РІ СЌС‚РѕРј СЂР°Р·РґРµР»Рµ', rank: 250, floor: null };
   };
 
   const __routeSectionId = (zoneId, key) => (
@@ -207,12 +206,12 @@
     ? __preferredTenantQuickRoutes
     : __allTenantQuickRoutes;
   const __tenantQuickRouteMode = (__isTenant && __tenantProfile.hasProfile && __preferredTenantQuickRoutes.length) ? 'profile' : 'fallback';
-  const __introTitle = __isTenant ? 'Открыть проезд или вход' : 'Открыть и проверить';
+  const __introTitle = __isTenant ? 'РћС‚РєСЂС‹С‚СЊ РїСЂРѕРµР·Рґ РёР»Рё РІС…РѕРґ' : 'РћС‚РєСЂС‹С‚СЊ Рё РїСЂРѕРІРµСЂРёС‚СЊ';
   const __introLead = __isTenant
     ? (__tenantProfile.hasProfile
-      ? 'Сначала показано то, что относится к вашему этажу и обычному маршруту.'
-      : 'Сначала выберите этаж, вход или нужный проезд. Остальное мы убрали, чтобы не мешало.')
-    : 'Найдите нужный въезд, дверь или шлагбаум. Ниже сразу видно, сработала команда или нет.';
+      ? 'РЎРЅР°С‡Р°Р»Р° РїРѕРєР°Р·Р°РЅРѕ С‚Рѕ, С‡С‚Рѕ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє РІР°С€РµРјСѓ СЌС‚Р°Р¶Сѓ Рё РѕР±С‹С‡РЅРѕРјСѓ РјР°СЂС€СЂСѓС‚Сѓ.'
+      : 'РЎРЅР°С‡Р°Р»Р° РІС‹Р±РµСЂРёС‚Рµ СЌС‚Р°Р¶, РІС…РѕРґ РёР»Рё РЅСѓР¶РЅС‹Р№ РїСЂРѕРµР·Рґ. РћСЃС‚Р°Р»СЊРЅРѕРµ РјС‹ СѓР±СЂР°Р»Рё, С‡С‚РѕР±С‹ РЅРµ РјРµС€Р°Р»Рѕ.')
+    : 'РќР°Р№РґРёС‚Рµ РЅСѓР¶РЅС‹Р№ РІСЉРµР·Рґ, РґРІРµСЂСЊ РёР»Рё С€Р»Р°РіР±Р°СѓРј. РќРёР¶Рµ СЃСЂР°Р·Сѓ РІРёРґРЅРѕ, СЃСЂР°Р±РѕС‚Р°Р»Р° РєРѕРјР°РЅРґР° РёР»Рё РЅРµС‚.';
   const __recentDeviceActions = __recentEvents
     .map((e) => ({
       id: e.device_id || (e.details && e.details.deviceId) || '',
@@ -1528,32 +1527,32 @@ button.tenant-action-card{
   <div class="ops-panel">
     <div class="ops-head">
       <div class="ops-title">
-        <span class="ops-kicker"><%= __isTenant ? 'Ваш маршрут' : 'Удаленное управление' %></span>
+        <span class="ops-kicker"><%= __isTenant ? 'Р’Р°С€ РјР°СЂС€СЂСѓС‚' : 'РЈРґР°Р»РµРЅРЅРѕРµ СѓРїСЂР°РІР»РµРЅРёРµ' %></span>
         <h1><%= __introTitle %></h1>
         <p class="ops-lead"><%= __introLead %></p>
         <% if (!__isTenant) { %>
         <div class="ops-meta">
             <span class="ops-pill" id="gatewayStatus">
               <span class="ops-dot"></span>
-              <span id="gatewayStatusText"><%= __stats.gatewayConfigured ? 'Шлюз проверяется' : 'Шлюз не настроен' %></span>
+              <span id="gatewayStatusText"><%= __stats.gatewayConfigured ? 'РЁР»СЋР· РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ' : 'РЁР»СЋР· РЅРµ РЅР°СЃС‚СЂРѕРµРЅ' %></span>
             </span>
             <% if (__lastEvent) { %>
               <span class="ops-pill">
                 <span class="ops-dot"></span>
-                <span>Последняя команда: <%= (__lastEvent.datetime_msk || '').toString().split(' ').slice(1).join(' ') || '—' %></span>
+                <span>РџРѕСЃР»РµРґРЅСЏСЏ РєРѕРјР°РЅРґР°: <%= (__lastEvent.datetime_msk || '').toString().split(' ').slice(1).join(' ') || 'вЂ”' %></span>
               </span>
             <% } %>
         </div>
         <% } %>
         <% if (!__isTenant) { %>
           <div class="ops-actions">
-            <button type="button" class="ops-action" data-jump-target="dashboardSearch">Найти</button>
-            <button type="button" class="ops-action" data-jump-target="zonePulseGrid">Открыть</button>
-            <button type="button" class="ops-action" data-jump-target="liveFeedList">Недавние</button>
+            <button type="button" class="ops-action" data-jump-target="dashboardSearch">РќР°Р№С‚Рё</button>
+            <button type="button" class="ops-action" data-jump-target="zonePulseGrid">РћС‚РєСЂС‹С‚СЊ</button>
+            <button type="button" class="ops-action" data-jump-target="liveFeedList">РќРµРґР°РІРЅРёРµ</button>
             <% if (__showOperatorPanels) { %>
-              <button type="button" class="ops-action" data-jump-target="attentionList">Проблемы</button>
+              <button type="button" class="ops-action" data-jump-target="attentionList">РџСЂРѕР±Р»РµРјС‹</button>
             <% } %>
-            <a class="ops-action" href="/logs">Журнал</a>
+            <a class="ops-action" href="/logs">Р–СѓСЂРЅР°Р»</a>
           </div>
         <% } %>
       </div>
@@ -1562,14 +1561,14 @@ button.tenant-action-card{
     <div class="ops-workbar">
       <div class="ops-search">
         <div class="ops-search-row">
-          <input id="dashboardSearch" type="search" placeholder="<%= __isTenant ? 'Например: 7 этаж, вход, Ш1' : 'Например: Ш1, дверь 1, 7 этаж' %>" autocomplete="off" autocapitalize="none">
-          <div class="ops-search-count" id="dashboardSearchCount" <%= __isTenant ? 'hidden' : '' %>><%= __isTenant ? '' : ('Устройств: ' + (__stats.devices || 0)) %></div>
+          <input id="dashboardSearch" type="search" placeholder="<%= __isTenant ? 'РќР°РїСЂРёРјРµСЂ: 7 СЌС‚Р°Р¶, РІС…РѕРґ, РЁ1' : 'РќР°РїСЂРёРјРµСЂ: РЁ1, РґРІРµСЂСЊ 1, 7 СЌС‚Р°Р¶' %>" autocomplete="off" autocapitalize="none">
+          <div class="ops-search-count" id="dashboardSearchCount" <%= __isTenant ? 'hidden' : '' %>><%= __isTenant ? '' : ('РЈСЃС‚СЂРѕР№СЃС‚РІ: ' + (__stats.devices || 0)) %></div>
         </div>
       </div>
 
       <div class="ops-recent">
         <div class="recent-title">
-          <strong><%= __isTenant ? 'Недавно открывали' : 'Недавние команды' %></strong>
+          <strong><%= __isTenant ? 'РќРµРґР°РІРЅРѕ РѕС‚РєСЂС‹РІР°Р»Рё' : 'РќРµРґР°РІРЅРёРµ РєРѕРјР°РЅРґС‹' %></strong>
           <span class="recent-code" id="recentUpdated"><%= __isTenant ? '' : (__lastEvent && __lastEvent.request_id ? String(__lastEvent.request_id).slice(0, 8) : '') %></span>
         </div>
         <div class="recent-quick-list" id="recentQuickList"></div>
@@ -1580,8 +1579,8 @@ button.tenant-action-card{
             %>
               <div class="recent-row">
                 <div class="recent-main">
-                  <div class="recent-name"><%= e.point || '—' %></div>
-                  <div class="recent-sub"><%= e.actor_fio || e.source || '—' %> • <%= e.result_label || e.result || '—' %></div>
+                  <div class="recent-name"><%= e.point || 'вЂ”' %></div>
+                  <div class="recent-sub"><%= e.actor_fio || e.source || 'вЂ”' %> вЂў <%= e.result_label || e.result || 'вЂ”' %></div>
                 </div>
                 <div class="recent-code"><%= _rid %></div>
               </div>
@@ -1594,21 +1593,21 @@ button.tenant-action-card{
     <% if (__isTenant && (__tenantPrimaryFloor || __supportContact)) { %>
       <div class="tenant-action-strip">
         <% if (__tenantPrimaryFloor) { %>
-          <button type="button" class="tenant-action-card" data-apply-query="<%= __tenantPrimaryFloor %> этаж">
+          <button type="button" class="tenant-action-card" data-apply-query="<%= __tenantPrimaryFloor %> СЌС‚Р°Р¶">
             <span class="tenant-action-copy">
-              <span class="tenant-action-title">Показать <%= __tenantPrimaryFloor %> этаж</span>
-              <span class="tenant-action-sub">Оставить на экране только подходящие въезды, выезды и проходы.</span>
+              <span class="tenant-action-title">РџРѕРєР°Р·Р°С‚СЊ <%= __tenantPrimaryFloor %> СЌС‚Р°Р¶</span>
+              <span class="tenant-action-sub">РћСЃС‚Р°РІРёС‚СЊ РЅР° СЌРєСЂР°РЅРµ С‚РѕР»СЊРєРѕ РїРѕРґС…РѕРґСЏС‰РёРµ РІСЉРµР·РґС‹, РІС‹РµР·РґС‹ Рё РїСЂРѕС…РѕРґС‹.</span>
             </span>
-            <span class="tenant-action-icon">→</span>
+            <span class="tenant-action-icon">в†’</span>
           </button>
         <% } %>
         <% if (__supportContact && __supportContact.tel_href) { %>
           <a class="tenant-action-card is-call" href="<%= __supportContact.tel_href %>">
             <span class="tenant-action-copy">
-              <span class="tenant-action-title">Позвонить диспетчеру</span>
+              <span class="tenant-action-title">РџРѕР·РІРѕРЅРёС‚СЊ РґРёСЃРїРµС‚С‡РµСЂСѓ</span>
               <span class="tenant-action-sub"><%= __supportContact.phone_display || __supportContact.phone %></span>
             </span>
-            <span class="tenant-action-icon">Тел</span>
+            <span class="tenant-action-icon">РўРµР»</span>
           </a>
         <% } %>
       </div>
@@ -1616,13 +1615,13 @@ button.tenant-action-card{
     <% if (__isTenant && __tenantProfile.hasProfile) { %>
       <div class="tenant-context-strip">
         <% if (__tenantProfile.parking_floors.length) { %>
-          <button type="button" class="tenant-context-chip" data-apply-query="<%= __tenantProfile.parking_floors[0] %> этаж"><span class="tenant-context-label">Этаж</span><strong><%= __tenantProfile.parking_floors.join(', ') %></strong></button>
+          <button type="button" class="tenant-context-chip" data-apply-query="<%= __tenantProfile.parking_floors[0] %> СЌС‚Р°Р¶"><span class="tenant-context-label">Р­С‚Р°Р¶</span><strong><%= __tenantProfile.parking_floors.join(', ') %></strong></button>
         <% } %>
         <% if (__tenantProfile.parking_groups.length) { %>
-          <button type="button" class="tenant-context-chip" data-apply-query="<%= __tenantProfile.parking_groups[0] %>"><span class="tenant-context-label">Группа мест</span><strong><%= __tenantProfile.parking_groups.join(', ') %></strong></button>
+          <button type="button" class="tenant-context-chip" data-apply-query="<%= __tenantProfile.parking_groups[0] %>"><span class="tenant-context-label">Р“СЂСѓРїРїР° РјРµСЃС‚</span><strong><%= __tenantProfile.parking_groups.join(', ') %></strong></button>
         <% } %>
         <% if (__tenantProfile.parking_spots.length) { %>
-          <button type="button" class="tenant-context-chip" data-apply-query="<%= __tenantProfile.parking_spots[0] %>"><span class="tenant-context-label">Места</span><strong><%= __tenantProfile.parking_spots.join(', ') %></strong></button>
+          <button type="button" class="tenant-context-chip" data-apply-query="<%= __tenantProfile.parking_spots[0] %>"><span class="tenant-context-label">РњРµСЃС‚Р°</span><strong><%= __tenantProfile.parking_spots.join(', ') %></strong></button>
         <% } %>
       </div>
     <% } %>
@@ -1631,9 +1630,9 @@ button.tenant-action-card{
   <div class="command-center <%= __isTenant ? 'is-tenant' : '' %>">
     <div class="center-panel">
       <div class="center-head">
-        <strong><%= __isTenant ? 'Быстро открыть' : 'Где открыть' %></strong>
+        <strong><%= __isTenant ? 'Р‘С‹СЃС‚СЂРѕ РѕС‚РєСЂС‹С‚СЊ' : 'Р“РґРµ РѕС‚РєСЂС‹С‚СЊ' %></strong>
         <% if (!__isTenant) { %>
-          <span class="center-sub" id="liveGeneratedAt">обновляется</span>
+          <span class="center-sub" id="liveGeneratedAt">РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ</span>
         <% } %>
       </div>
       <% if (__isTenant && __tenantQuickRoutes.length) { %>
@@ -1646,8 +1645,8 @@ button.tenant-action-card{
               data-route-search="<%= route.searchText %>">
               <span class="route-chip-zone"><%= route.zoneName %></span>
               <span class="route-chip-title"><%= route.title %></span>
-              <span class="route-chip-sub"><%= route.subtitle %> • <%= route.count %> <%= __pluralRu(route.count, 'вариант', 'варианта', 'вариантов') %></span>
-              <% if (route.isProfileMatch) { %><span class="route-chip-flag">Мой маршрут</span><% } %>
+              <span class="route-chip-sub"><%= route.subtitle %> вЂў <%= route.count %> <%= __pluralRu(route.count, 'РІР°СЂРёР°РЅС‚', 'РІР°СЂРёР°РЅС‚Р°', 'РІР°СЂРёР°РЅС‚РѕРІ') %></span>
+              <% if (route.isProfileMatch) { %><span class="route-chip-flag">РњРѕР№ РјР°СЂС€СЂСѓС‚</span><% } %>
             </button>
           <% }) %>
         </div>
@@ -1660,9 +1659,9 @@ button.tenant-action-card{
                 <span><%= z.name %></span>
                 <span class="zone-pulse-count"><%= z.devices %></span>
               </span>
-              <span class="zone-pulse-sub"><%= z.descriptor || (z.devices + ' вариантов') %></span>
+              <span class="zone-pulse-sub"><%= z.descriptor || (z.devices + ' РІР°СЂРёР°РЅС‚РѕРІ') %></span>
               <% if (z.lastPoint) { %>
-                <span class="zone-pulse-last"><%= z.lastPoint %> • <%= z.lastResult || '—' %></span>
+                <span class="zone-pulse-last"><%= z.lastPoint %> вЂў <%= z.lastResult || 'вЂ”' %></span>
               <% } %>
             </button>
           <% }) %>
@@ -1673,8 +1672,8 @@ button.tenant-action-card{
     <% if (__showOperatorPanels) { %>
     <div class="center-panel">
       <div class="center-head">
-        <strong>Лента команд</strong>
-        <span class="center-sub" id="liveFeedState"><%= __clientRecentEvents.length ? 'последние события' : 'ожидает события' %></span>
+        <strong>Р›РµРЅС‚Р° РєРѕРјР°РЅРґ</strong>
+        <span class="center-sub" id="liveFeedState"><%= __clientRecentEvents.length ? 'РїРѕСЃР»РµРґРЅРёРµ СЃРѕР±С‹С‚РёСЏ' : 'РѕР¶РёРґР°РµС‚ СЃРѕР±С‹С‚РёСЏ' %></span>
       </div>
       <div class="feed-list" id="liveFeedList">
         <% __clientRecentEvents.slice(0, 5).forEach(function(e){ 
@@ -1683,10 +1682,10 @@ button.tenant-action-card{
         %>
           <div class="feed-item">
             <div>
-              <div class="feed-point"><%= e.point || '—' %></div>
-              <div class="feed-meta"><%= e.datetime_msk || '—' %> • <%= e.actor_fio || e.actor_phone || '—' %></div>
+              <div class="feed-point"><%= e.point || 'вЂ”' %></div>
+              <div class="feed-meta"><%= e.datetime_msk || 'вЂ”' %> вЂў <%= e.actor_fio || e.actor_phone || 'вЂ”' %></div>
             </div>
-            <div class="feed-result <%= _ok ? 'is-ok' : 'is-error' %>"><%= e.result_label || e.result || '—' %><% if (_rid) { %> #<%= _rid %><% } %></div>
+            <div class="feed-result <%= _ok ? 'is-ok' : 'is-error' %>"><%= e.result_label || e.result || 'вЂ”' %><% if (_rid) { %> #<%= _rid %><% } %></div>
           </div>
         <% }) %>
       </div>
@@ -1694,7 +1693,7 @@ button.tenant-action-card{
     <% } %>
   </div>
 
-  <div class="dashboard-empty-search" id="dashboardNoMatches">Ничего не найдено. Попробуйте этаж, вход, шлагбаум или код вроде Ш1.</div>
+  <div class="dashboard-empty-search" id="dashboardNoMatches">РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ. РџРѕРїСЂРѕР±СѓР№С‚Рµ СЌС‚Р°Р¶, РІС…РѕРґ, С€Р»Р°РіР±Р°СѓРј РёР»Рё РєРѕРґ РІСЂРѕРґРµ РЁ1.</div>
   <div class="dashboard-search-help" id="dashboardSearchHelp">
     <div class="dashboard-search-help-title" id="dashboardSearchHelpTitle"></div>
     <div class="dashboard-search-help-chips" id="dashboardSearchHelpChips"></div>
@@ -1702,8 +1701,8 @@ button.tenant-action-card{
 
   <div class="section-head">
     <div>
-      <div class="section-head-title"><%= __isTenant ? 'Что можно открыть' : 'Все точки открытия' %></div>
-      <div class="section-head-sub"><%= __isTenant ? (__tenantProfile.hasProfile ? 'Сначала ваши варианты. Ниже — остальные входы, въезды и шлагбаумы.' : 'Ниже собраны все варианты: въезды, двери, лифты и шлагбаумы.') : 'Все команды сгруппированы по разделам, чтобы быстрее находить нужное действие.' %></div>
+      <div class="section-head-title"><%= __isTenant ? 'Р§С‚Рѕ РјРѕР¶РЅРѕ РѕС‚РєСЂС‹С‚СЊ' : 'Р’СЃРµ С‚РѕС‡РєРё РѕС‚РєСЂС‹С‚РёСЏ' %></div>
+      <div class="section-head-sub"><%= __isTenant ? (__tenantProfile.hasProfile ? 'РЎРЅР°С‡Р°Р»Р° РІР°С€Рё РІР°СЂРёР°РЅС‚С‹. РќРёР¶Рµ вЂ” РѕСЃС‚Р°Р»СЊРЅС‹Рµ РІС…РѕРґС‹, РІСЉРµР·РґС‹ Рё С€Р»Р°РіР±Р°СѓРјС‹.' : 'РќРёР¶Рµ СЃРѕР±СЂР°РЅС‹ РІСЃРµ РІР°СЂРёР°РЅС‚С‹: РІСЉРµР·РґС‹, РґРІРµСЂРё, Р»РёС„С‚С‹ Рё С€Р»Р°РіР±Р°СѓРјС‹.') : 'Р’СЃРµ РєРѕРјР°РЅРґС‹ СЃРіСЂСѓРїРїРёСЂРѕРІР°РЅС‹ РїРѕ СЂР°Р·РґРµР»Р°Рј, С‡С‚РѕР±С‹ Р±С‹СЃС‚СЂРµРµ РЅР°С…РѕРґРёС‚СЊ РЅСѓР¶РЅРѕРµ РґРµР№СЃС‚РІРёРµ.' %></div>
     </div>
   </div>
   <div class="zone-list">
@@ -1718,9 +1717,9 @@ button.tenant-action-card{
           <button type="button" class="zone-toggle" data-zone-toggle>
             <div class="zone-title-wrap">
               <div class="zone-title"><%= group.zoneName %></div>
-              <div class="zone-sub"><%= zoneMeta && zoneMeta.descriptor ? zoneMeta.descriptor : (devices.length + ' вариантов') %></div>
+              <div class="zone-sub"><%= zoneMeta && zoneMeta.descriptor ? zoneMeta.descriptor : (devices.length + ' РІР°СЂРёР°РЅС‚РѕРІ') %></div>
             </div>
-            <div class="zone-arrow">⌄</div>
+            <div class="zone-arrow">вЊ„</div>
           </button>
 
           <div class="zone-body">
@@ -1737,7 +1736,7 @@ button.tenant-action-card{
                       <div>
                         <div class="route-section-title"><%= section.title %></div>
                         <div class="route-section-sub"><%= section.subtitle %></div>
-                        <% if (section.isProfileMatch) { %><div class="route-section-tag">Мой маршрут</div><% } %>
+                        <% if (section.isProfileMatch) { %><div class="route-section-tag">РњРѕР№ РјР°СЂС€СЂСѓС‚</div><% } %>
                       </div>
                       <div class="route-section-count"><%= section.count %></div>
                     </div>
@@ -1752,7 +1751,7 @@ button.tenant-action-card{
                           data-device-zone="<%= group.zoneName %>"
                           data-device-search="<%= [device.name, (__isTenant ? '' : device.id), group.zoneName, section.title, section.subtitle].filter(Boolean).join(' ').toLowerCase() %>">
                           <span class="device-name"><%= device.name %></span>
-                          <span class="device-icon">→</span>
+                          <span class="device-icon">в†’</span>
                         </button>
                       <% }) %>
                     </div>
@@ -1761,14 +1760,14 @@ button.tenant-action-card{
               </div>
 
             <% } else { %>
-              <div class="empty-zone">В этом разделе пока ничего не подключено.</div>
+              <div class="empty-zone">Р’ СЌС‚РѕРј СЂР°Р·РґРµР»Рµ РїРѕРєР° РЅРёС‡РµРіРѕ РЅРµ РїРѕРґРєР»СЋС‡РµРЅРѕ.</div>
             <% } %>
           </div>
         </div>
       <% }) %>
     <% } else { %>
       <div class="card">
-        <div class="text-muted">Для вас пока ничего не настроено.</div>
+        <div class="text-muted">Р”Р»СЏ РІР°СЃ РїРѕРєР° РЅРёС‡РµРіРѕ РЅРµ РЅР°СЃС‚СЂРѕРµРЅРѕ.</div>
       </div>
     <% } %>
   </div>
@@ -1777,24 +1776,24 @@ button.tenant-action-card{
   <div class="signal-grid">
     <div class="center-panel">
       <div class="center-head">
-        <strong>Ритм объекта</strong>
-        <span class="center-sub">по последним командам</span>
+        <strong>Р РёС‚Рј РѕР±СЉРµРєС‚Р°</strong>
+        <span class="center-sub">РїРѕ РїРѕСЃР»РµРґРЅРёРј РєРѕРјР°РЅРґР°Рј</span>
       </div>
       <div class="signal-strip">
         <div class="signal-chip">
-          <span class="signal-chip-label">Успешно</span>
+          <span class="signal-chip-label">РЈСЃРїРµС€РЅРѕ</span>
           <span class="signal-chip-value" id="signalOkCount"><%= __stats.okCount || 0 %></span>
-          <span class="signal-chip-sub">стабильные срабатывания</span>
+          <span class="signal-chip-sub">СЃС‚Р°Р±РёР»СЊРЅС‹Рµ СЃСЂР°Р±Р°С‚С‹РІР°РЅРёСЏ</span>
         </div>
         <div class="signal-chip">
-          <span class="signal-chip-label">Внимание</span>
+          <span class="signal-chip-label">Р’РЅРёРјР°РЅРёРµ</span>
           <span class="signal-chip-value" id="signalAttentionCount"><%= __stats.attentionCount || 0 %></span>
-          <span class="signal-chip-sub">отказы и ошибки шлюза</span>
+          <span class="signal-chip-sub">РѕС‚РєР°Р·С‹ Рё РѕС€РёР±РєРё С€Р»СЋР·Р°</span>
         </div>
         <div class="signal-chip">
-          <span class="signal-chip-label">Последняя активность</span>
-          <span class="signal-chip-value" id="signalLastTime"><%= (__lastEvent && ((__lastEvent.datetime_msk || '').toString().split(' ').slice(1).join(' '))) || '—' %></span>
-          <span class="signal-chip-sub">обновляется вместе с live</span>
+          <span class="signal-chip-label">РџРѕСЃР»РµРґРЅСЏСЏ Р°РєС‚РёРІРЅРѕСЃС‚СЊ</span>
+          <span class="signal-chip-value" id="signalLastTime"><%= (__lastEvent && ((__lastEvent.datetime_msk || '').toString().split(' ').slice(1).join(' '))) || 'вЂ”' %></span>
+          <span class="signal-chip-sub">РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ РІРјРµСЃС‚Рµ СЃ live</span>
         </div>
       </div>
       <div class="rhythm-chart" id="rhythmChart">
@@ -1812,22 +1811,22 @@ button.tenant-action-card{
 
     <div class="center-panel">
       <div class="center-head">
-        <strong>Требуют внимания</strong>
-        <a class="center-sub" href="/logs?status=attention">в журнал</a>
+        <strong>РўСЂРµР±СѓСЋС‚ РІРЅРёРјР°РЅРёСЏ</strong>
+        <a class="center-sub" href="/logs?status=attention">РІ Р¶СѓСЂРЅР°Р»</a>
       </div>
       <div class="attention-list" id="attentionList">
         <% if (__attentionEvents.length) { %>
           <% __attentionEvents.forEach(function(item){ %>
             <a class="attention-item" href="<%= item.logs_href || '/logs?status=attention' %>">
               <div>
-                <div class="attention-point"><%= item.point || '—' %></div>
-                <div class="attention-meta"><%= item.datetime_msk || '—' %> • <%= item.actor_fio || item.actor_phone || '—' %></div>
+                <div class="attention-point"><%= item.point || 'вЂ”' %></div>
+                <div class="attention-meta"><%= item.datetime_msk || 'вЂ”' %> вЂў <%= item.actor_fio || item.actor_phone || 'вЂ”' %></div>
               </div>
-              <div class="attention-result"><%= item.result_label || item.result || '—' %></div>
+              <div class="attention-result"><%= item.result_label || item.result || 'вЂ”' %></div>
             </a>
           <% }) %>
         <% } else { %>
-          <div class="attention-empty">Проблемных событий в live-окне нет</div>
+          <div class="attention-empty">РџСЂРѕР±Р»РµРјРЅС‹С… СЃРѕР±С‹С‚РёР№ РІ live-РѕРєРЅРµ РЅРµС‚</div>
         <% } %>
       </div>
     </div>
@@ -1836,21 +1835,21 @@ button.tenant-action-card{
 
   <div class="result-note" id="dashboardResult" role="status" aria-live="polite" data-tone="idle">
     <div class="result-note-head">
-      <span class="result-note-badge" id="dashboardResultBadge">Готово к команде</span>
+      <span class="result-note-badge" id="dashboardResultBadge">Р“РѕС‚РѕРІРѕ Рє РєРѕРјР°РЅРґРµ</span>
       <span class="result-note-code" id="dashboardResultCode"></span>
     </div>
-    <div class="result-note-title" id="dashboardResultTitle"><%= __isTenant ? 'Выберите нужную дверь, шлагбаум или въезд.' : 'Выберите устройство и отправьте команду.' %></div>
-    <div class="result-note-body" id="dashboardResultBody"><%= __isTenant ? 'Сначала приложение попросит подтвердить действие, чтобы не было случайного открытия.' : 'Перед выполнением команда попросит подтверждение, а затем покажет результат без технического шума.' %></div>
-    <div class="result-note-hint" id="dashboardResultHint">После каждого действия здесь будет ясно, что произошло и что делать дальше.</div>
+    <div class="result-note-title" id="dashboardResultTitle"><%= __isTenant ? 'Р’С‹Р±РµСЂРёС‚Рµ РЅСѓР¶РЅСѓСЋ РґРІРµСЂСЊ, С€Р»Р°РіР±Р°СѓРј РёР»Рё РІСЉРµР·Рґ.' : 'Р’С‹Р±РµСЂРёС‚Рµ СѓСЃС‚СЂРѕР№СЃС‚РІРѕ Рё РѕС‚РїСЂР°РІСЊС‚Рµ РєРѕРјР°РЅРґСѓ.' %></div>
+    <div class="result-note-body" id="dashboardResultBody"><%= __isTenant ? 'РЎРЅР°С‡Р°Р»Р° РїСЂРёР»РѕР¶РµРЅРёРµ РїРѕРїСЂРѕСЃРёС‚ РїРѕРґС‚РІРµСЂРґРёС‚СЊ РґРµР№СЃС‚РІРёРµ, С‡С‚РѕР±С‹ РЅРµ Р±С‹Р»Рѕ СЃР»СѓС‡Р°Р№РЅРѕРіРѕ РѕС‚РєСЂС‹С‚РёСЏ.' : 'РџРµСЂРµРґ РІС‹РїРѕР»РЅРµРЅРёРµРј РєРѕРјР°РЅРґР° РїРѕРїСЂРѕСЃРёС‚ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ, Р° Р·Р°С‚РµРј РїРѕРєР°Р¶РµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ Р±РµР· С‚РµС…РЅРёС‡РµСЃРєРѕРіРѕ С€СѓРјР°.' %></div>
+    <div class="result-note-hint" id="dashboardResultHint">РџРѕСЃР»Рµ РєР°Р¶РґРѕРіРѕ РґРµР№СЃС‚РІРёСЏ Р·РґРµСЃСЊ Р±СѓРґРµС‚ СЏСЃРЅРѕ, С‡С‚Рѕ РїСЂРѕРёР·РѕС€Р»Рѕ Рё С‡С‚Рѕ РґРµР»Р°С‚СЊ РґР°Р»СЊС€Рµ.</div>
   </div>
 </div>
 
 <div class="command-toast" id="commandToast" role="status" aria-live="polite" data-tone="idle">
   <div class="command-toast-head">
-    <span class="command-toast-badge" id="commandToastBadge">Статус</span>
+    <span class="command-toast-badge" id="commandToastBadge">РЎС‚Р°С‚СѓСЃ</span>
     <span class="recent-code" id="commandToastCode"></span>
   </div>
-  <div class="command-toast-title" id="commandToastTitle">Команда выполнена</div>
+  <div class="command-toast-title" id="commandToastTitle">РљРѕРјР°РЅРґР° РІС‹РїРѕР»РЅРµРЅР°</div>
   <div class="command-toast-body" id="commandToastBody"></div>
   <div class="command-toast-hint" id="commandToastHint"></div>
 </div>
@@ -1900,15 +1899,15 @@ button.tenant-action-card{
   const armedTimers = new WeakMap();
   const armedHtml = new WeakMap();
   const RECENT_KEY = 'parking.dashboard.recent.v1';
-  const searchCountPrefix = <%- JSON.stringify(__isTenant ? '' : 'Устройств: ') %>;
+  const searchCountPrefix = <%- JSON.stringify(__isTenant ? '' : 'РЈСЃС‚СЂРѕР№СЃС‚РІ: ') %>;
   const SUPPORT_CONTACT = <%- JSON.stringify(__supportContact || null) %>;
   let toastTimer = null;
   const DEFAULT_RESULT_STATE = {
     tone: 'idle',
-    badge: 'Готово к команде',
-    title: <%- JSON.stringify(__isTenant ? 'Выберите нужную дверь, шлагбаум или въезд.' : 'Выберите устройство и отправьте команду.') %>,
-    body: <%- JSON.stringify(__isTenant ? 'Сначала приложение попросит подтвердить действие, чтобы не было случайного открытия.' : 'Перед выполнением команда попросит подтверждение, а затем покажет результат без технического шума.') %>,
-    hint: 'После каждого действия здесь будет ясно, что произошло и что делать дальше.',
+    badge: 'Р“РѕС‚РѕРІРѕ Рє РєРѕРјР°РЅРґРµ',
+    title: <%- JSON.stringify(__isTenant ? 'Р’С‹Р±РµСЂРёС‚Рµ РЅСѓР¶РЅСѓСЋ РґРІРµСЂСЊ, С€Р»Р°РіР±Р°СѓРј РёР»Рё РІСЉРµР·Рґ.' : 'Р’С‹Р±РµСЂРёС‚Рµ СѓСЃС‚СЂРѕР№СЃС‚РІРѕ Рё РѕС‚РїСЂР°РІСЊС‚Рµ РєРѕРјР°РЅРґСѓ.') %>,
+    body: <%- JSON.stringify(__isTenant ? 'РЎРЅР°С‡Р°Р»Р° РїСЂРёР»РѕР¶РµРЅРёРµ РїРѕРїСЂРѕСЃРёС‚ РїРѕРґС‚РІРµСЂРґРёС‚СЊ РґРµР№СЃС‚РІРёРµ, С‡С‚РѕР±С‹ РЅРµ Р±С‹Р»Рѕ СЃР»СѓС‡Р°Р№РЅРѕРіРѕ РѕС‚РєСЂС‹С‚РёСЏ.' : 'РџРµСЂРµРґ РІС‹РїРѕР»РЅРµРЅРёРµРј РєРѕРјР°РЅРґР° РїРѕРїСЂРѕСЃРёС‚ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ, Р° Р·Р°С‚РµРј РїРѕРєР°Р¶РµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ Р±РµР· С‚РµС…РЅРёС‡РµСЃРєРѕРіРѕ С€СѓРјР°.') %>,
+    hint: 'РџРѕСЃР»Рµ РєР°Р¶РґРѕРіРѕ РґРµР№СЃС‚РІРёСЏ Р·РґРµСЃСЊ Р±СѓРґРµС‚ СЏСЃРЅРѕ, С‡С‚Рѕ РїСЂРѕРёР·РѕС€Р»Рѕ Рё С‡С‚Рѕ РґРµР»Р°С‚СЊ РґР°Р»СЊС€Рµ.',
     requestId: '',
     marker: 'idle'
   };
@@ -2000,7 +1999,7 @@ button.tenant-action-card{
           '<span class="recent-name">' + escapeHtml(item.device.name || item.name || item.id) + '</span>' +
           '<span class="recent-sub">' + escapeHtml(item.device.zoneName || item.zoneName || '') + '</span>' +
         '</span>' +
-        '<span class="device-icon">→</span>';
+        '<span class="device-icon">в†’</span>';
       recentQuickList.appendChild(button);
     });
     bindOpenButtons(recentQuickList);
@@ -2032,26 +2031,26 @@ button.tenant-action-card{
     const text = String(base || '').trim();
     if (!SUPPORT_CONTACT || !SUPPORT_CONTACT.phone_display) return text;
     return text
-      ? (text + ' Диспетчер: ' + SUPPORT_CONTACT.phone_display + '.')
-      : ('Диспетчер: ' + SUPPORT_CONTACT.phone_display + '.');
+      ? (text + ' Р”РёСЃРїРµС‚С‡РµСЂ: ' + SUPPORT_CONTACT.phone_display + '.')
+      : ('Р”РёСЃРїРµС‚С‡РµСЂ: ' + SUPPORT_CONTACT.phone_display + '.');
   }
 
   function guidanceForResponse(options) {
     const tone = options?.tone || 'idle';
-    const deviceName = options?.deviceName || 'Устройство';
+    const deviceName = options?.deviceName || 'РЈСЃС‚СЂРѕР№СЃС‚РІРѕ';
     const zoneName = options?.zoneName || '';
     const requestId = options?.requestId || '';
     const elapsedMs = Number.isFinite(Number(options?.elapsedMs)) ? Number(options.elapsedMs) : null;
     const detailBits = [zoneName];
-    if (elapsedMs !== null) detailBits.push('Ответ за ' + elapsedMs + ' мс');
+    if (elapsedMs !== null) detailBits.push('РћС‚РІРµС‚ Р·Р° ' + elapsedMs + ' РјСЃ');
 
     if (tone === 'pending') {
       return {
         tone,
-        badge: 'Отправляем команду',
-        title: 'Открываем: ' + deviceName,
-        body: detailBits.filter(Boolean).join(' • ') || 'Ждем ответ от объекта.',
-        hint: 'Не закрывайте экран, пока не придет ответ.',
+        badge: 'РћС‚РїСЂР°РІР»СЏРµРј РєРѕРјР°РЅРґСѓ',
+        title: 'РћС‚РєСЂС‹РІР°РµРј: ' + deviceName,
+        body: detailBits.filter(Boolean).join(' вЂў ') || 'Р–РґРµРј РѕС‚РІРµС‚ РѕС‚ РѕР±СЉРµРєС‚Р°.',
+        hint: 'РќРµ Р·Р°РєСЂС‹РІР°Р№С‚Рµ СЌРєСЂР°РЅ, РїРѕРєР° РЅРµ РїСЂРёРґРµС‚ РѕС‚РІРµС‚.',
         requestId,
         marker: 'pending:' + deviceName
       };
@@ -2060,10 +2059,10 @@ button.tenant-action-card{
     if (tone === 'confirm') {
       return {
         tone: 'warning',
-        badge: 'Нужно подтвердить',
-        title: 'Нажмите еще раз, чтобы открыть: ' + deviceName,
-        body: zoneName || 'Это защита от случайного нажатия.',
-        hint: 'Если передумали, просто подождите пару секунд.',
+        badge: 'РќСѓР¶РЅРѕ РїРѕРґС‚РІРµСЂРґРёС‚СЊ',
+        title: 'РќР°Р¶РјРёС‚Рµ РµС‰Рµ СЂР°Р·, С‡С‚РѕР±С‹ РѕС‚РєСЂС‹С‚СЊ: ' + deviceName,
+        body: zoneName || 'Р­С‚Рѕ Р·Р°С‰РёС‚Р° РѕС‚ СЃР»СѓС‡Р°Р№РЅРѕРіРѕ РЅР°Р¶Р°С‚РёСЏ.',
+        hint: 'Р•СЃР»Рё РїРµСЂРµРґСѓРјР°Р»Рё, РїСЂРѕСЃС‚Рѕ РїРѕРґРѕР¶РґРёС‚Рµ РїР°СЂСѓ СЃРµРєСѓРЅРґ.',
         requestId,
         marker: 'confirm:' + deviceName
       };
@@ -2072,10 +2071,10 @@ button.tenant-action-card{
     if (options?.reason === 'denied') {
       return {
         tone: 'error',
-        badge: 'Нет доступа',
-        title: deviceName + ' не открылся',
-        body: 'У вас нет прав на этот проход или проезд.',
-        hint: supportHint('Выберите свой маршрут или обратитесь к администратору парковки.'),
+        badge: 'РќРµС‚ РґРѕСЃС‚СѓРїР°',
+        title: deviceName + ' РЅРµ РѕС‚РєСЂС‹Р»СЃСЏ',
+        body: 'РЈ РІР°СЃ РЅРµС‚ РїСЂР°РІ РЅР° СЌС‚РѕС‚ РїСЂРѕС…РѕРґ РёР»Рё РїСЂРѕРµР·Рґ.',
+        hint: supportHint('Р’С‹Р±РµСЂРёС‚Рµ СЃРІРѕР№ РјР°СЂС€СЂСѓС‚ РёР»Рё РѕР±СЂР°С‚РёС‚РµСЃСЊ Рє Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂСѓ РїР°СЂРєРѕРІРєРё.'),
         requestId,
         marker: 'result:' + requestId
       };
@@ -2084,10 +2083,10 @@ button.tenant-action-card{
     if (options?.reason === 'disabled') {
       return {
         tone: 'warning',
-        badge: 'Временно отключено',
-        title: deviceName + ' сейчас недоступен',
-        body: zoneName || 'Этот вход или проезд временно отключен.',
-        hint: supportHint('Попробуйте соседний маршрут или свяжитесь с диспетчером.'),
+        badge: 'Р’СЂРµРјРµРЅРЅРѕ РѕС‚РєР»СЋС‡РµРЅРѕ',
+        title: deviceName + ' СЃРµР№С‡Р°СЃ РЅРµРґРѕСЃС‚СѓРїРµРЅ',
+        body: zoneName || 'Р­С‚РѕС‚ РІС…РѕРґ РёР»Рё РїСЂРѕРµР·Рґ РІСЂРµРјРµРЅРЅРѕ РѕС‚РєР»СЋС‡РµРЅ.',
+        hint: supportHint('РџРѕРїСЂРѕР±СѓР№С‚Рµ СЃРѕСЃРµРґРЅРёР№ РјР°СЂС€СЂСѓС‚ РёР»Рё СЃРІСЏР¶РёС‚РµСЃСЊ СЃ РґРёСЃРїРµС‚С‡РµСЂРѕРј.'),
         requestId,
         marker: 'result:' + requestId
       };
@@ -2096,10 +2095,10 @@ button.tenant-action-card{
     if (options?.reason === 'missing') {
       return {
         tone: 'error',
-        badge: 'Уже недоступно',
-        title: deviceName + ' больше не найден',
-        body: 'Экран устарел или этот элемент уже убрали из системы.',
-        hint: 'Обновите страницу и выберите другой вариант.',
+        badge: 'РЈР¶Рµ РЅРµРґРѕСЃС‚СѓРїРЅРѕ',
+        title: deviceName + ' Р±РѕР»СЊС€Рµ РЅРµ РЅР°Р№РґРµРЅ',
+        body: 'Р­РєСЂР°РЅ СѓСЃС‚Р°СЂРµР» РёР»Рё СЌС‚РѕС‚ СЌР»РµРјРµРЅС‚ СѓР¶Рµ СѓР±СЂР°Р»Рё РёР· СЃРёСЃС‚РµРјС‹.',
+        hint: 'РћР±РЅРѕРІРёС‚Рµ СЃС‚СЂР°РЅРёС†Сѓ Рё РІС‹Р±РµСЂРёС‚Рµ РґСЂСѓРіРѕР№ РІР°СЂРёР°РЅС‚.',
         requestId,
         marker: 'result:' + requestId
       };
@@ -2108,10 +2107,10 @@ button.tenant-action-card{
     if (options?.reason === 'gateway') {
       return {
         tone: 'error',
-        badge: 'Нет связи с объектом',
-        title: deviceName + ' не ответил',
-        body: detailBits.filter(Boolean).join(' • ') || 'Сейчас нет ответа от шлюза объекта.',
-        hint: supportHint('Ничего не открылось. Подождите несколько секунд и попробуйте снова.'),
+        badge: 'РќРµС‚ СЃРІСЏР·Рё СЃ РѕР±СЉРµРєС‚РѕРј',
+        title: deviceName + ' РЅРµ РѕС‚РІРµС‚РёР»',
+        body: detailBits.filter(Boolean).join(' вЂў ') || 'РЎРµР№С‡Р°СЃ РЅРµС‚ РѕС‚РІРµС‚Р° РѕС‚ С€Р»СЋР·Р° РѕР±СЉРµРєС‚Р°.',
+        hint: supportHint('РќРёС‡РµРіРѕ РЅРµ РѕС‚РєСЂС‹Р»РѕСЃСЊ. РџРѕРґРѕР¶РґРёС‚Рµ РЅРµСЃРєРѕР»СЊРєРѕ СЃРµРєСѓРЅРґ Рё РїРѕРїСЂРѕР±СѓР№С‚Рµ СЃРЅРѕРІР°.'),
         requestId,
         marker: 'result:' + requestId
       };
@@ -2120,10 +2119,10 @@ button.tenant-action-card{
     if (options?.reason === 'network') {
       return {
         tone: 'error',
-        badge: 'Ошибка сети',
-        title: 'Команда не дошла до сервера',
-        body: options?.error || 'Связь с приложением прервалась.',
-        hint: supportHint('Проверьте интернет и повторите команду еще раз.'),
+        badge: 'РћС€РёР±РєР° СЃРµС‚Рё',
+        title: 'РљРѕРјР°РЅРґР° РЅРµ РґРѕС€Р»Р° РґРѕ СЃРµСЂРІРµСЂР°',
+        body: options?.error || 'РЎРІСЏР·СЊ СЃ РїСЂРёР»РѕР¶РµРЅРёРµРј РїСЂРµСЂРІР°Р»Р°СЃСЊ.',
+        hint: supportHint('РџСЂРѕРІРµСЂСЊС‚Рµ РёРЅС‚РµСЂРЅРµС‚ Рё РїРѕРІС‚РѕСЂРёС‚Рµ РєРѕРјР°РЅРґСѓ РµС‰Рµ СЂР°Р·.'),
         requestId,
         marker: 'result:' + requestId
       };
@@ -2132,10 +2131,10 @@ button.tenant-action-card{
     if (options?.ok) {
       return {
         tone: 'success',
-        badge: 'Открыто',
-        title: deviceName + ' открыт',
-        body: detailBits.filter(Boolean).join(' • ') || 'Команда принята объектом.',
-        hint: supportHint('Если проход не сработал, повторите команду или свяжитесь с диспетчером.'),
+        badge: 'РћС‚РєСЂС‹С‚Рѕ',
+        title: deviceName + ' РѕС‚РєСЂС‹С‚',
+        body: detailBits.filter(Boolean).join(' вЂў ') || 'РљРѕРјР°РЅРґР° РїСЂРёРЅСЏС‚Р° РѕР±СЉРµРєС‚РѕРј.',
+        hint: supportHint('Р•СЃР»Рё РїСЂРѕС…РѕРґ РЅРµ СЃСЂР°Р±РѕС‚Р°Р», РїРѕРІС‚РѕСЂРёС‚Рµ РєРѕРјР°РЅРґСѓ РёР»Рё СЃРІСЏР¶РёС‚РµСЃСЊ СЃ РґРёСЃРїРµС‚С‡РµСЂРѕРј.'),
         requestId,
         marker: 'result:' + requestId
       };
@@ -2143,10 +2142,10 @@ button.tenant-action-card{
 
     return {
       tone: 'error',
-      badge: 'Не получилось',
-      title: deviceName + ' не открылся',
-      body: options?.error || 'Система не смогла выполнить команду.',
-      hint: 'Повторите попытку чуть позже.',
+      badge: 'РќРµ РїРѕР»СѓС‡РёР»РѕСЃСЊ',
+      title: deviceName + ' РЅРµ РѕС‚РєСЂС‹Р»СЃСЏ',
+      body: options?.error || 'РЎРёСЃС‚РµРјР° РЅРµ СЃРјРѕРіР»Р° РІС‹РїРѕР»РЅРёС‚СЊ РєРѕРјР°РЅРґСѓ.',
+      hint: 'РџРѕРІС‚РѕСЂРёС‚Рµ РїРѕРїС‹С‚РєСѓ С‡СѓС‚СЊ РїРѕР·Р¶Рµ.',
       requestId,
       marker: 'result:' + requestId
     };
@@ -2157,8 +2156,8 @@ button.tenant-action-card{
     const ok = !!data?.ok;
     gatewayStatus.classList.toggle('is-online', ok);
     gatewayStatus.classList.toggle('is-offline', !ok);
-    const ms = Number.isFinite(Number(data?.elapsed_ms)) ? ' • ' + Number(data.elapsed_ms) + ' мс' : '';
-    gatewayStatusText.textContent = (data?.label || (ok ? 'Шлюз онлайн' : 'Шлюз недоступен')) + ms;
+    const ms = Number.isFinite(Number(data?.elapsed_ms)) ? ' вЂў ' + Number(data.elapsed_ms) + ' РјСЃ' : '';
+    gatewayStatusText.textContent = (data?.label || (ok ? 'РЁР»СЋР· РѕРЅР»Р°Р№РЅ' : 'РЁР»СЋР· РЅРµРґРѕСЃС‚СѓРїРµРЅ')) + ms;
   }
 
   function renderZonePulse(zones) {
@@ -2173,12 +2172,12 @@ button.tenant-action-card{
       button.setAttribute('data-jump-zone', zone.id || '');
       button.innerHTML =
         '<span class="zone-pulse-name">' +
-          '<span>' + escapeHtml(zone.name || zone.id || '—') + '</span>' +
+          '<span>' + escapeHtml(zone.name || zone.id || 'вЂ”') + '</span>' +
           '<span class="zone-pulse-count">' + escapeHtml(zone.devices || 0) + '</span>' +
         '</span>' +
-        '<span class="zone-pulse-sub">' + escapeHtml(zone.descriptor || ((zone.devices || 0) + ' вариантов')) + '</span>' +
+        '<span class="zone-pulse-sub">' + escapeHtml(zone.descriptor || ((zone.devices || 0) + ' РІР°СЂРёР°РЅС‚РѕРІ')) + '</span>' +
         (zone.lastPoint
-          ? '<span class="zone-pulse-last">' + escapeHtml(zone.lastPoint + ' • ' + (zone.lastResult || '—')) + '</span>'
+          ? '<span class="zone-pulse-last">' + escapeHtml(zone.lastPoint + ' вЂў ' + (zone.lastResult || 'вЂ”')) + '</span>'
           : '');
       zonePulseGrid.appendChild(button);
     });
@@ -2189,10 +2188,10 @@ button.tenant-action-card{
     if (!liveFeedList) return;
     const list = Array.isArray(events) ? events : [];
     liveFeedList.innerHTML = '';
-    if (liveFeedState) liveFeedState.textContent = list.length ? 'последние события' : 'ожидает события';
+    if (liveFeedState) liveFeedState.textContent = list.length ? 'РїРѕСЃР»РµРґРЅРёРµ СЃРѕР±С‹С‚РёСЏ' : 'РѕР¶РёРґР°РµС‚ СЃРѕР±С‹С‚РёСЏ';
 
     if (!list.length) {
-      liveFeedList.innerHTML = '<div class="recent-row"><div class="recent-main"><div class="recent-name">Событий пока нет</div></div></div>';
+      liveFeedList.innerHTML = '<div class="recent-row"><div class="recent-main"><div class="recent-name">РЎРѕР±С‹С‚РёР№ РїРѕРєР° РЅРµС‚</div></div></div>';
       return;
     }
 
@@ -2202,10 +2201,10 @@ button.tenant-action-card{
       item.className = 'feed-item';
       item.innerHTML =
         '<div>' +
-          '<div class="feed-point">' + escapeHtml(event.point || '—') + '</div>' +
-          '<div class="feed-meta">' + escapeHtml(event.datetime_msk || event.datetime || '—') + ' • ' + escapeHtml(event.actor_fio || event.actor_phone || '—') + '</div>' +
+          '<div class="feed-point">' + escapeHtml(event.point || 'вЂ”') + '</div>' +
+          '<div class="feed-meta">' + escapeHtml(event.datetime_msk || event.datetime || 'вЂ”') + ' вЂў ' + escapeHtml(event.actor_fio || event.actor_phone || 'вЂ”') + '</div>' +
         '</div>' +
-        '<div class="feed-result ' + (ok ? 'is-ok' : 'is-error') + '">' + escapeHtml(event.result_label || event.result || '—') + (event.request_id ? ' #' + escapeHtml(shortRequestId(event.request_id)) : '') + '</div>';
+        '<div class="feed-result ' + (ok ? 'is-ok' : 'is-error') + '">' + escapeHtml(event.result_label || event.result || 'вЂ”') + (event.request_id ? ' #' + escapeHtml(shortRequestId(event.request_id)) : '') + '</div>';
       liveFeedList.appendChild(item);
     });
   }
@@ -2215,7 +2214,7 @@ button.tenant-action-card{
     const list = Array.isArray(items) ? items : [];
     rhythmChart.innerHTML = '';
     if (!list.length) {
-      rhythmChart.innerHTML = '<div class="attention-empty">Команды появятся здесь сразу после первых действий</div>';
+      rhythmChart.innerHTML = '<div class="attention-empty">РљРѕРјР°РЅРґС‹ РїРѕСЏРІСЏС‚СЃСЏ Р·РґРµСЃСЊ СЃСЂР°Р·Сѓ РїРѕСЃР»Рµ РїРµСЂРІС‹С… РґРµР№СЃС‚РІРёР№</div>';
       return;
     }
 
@@ -2227,7 +2226,7 @@ button.tenant-action-card{
           '<span class="rhythm-total">' + escapeHtml(item.total || 0) + '</span>' +
           '<div class="rhythm-bar-fill ' + (item.attention ? 'is-alert' : '') + '" style="height:' + escapeHtml(item.height || 16) + '%"></div>' +
         '</div>' +
-        '<div class="rhythm-label">' + escapeHtml(item.label || '—') + '</div>';
+        '<div class="rhythm-label">' + escapeHtml(item.label || 'вЂ”') + '</div>';
       rhythmChart.appendChild(col);
     });
   }
@@ -2237,7 +2236,7 @@ button.tenant-action-card{
     const list = Array.isArray(items) ? items : [];
     attentionList.innerHTML = '';
     if (!list.length) {
-      attentionList.innerHTML = '<div class="attention-empty">Проблемных событий в live-окне нет</div>';
+      attentionList.innerHTML = '<div class="attention-empty">РџСЂРѕР±Р»РµРјРЅС‹С… СЃРѕР±С‹С‚РёР№ РІ live-РѕРєРЅРµ РЅРµС‚</div>';
       return;
     }
 
@@ -2247,10 +2246,10 @@ button.tenant-action-card{
       link.href = item.logs_href || '/logs?status=attention';
       link.innerHTML =
         '<div>' +
-          '<div class="attention-point">' + escapeHtml(item.point || '—') + '</div>' +
-          '<div class="attention-meta">' + escapeHtml(item.datetime_msk || item.datetime || '—') + ' • ' + escapeHtml(item.actor_fio || item.actor_phone || '—') + '</div>' +
+          '<div class="attention-point">' + escapeHtml(item.point || 'вЂ”') + '</div>' +
+          '<div class="attention-meta">' + escapeHtml(item.datetime_msk || item.datetime || 'вЂ”') + ' вЂў ' + escapeHtml(item.actor_fio || item.actor_phone || 'вЂ”') + '</div>' +
         '</div>' +
-        '<div class="attention-result">' + escapeHtml(item.result_label || item.result || '—') + '</div>';
+        '<div class="attention-result">' + escapeHtml(item.result_label || item.result || 'вЂ”') + '</div>';
       attentionList.appendChild(link);
     });
   }
@@ -2263,8 +2262,8 @@ button.tenant-action-card{
     if (signalLastTime) {
       const last = list[0];
       signalLastTime.textContent = last && (last.datetime_msk || last.datetime)
-        ? String(last.datetime_msk || last.datetime).split(' ').slice(1).join(' ') || '—'
-        : '—';
+        ? String(last.datetime_msk || last.datetime).split(' ').slice(1).join(' ') || 'вЂ”'
+        : 'вЂ”';
     }
   }
 
@@ -2274,7 +2273,7 @@ button.tenant-action-card{
     const next = state && state.title && state.badge ? state : guidanceForResponse(state);
     commandToast.classList.add('show');
     commandToast.dataset.tone = next.tone || 'idle';
-    if (commandToastBadge) commandToastBadge.textContent = next.badge || 'Статус';
+    if (commandToastBadge) commandToastBadge.textContent = next.badge || 'РЎС‚Р°С‚СѓСЃ';
     if (commandToastTitle) commandToastTitle.textContent = next.title || '';
     if (commandToastCode) commandToastCode.textContent = next.requestId ? '#' + shortRequestId(next.requestId) : '';
     if (commandToastBody) commandToastBody.textContent = next.body || '';
@@ -2356,9 +2355,9 @@ button.tenant-action-card{
   function normalizeSearch(value) {
     return String(value || '')
       .toLowerCase()
-      .replace(/ё/g, 'е')
+      .replace(/С‘/g, 'Рµ')
       .replace(/[\u2013\u2014]/g, '-')
-      .replace(/[^a-zа-я0-9/#+\-.\s]/gi, ' ')
+      .replace(/[^a-zР°-СЏ0-9/#+\-.\s]/gi, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -2370,22 +2369,22 @@ button.tenant-action-card{
 
   const SEARCH_ALIAS_GROUPS = [
     {
-      label: '-1 этаж',
-      terms: ['-1', 'минус 1', 'минус первый', 'п1', 'подземный 1', 'подземный -1'],
-      matchRelated: ['-1 этаж', 'Въезд П1'],
-      related: ['-1 этаж', 'Подземный уровень', 'Въезд П1']
+      label: '-1 СЌС‚Р°Р¶',
+      terms: ['-1', 'РјРёРЅСѓСЃ 1', 'РјРёРЅСѓСЃ РїРµСЂРІС‹Р№', 'Рї1', 'РїРѕРґР·РµРјРЅС‹Р№ 1', 'РїРѕРґР·РµРјРЅС‹Р№ -1'],
+      matchRelated: ['-1 СЌС‚Р°Р¶', 'Р’СЉРµР·Рґ Рџ1'],
+      related: ['-1 СЌС‚Р°Р¶', 'РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ', 'Р’СЉРµР·Рґ Рџ1']
     },
     {
-      label: '-2 этаж',
-      terms: ['-2', 'минус 2', 'минус второй', 'п2', 'п2/3', 'подземный 2', 'подземный -2'],
-      matchRelated: ['-2 этаж', 'Въезд П2/3'],
-      related: ['-2 этаж', 'Подземный уровень', 'Въезд П2/3']
+      label: '-2 СЌС‚Р°Р¶',
+      terms: ['-2', 'РјРёРЅСѓСЃ 2', 'РјРёРЅСѓСЃ РІС‚РѕСЂРѕР№', 'Рї2', 'Рї2/3', 'РїРѕРґР·РµРјРЅС‹Р№ 2', 'РїРѕРґР·РµРјРЅС‹Р№ -2'],
+      matchRelated: ['-2 СЌС‚Р°Р¶', 'Р’СЉРµР·Рґ Рџ2/3'],
+      related: ['-2 СЌС‚Р°Р¶', 'РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ', 'Р’СЉРµР·Рґ Рџ2/3']
     },
     {
-      label: 'Подземный уровень',
-      terms: ['подземный', 'подземный уровень', 'подземка', 'под землей', 'подземный въезд', 'подземная часть'],
-      matchRelated: ['Подземный уровень', 'Въезд П1', 'Въезд П2/3'],
-      related: ['Подземный уровень', 'Въезд П1', 'Въезд П2/3']
+      label: 'РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ',
+      terms: ['РїРѕРґР·РµРјРЅС‹Р№', 'РїРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ', 'РїРѕРґР·РµРјРєР°', 'РїРѕРґ Р·РµРјР»РµР№', 'РїРѕРґР·РµРјРЅС‹Р№ РІСЉРµР·Рґ', 'РїРѕРґР·РµРјРЅР°СЏ С‡Р°СЃС‚СЊ'],
+      matchRelated: ['РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ', 'Р’СЉРµР·Рґ Рџ1', 'Р’СЉРµР·Рґ Рџ2/3'],
+      related: ['РџРѕРґР·РµРјРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ', 'Р’СЉРµР·Рґ Рџ1', 'Р’СЉРµР·Рґ Рџ2/3']
     }
   ];
 
@@ -2473,12 +2472,12 @@ button.tenant-action-card{
 
   function floorIntent(value) {
     const normalized = normalizeSearch(value);
-    const positive = normalized.match(/^(\d{1,2})(?:\s*(?:эт|этаж|этажа))?$/);
+    const positive = normalized.match(/^(\d{1,2})(?:\s*(?:СЌС‚|СЌС‚Р°Р¶|СЌС‚Р°Р¶Р°))?$/);
     if (positive && isLikelyFloor(positive[1])) {
       const floor = positive[1];
       return {
-        label: floor + ' этаж',
-        related: [floor + ' этаж', 'Въезд ' + floor + 'эт', 'Выезд ' + floor + 'эт']
+        label: floor + ' СЌС‚Р°Р¶',
+        related: [floor + ' СЌС‚Р°Р¶', 'Р’СЉРµР·Рґ ' + floor + 'СЌС‚', 'Р’С‹РµР·Рґ ' + floor + 'СЌС‚']
       };
     }
     return null;
@@ -2513,7 +2512,7 @@ button.tenant-action-card{
     if (!normalized) return false;
     if (floorIntent(normalized)) return true;
     const alias = findAliasIntent(normalized);
-    return !!(alias && /^-\d+\s*этаж$/u.test(String(alias.label || '')));
+    return !!(alias && /^-\d+\s*СЌС‚Р°Р¶$/u.test(String(alias.label || '')));
   }
 
   function buildSearchVariants(value) {
@@ -2521,7 +2520,7 @@ button.tenant-action-card{
     if (!normalized) return [];
 
     const variants = new Set();
-    const floorOnly = normalized.match(/^(\d{1,2})(?:\s*(?:эт|этаж|этажа))?$/);
+    const floorOnly = normalized.match(/^(\d{1,2})(?:\s*(?:СЌС‚|СЌС‚Р°Р¶|СЌС‚Р°Р¶Р°))?$/);
 
     function addVariant(next) {
       const clean = normalizeSearch(next);
@@ -2537,22 +2536,22 @@ button.tenant-action-card{
 
     if (floorOnly && isLikelyFloor(floorOnly[1])) {
       const floor = floorOnly[1];
-      addVariant(floor + ' этаж');
-      addVariant('этаж ' + floor);
-      addVariant(floor + ' эт');
-      addVariant(floor + 'эт');
+      addVariant(floor + ' СЌС‚Р°Р¶');
+      addVariant('СЌС‚Р°Р¶ ' + floor);
+      addVariant(floor + ' СЌС‚');
+      addVariant(floor + 'СЌС‚');
     }
 
-    Array.from(normalized.matchAll(/\b(\d{1,2})\s*(эт|этаж|этажа)\b/g)).forEach((match) => {
+    Array.from(normalized.matchAll(/\b(\d{1,2})\s*(СЌС‚|СЌС‚Р°Р¶|СЌС‚Р°Р¶Р°)\b/g)).forEach((match) => {
       if (!isLikelyFloor(match[1])) return;
       addVariant(match[1]);
-      addVariant(match[1] + ' этаж');
-      addVariant('этаж ' + match[1]);
-      addVariant(match[1] + ' эт');
-      addVariant(match[1] + 'эт');
+      addVariant(match[1] + ' СЌС‚Р°Р¶');
+      addVariant('СЌС‚Р°Р¶ ' + match[1]);
+      addVariant(match[1] + ' СЌС‚');
+      addVariant(match[1] + 'СЌС‚');
     });
 
-    Array.from(normalized.matchAll(/\b([a-zа-я]+)\s*(\d[\d/-]*)\b/gi)).forEach((match) => {
+    Array.from(normalized.matchAll(/\b([a-zР°-СЏ]+)\s*(\d[\d/-]*)\b/gi)).forEach((match) => {
       addVariant(match[1] + match[2]);
       addVariant(match[1] + ' ' + match[2]);
     });
@@ -2671,13 +2670,13 @@ button.tenant-action-card{
     let title = '';
 
     if (visibleDevices === 0 && intent) {
-      title = 'Похоже, вы ищете: ' + intent.label + '. Для текущего доступа подходящих вариантов не найдено.';
+      title = 'РџРѕС…РѕР¶Рµ, РІС‹ РёС‰РµС‚Рµ: ' + intent.label + '. Р”Р»СЏ С‚РµРєСѓС‰РµРіРѕ РґРѕСЃС‚СѓРїР° РїРѕРґС…РѕРґСЏС‰РёС… РІР°СЂРёР°РЅС‚РѕРІ РЅРµ РЅР°Р№РґРµРЅРѕ.';
       intent.related.forEach((label) => chips.push({ label, query: label }));
     } else if (visibleDevices === 0 && suggestions.length) {
-      title = 'Не нашли точное совпадение. Попробуйте один из вариантов ниже.';
+      title = 'РќРµ РЅР°С€Р»Рё С‚РѕС‡РЅРѕРµ СЃРѕРІРїР°РґРµРЅРёРµ. РџРѕРїСЂРѕР±СѓР№С‚Рµ РѕРґРёРЅ РёР· РІР°СЂРёР°РЅС‚РѕРІ РЅРёР¶Рµ.';
       suggestions.forEach((item) => chips.push({ label: item.label, query: item.search }));
     } else if (intent && !floorIntent(normalized)) {
-      title = 'Ищем как: ' + intent.label + '.';
+      title = 'РС‰РµРј РєР°Рє: ' + intent.label + '.';
       intent.related.forEach((label) => chips.push({ label, query: label }));
     }
 
@@ -2756,7 +2755,7 @@ button.tenant-action-card{
     if (tenantQuickRoutes) tenantQuickRoutes.style.display = quickRoutes.some((btn) => !btn.classList.contains('is-hidden')) ? '' : 'none';
 
     if (searchCount) {
-      const text = searching ? ('Найдено: ' + visibleDevices) : (searchCountPrefix ? (searchCountPrefix + visibleDevices) : '');
+      const text = searching ? ('РќР°Р№РґРµРЅРѕ: ' + visibleDevices) : (searchCountPrefix ? (searchCountPrefix + visibleDevices) : '');
       searchCount.textContent = text;
       searchCount.hidden = !text;
     }
@@ -2790,10 +2789,10 @@ button.tenant-action-card{
         const dt = data.generatedAt ? new Date(data.generatedAt) : null;
         liveGeneratedAt.textContent = dt && !Number.isNaN(dt.getTime())
           ? dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-          : 'обновлено';
+          : 'РѕР±РЅРѕРІР»РµРЅРѕ';
       }
     } catch {
-      renderGatewayStatus({ ok: false, label: 'Шлюз недоступен' });
+      renderGatewayStatus({ ok: false, label: 'РЁР»СЋР· РЅРµРґРѕСЃС‚СѓРїРµРЅ' });
     }
   }
 
@@ -2811,7 +2810,7 @@ button.tenant-action-card{
     btn.dataset.openBound = '1';
     btn.addEventListener('click', async function(){
       const deviceId = btn.getAttribute('data-device-id');
-      const deviceName = btn.getAttribute('data-device-name') || 'Устройство';
+      const deviceName = btn.getAttribute('data-device-name') || 'РЈСЃС‚СЂРѕР№СЃС‚РІРѕ';
       const zoneName = btn.getAttribute('data-device-zone') || '';
       if (!deviceId) return;
 
@@ -2819,7 +2818,7 @@ button.tenant-action-card{
         armedHtml.set(btn, btn.innerHTML);
         btn.dataset.armed = '1';
         btn.classList.add('is-armed');
-        btn.innerHTML = '<span class="device-name">Подтвердить</span><span class="device-icon">!</span>';
+        btn.innerHTML = '<span class="device-name">РџРѕРґС‚РІРµСЂРґРёС‚СЊ</span><span class="device-icon">!</span>';
         setResultState(guidanceForResponse({ tone: 'confirm', deviceName, zoneName }));
         const timer = setTimeout(function(){
           restoreArmed(btn);
@@ -2837,9 +2836,9 @@ button.tenant-action-card{
       btn.setAttribute('aria-busy', 'true');
       btn.classList.remove('is-error', 'is-success');
       btn.classList.add('is-pending');
-      btn.innerHTML = '<span class="device-name">Отправляем...</span><span class="device-icon">…</span>';
+      btn.innerHTML = '<span class="device-name">РћС‚РїСЂР°РІР»СЏРµРј...</span><span class="device-icon">вЂ¦</span>';
       const icon = btn.querySelector('.device-icon');
-      if (icon) icon.textContent = '…';
+      if (icon) icon.textContent = 'вЂ¦';
 
       try {
         setResultState(guidanceForResponse({ tone: 'pending', deviceName, zoneName }));
@@ -2874,7 +2873,7 @@ button.tenant-action-card{
           refreshDashboardLive();
           btn.classList.remove('is-pending');
           btn.classList.add('is-success');
-          btn.innerHTML = '<span class="device-name">Открыто</span><span class="device-icon">✓</span>';
+          btn.innerHTML = '<span class="device-name">РћС‚РєСЂС‹С‚Рѕ</span><span class="device-icon">вњ“</span>';
 
           setTimeout(() => {
             btn.classList.remove('is-success');
